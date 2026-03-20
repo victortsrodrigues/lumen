@@ -1,0 +1,133 @@
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useRegister } from '@workspace/api-client-react';
+import { useAuth } from '@/hooks/use-auth-context';
+import { Link, useLocation } from 'wouter';
+import { AuthLayout } from '@/components/layout/AuthLayout';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+
+const registerSchema = z.object({
+  name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
+  email: z.string().email('Email inválido'),
+  password: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres'),
+  consentAccepted: z.literal(true, {
+    errorMap: () => ({ message: 'Você deve aceitar os termos' })
+  })
+});
+
+type RegisterForm = z.infer<typeof registerSchema>;
+
+export default function Register() {
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const { getValidCsrfToken, checkSession } = useAuth();
+  const { mutateAsync: registerMutation } = useRegister();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { register, handleSubmit, formState: { errors } } = useForm<RegisterForm>({
+    resolver: zodResolver(registerSchema),
+  });
+
+  const onSubmit = async (data: RegisterForm) => {
+    setIsSubmitting(true);
+    try {
+      const csrfToken = await getValidCsrfToken();
+      await registerMutation({
+        data: { ...data, csrfToken }
+      });
+
+      await checkSession();
+      toast({ title: "Conta criada!", description: "Bem-vindo ao sistema." });
+      setLocation('/');
+    } catch (error: any) {
+      toast({
+        title: "Erro no registro",
+        description: error?.message || "Ocorreu um erro ao criar a conta.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <AuthLayout title="Criar conta" subtitle="Preencha os dados abaixo para começar.">
+      <motion.form 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        onSubmit={handleSubmit(onSubmit)} 
+        className="space-y-4"
+      >
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-foreground">Nome completo</label>
+          <input
+            {...register('name')}
+            type="text"
+            placeholder="João Silva"
+            className="w-full px-4 py-3 rounded-xl bg-background border-2 border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+          />
+          {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-foreground">Email</label>
+          <input
+            {...register('email')}
+            type="email"
+            placeholder="seu@email.com"
+            className="w-full px-4 py-3 rounded-xl bg-background border-2 border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+          />
+          {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-foreground">Senha</label>
+          <input
+            {...register('password')}
+            type="password"
+            placeholder="Mínimo 8 caracteres"
+            className="w-full px-4 py-3 rounded-xl bg-background border-2 border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+          />
+          {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
+        </div>
+
+        <div className="flex items-start pt-2">
+          <div className="flex items-center h-5">
+            <input
+              {...register('consentAccepted')}
+              type="checkbox"
+              className="w-5 h-5 rounded border-2 border-border text-primary focus:ring-primary focus:ring-offset-2 bg-background transition-all"
+            />
+          </div>
+          <div className="ml-3 text-sm">
+            <label className="font-medium text-foreground">Política de Privacidade</label>
+            <p className="text-muted-foreground">Eu concordo com o processamento dos meus dados.</p>
+          </div>
+        </div>
+        {errors.consentAccepted && <p className="text-sm text-destructive">{errors.consentAccepted.message}</p>}
+
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full flex items-center justify-center px-6 py-3.5 mt-6 rounded-xl font-semibold text-white bg-gradient-to-r from-primary to-primary/90 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-0.5 active:translate-y-0 active:shadow-md disabled:opacity-70 transition-all duration-200"
+        >
+          {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Criar minha conta"}
+        </button>
+      </motion.form>
+
+      <div className="mt-8 text-center">
+        <p className="text-muted-foreground text-sm">
+          Já possui conta?{' '}
+          <Link href="/login" className="font-semibold text-foreground hover:text-primary transition-colors">
+            Fazer login
+          </Link>
+        </p>
+      </div>
+    </AuthLayout>
+  );
+}

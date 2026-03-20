@@ -1,0 +1,18 @@
+packages:
+  "framer-motion": "For page transitions, staggered list animations, and smooth UI interactions"
+  "react-hook-form": "For robust form state management and validation"
+  "@hookform/resolvers": "To integrate Zod validation with react-hook-form"
+  "zod": "For client-side form validation schemas"
+  "date-fns": "For formatting dates in the audit log and user profile"
+  "clsx": "Utility for constructing className strings conditionally"
+  "tailwind-merge": "Utility to cleanly merge Tailwind CSS classes without conflicts"
+
+images:
+  - path: "artifacts/church-erp/public/images/auth-bg.png"
+    description: "A calm, beautiful, abstract architectural interior of a modern church or sanctuary, soft natural lighting, peaceful atmosphere, premium editorial style, subtle cool slate and warm white tones"
+    aspect_ratio: "9:16"
+
+notes:
+  - "The app relies on @workspace/api-client-react for TanStack Query hooks."
+  - "Auth flow requires fetching a CSRF token before POST requests."
+  - "Session inactivity timer runs on the client to warn at 25 mins and logout at 30 mins."
