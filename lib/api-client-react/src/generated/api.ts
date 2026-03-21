@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Church ERP API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
@@ -19,17 +19,29 @@ import type {
 import type {
   AuditLogListResponse,
   AuthResponse,
+  CepResponse,
+  CreateMemberRequest,
   CsrfTokenResponse,
   ErrorResponse,
   ForgotPasswordRequest,
   GetAuditLogsParams,
   HealthStatus,
+  ImportCsvRequest,
+  ImportCsvResponse,
+  ListMembersParams,
   LoginRequest,
+  MemberDetail,
+  MemberHistoryResponse,
+  MemberListResponse,
   MessageResponse,
   MfaSetupResponse,
   MfaVerifyRequest,
   RegisterRequest,
+  RequestUploadUrlBody,
+  RequestUploadUrlResponse,
   ResetPasswordRequest,
+  RevealCpfResponse,
+  UpdateMemberRequest,
   UserProfile,
 } from "./api.schemas";
 
@@ -43,7 +55,6 @@ type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const getHealthCheckUrl = () => {
@@ -941,3 +952,867 @@ export function useGetAuditLogs<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List members (paginated)
+ */
+export const getListMembersUrl = (params?: ListMembersParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/members?${stringifiedParams}`
+    : `/api/members`;
+};
+
+export const listMembers = async (
+  params?: ListMembersParams,
+  options?: RequestInit,
+): Promise<MemberListResponse> => {
+  return customFetch<MemberListResponse>(getListMembersUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListMembersQueryKey = (params?: ListMembersParams) => {
+  return [`/api/members`, ...(params ? [params] : [])] as const;
+};
+
+export const getListMembersQueryOptions = <
+  TData = Awaited<ReturnType<typeof listMembers>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  params?: ListMembersParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listMembers>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListMembersQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listMembers>>> = ({
+    signal,
+  }) => listMembers(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listMembers>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListMembersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listMembers>>
+>;
+export type ListMembersQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary List members (paginated)
+ */
+
+export function useListMembers<
+  TData = Awaited<ReturnType<typeof listMembers>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  params?: ListMembersParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listMembers>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListMembersQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new member
+ */
+export const getCreateMemberUrl = () => {
+  return `/api/members`;
+};
+
+export const createMember = async (
+  createMemberRequest: CreateMemberRequest,
+  options?: RequestInit,
+): Promise<MemberDetail> => {
+  return customFetch<MemberDetail>(getCreateMemberUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createMemberRequest),
+  });
+};
+
+export const getCreateMemberMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createMember>>,
+    TError,
+    { data: BodyType<CreateMemberRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createMember>>,
+  TError,
+  { data: BodyType<CreateMemberRequest> },
+  TContext
+> => {
+  const mutationKey = ["createMember"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createMember>>,
+    { data: BodyType<CreateMemberRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createMember(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateMemberMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createMember>>
+>;
+export type CreateMemberMutationBody = BodyType<CreateMemberRequest>;
+export type CreateMemberMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Create a new member
+ */
+export const useCreateMember = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createMember>>,
+    TError,
+    { data: BodyType<CreateMemberRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createMember>>,
+  TError,
+  { data: BodyType<CreateMemberRequest> },
+  TContext
+> => {
+  return useMutation(getCreateMemberMutationOptions(options));
+};
+
+/**
+ * @summary Get a single member
+ */
+export const getGetMemberUrl = (id: string) => {
+  return `/api/members/${id}`;
+};
+
+export const getMember = async (
+  id: string,
+  options?: RequestInit,
+): Promise<MemberDetail> => {
+  return customFetch<MemberDetail>(getGetMemberUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMemberQueryKey = (id: string) => {
+  return [`/api/members/${id}`] as const;
+};
+
+export const getGetMemberQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMember>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMember>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMemberQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMember>>> = ({
+    signal,
+  }) => getMember(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getMember>>, TError, TData> & {
+    queryKey: QueryKey;
+  };
+};
+
+export type GetMemberQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMember>>
+>;
+export type GetMemberQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get a single member
+ */
+
+export function useGetMember<
+  TData = Awaited<ReturnType<typeof getMember>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMember>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMemberQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update a member
+ */
+export const getUpdateMemberUrl = (id: string) => {
+  return `/api/members/${id}`;
+};
+
+export const updateMember = async (
+  id: string,
+  updateMemberRequest: UpdateMemberRequest,
+  options?: RequestInit,
+): Promise<MemberDetail> => {
+  return customFetch<MemberDetail>(getUpdateMemberUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateMemberRequest),
+  });
+};
+
+export const getUpdateMemberMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateMember>>,
+    TError,
+    { id: string; data: BodyType<UpdateMemberRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateMember>>,
+  TError,
+  { id: string; data: BodyType<UpdateMemberRequest> },
+  TContext
+> => {
+  const mutationKey = ["updateMember"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateMember>>,
+    { id: string; data: BodyType<UpdateMemberRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateMember(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateMemberMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateMember>>
+>;
+export type UpdateMemberMutationBody = BodyType<UpdateMemberRequest>;
+export type UpdateMemberMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Update a member
+ */
+export const useUpdateMember = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateMember>>,
+    TError,
+    { id: string; data: BodyType<UpdateMemberRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateMember>>,
+  TError,
+  { id: string; data: BodyType<UpdateMemberRequest> },
+  TContext
+> => {
+  return useMutation(getUpdateMemberMutationOptions(options));
+};
+
+/**
+ * @summary Delete a member (Admin only)
+ */
+export const getDeleteMemberUrl = (id: string) => {
+  return `/api/members/${id}`;
+};
+
+export const deleteMember = async (
+  id: string,
+  options?: RequestInit,
+): Promise<MessageResponse> => {
+  return customFetch<MessageResponse>(getDeleteMemberUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteMemberMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteMember>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteMember>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["deleteMember"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteMember>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteMember(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteMemberMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteMember>>
+>;
+
+export type DeleteMemberMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Delete a member (Admin only)
+ */
+export const useDeleteMember = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteMember>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteMember>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getDeleteMemberMutationOptions(options));
+};
+
+/**
+ * @summary Get member change history
+ */
+export const getGetMemberHistoryUrl = (id: string) => {
+  return `/api/members/${id}/history`;
+};
+
+export const getMemberHistory = async (
+  id: string,
+  options?: RequestInit,
+): Promise<MemberHistoryResponse> => {
+  return customFetch<MemberHistoryResponse>(getGetMemberHistoryUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMemberHistoryQueryKey = (id: string) => {
+  return [`/api/members/${id}/history`] as const;
+};
+
+export const getGetMemberHistoryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMemberHistory>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMemberHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMemberHistoryQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMemberHistory>>
+  > = ({ signal }) => getMemberHistory(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMemberHistory>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMemberHistoryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMemberHistory>>
+>;
+export type GetMemberHistoryQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get member change history
+ */
+
+export function useGetMemberHistory<
+  TData = Awaited<ReturnType<typeof getMemberHistory>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMemberHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMemberHistoryQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Reveal full CPF (Admin only, audit logged)
+ */
+export const getRevealMemberCpfUrl = (id: string) => {
+  return `/api/members/${id}/cpf/reveal`;
+};
+
+export const revealMemberCpf = async (
+  id: string,
+  options?: RequestInit,
+): Promise<RevealCpfResponse> => {
+  return customFetch<RevealCpfResponse>(getRevealMemberCpfUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getRevealMemberCpfMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof revealMemberCpf>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof revealMemberCpf>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["revealMemberCpf"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof revealMemberCpf>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return revealMemberCpf(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RevealMemberCpfMutationResult = NonNullable<
+  Awaited<ReturnType<typeof revealMemberCpf>>
+>;
+
+export type RevealMemberCpfMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Reveal full CPF (Admin only, audit logged)
+ */
+export const useRevealMemberCpf = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof revealMemberCpf>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof revealMemberCpf>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getRevealMemberCpfMutationOptions(options));
+};
+
+/**
+ * @summary Bulk import members via CSV (Admin/Leader only)
+ */
+export const getImportMembersCsvUrl = () => {
+  return `/api/members/import/csv`;
+};
+
+export const importMembersCsv = async (
+  importCsvRequest: ImportCsvRequest,
+  options?: RequestInit,
+): Promise<ImportCsvResponse> => {
+  return customFetch<ImportCsvResponse>(getImportMembersCsvUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(importCsvRequest),
+  });
+};
+
+export const getImportMembersCsvMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof importMembersCsv>>,
+    TError,
+    { data: BodyType<ImportCsvRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof importMembersCsv>>,
+  TError,
+  { data: BodyType<ImportCsvRequest> },
+  TContext
+> => {
+  const mutationKey = ["importMembersCsv"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof importMembersCsv>>,
+    { data: BodyType<ImportCsvRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return importMembersCsv(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ImportMembersCsvMutationResult = NonNullable<
+  Awaited<ReturnType<typeof importMembersCsv>>
+>;
+export type ImportMembersCsvMutationBody = BodyType<ImportCsvRequest>;
+export type ImportMembersCsvMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Bulk import members via CSV (Admin/Leader only)
+ */
+export const useImportMembersCsv = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof importMembersCsv>>,
+    TError,
+    { data: BodyType<ImportCsvRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof importMembersCsv>>,
+  TError,
+  { data: BodyType<ImportCsvRequest> },
+  TContext
+> => {
+  return useMutation(getImportMembersCsvMutationOptions(options));
+};
+
+/**
+ * @summary Lookup address by CEP (via ViaCEP)
+ */
+export const getLookupCepUrl = (cep: string) => {
+  return `/api/utils/cep/${cep}`;
+};
+
+export const lookupCep = async (
+  cep: string,
+  options?: RequestInit,
+): Promise<CepResponse> => {
+  return customFetch<CepResponse>(getLookupCepUrl(cep), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getLookupCepQueryKey = (cep: string) => {
+  return [`/api/utils/cep/${cep}`] as const;
+};
+
+export const getLookupCepQueryOptions = <
+  TData = Awaited<ReturnType<typeof lookupCep>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  cep: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof lookupCep>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getLookupCepQueryKey(cep);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof lookupCep>>> = ({
+    signal,
+  }) => lookupCep(cep, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!cep,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof lookupCep>>, TError, TData> & {
+    queryKey: QueryKey;
+  };
+};
+
+export type LookupCepQueryResult = NonNullable<
+  Awaited<ReturnType<typeof lookupCep>>
+>;
+export type LookupCepQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Lookup address by CEP (via ViaCEP)
+ */
+
+export function useLookupCep<
+  TData = Awaited<ReturnType<typeof lookupCep>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  cep: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof lookupCep>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getLookupCepQueryOptions(cep, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Request a presigned upload URL for photo
+ */
+export const getRequestUploadUrlUrl = () => {
+  return `/api/storage/uploads/request-url`;
+};
+
+export const requestUploadUrl = async (
+  requestUploadUrlBody: RequestUploadUrlBody,
+  options?: RequestInit,
+): Promise<RequestUploadUrlResponse> => {
+  return customFetch<RequestUploadUrlResponse>(getRequestUploadUrlUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(requestUploadUrlBody),
+  });
+};
+
+export const getRequestUploadUrlMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestUploadUrl>>,
+    TError,
+    { data: BodyType<RequestUploadUrlBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof requestUploadUrl>>,
+  TError,
+  { data: BodyType<RequestUploadUrlBody> },
+  TContext
+> => {
+  const mutationKey = ["requestUploadUrl"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof requestUploadUrl>>,
+    { data: BodyType<RequestUploadUrlBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return requestUploadUrl(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RequestUploadUrlMutationResult = NonNullable<
+  Awaited<ReturnType<typeof requestUploadUrl>>
+>;
+export type RequestUploadUrlMutationBody = BodyType<RequestUploadUrlBody>;
+export type RequestUploadUrlMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Request a presigned upload URL for photo
+ */
+export const useRequestUploadUrl = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestUploadUrl>>,
+    TError,
+    { data: BodyType<RequestUploadUrlBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof requestUploadUrl>>,
+  TError,
+  { data: BodyType<RequestUploadUrlBody> },
+  TContext
+> => {
+  return useMutation(getRequestUploadUrlMutationOptions(options));
+};

@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/use-auth-context";
 
 const MENU_ITEMS = [
   { icon: Home, label: "Dashboard", href: "/" },
-  { icon: Users, label: "Membros", href: "/members", placeholder: true },
+  { icon: Users, label: "Membros", href: "/members" },
   { icon: DollarSign, label: "Financeiro", href: "/finance", placeholder: true },
   { icon: Calendar, label: "Eventos", href: "/events", placeholder: true },
   { icon: Layers, label: "Grupos", href: "/groups", placeholder: true },
@@ -36,7 +36,7 @@ export function Sidebar() {
   };
 
   return (
-    <div className="flex flex-col w-64 h-screen bg-card border-r border-border/50 shadow-sm transition-all duration-300">
+    <div className="flex flex-col w-64 h-screen bg-card border-r border-border/50 shadow-sm transition-all duration-300 z-10">
       {/* Logo Area */}
       <div className="flex items-center h-16 px-6 border-b border-border/50">
         <Hexagon className="w-6 h-6 text-primary mr-3 fill-primary/10" />
@@ -52,7 +52,11 @@ export function Sidebar() {
         </div>
         
         {MENU_ITEMS.map((item) => {
-          const isActive = location === item.href;
+          // Highlight active logic: match exact for dashboard, match prefix for sub-routes
+          const isActive = item.href === '/' 
+            ? location === '/' 
+            : location.startsWith(item.href);
+
           return (
             <Link key={item.href} href={item.href} 
               className={cn(
@@ -82,12 +86,12 @@ export function Sidebar() {
             <Link href="/audit-logs" 
               className={cn(
                 "flex items-center px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group",
-                location === '/audit-logs'
+                location.startsWith('/audit-logs')
                   ? "bg-primary/10 text-primary" 
                   : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
               )}
             >
-              <Shield className={cn("w-5 h-5 mr-3 transition-colors", location === '/audit-logs' ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
+              <Shield className={cn("w-5 h-5 mr-3 transition-colors", location.startsWith('/audit-logs') ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
               Logs de Auditoria
             </Link>
           </>

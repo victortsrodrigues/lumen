@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Church ERP API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 export interface HealthStatus {
   status: string;
@@ -104,6 +104,189 @@ export interface AuditLogListResponse {
   limit: number;
 }
 
+export type MemberStatus = (typeof MemberStatus)[keyof typeof MemberStatus];
+
+export const MemberStatus = {
+  ativo: "ativo",
+  inativo: "inativo",
+  transferido: "transferido",
+  falecido: "falecido",
+} as const;
+
+export interface MemberSummary {
+  id: string;
+  fullName: string;
+  cpfMasked: string;
+  email?: string;
+  status: MemberStatus;
+  photoPath?: string;
+  familyId?: string;
+  familyName?: string;
+  createdAt: string;
+}
+
+export type MemberDetailSex =
+  (typeof MemberDetailSex)[keyof typeof MemberDetailSex];
+
+export const MemberDetailSex = {
+  masculino: "masculino",
+  feminino: "feminino",
+  outro: "outro",
+} as const;
+
+export interface MemberDetail {
+  id: string;
+  fullName: string;
+  cpfMasked: string;
+  dateOfBirth?: string;
+  sex?: MemberDetailSex;
+  phone?: string;
+  email?: string;
+  addressZip?: string;
+  addressStreet?: string;
+  addressNumber?: string;
+  addressComplement?: string;
+  addressNeighborhood?: string;
+  addressCity?: string;
+  addressState?: string;
+  conversionDate?: string;
+  baptismDate?: string;
+  status: MemberStatus;
+  photoPath?: string;
+  familyId?: string;
+  familyName?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MemberListResponse {
+  members: MemberSummary[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export type CreateMemberRequestSex =
+  (typeof CreateMemberRequestSex)[keyof typeof CreateMemberRequestSex];
+
+export const CreateMemberRequestSex = {
+  masculino: "masculino",
+  feminino: "feminino",
+  outro: "outro",
+} as const;
+
+export interface CreateMemberRequest {
+  fullName: string;
+  cpf?: string;
+  dateOfBirth?: string;
+  sex?: CreateMemberRequestSex;
+  phone?: string;
+  email?: string;
+  addressZip?: string;
+  addressStreet?: string;
+  addressNumber?: string;
+  addressComplement?: string;
+  addressNeighborhood?: string;
+  addressCity?: string;
+  addressState?: string;
+  conversionDate?: string;
+  baptismDate?: string;
+  status: MemberStatus;
+  photoPath?: string;
+  familyId?: string;
+  familyName?: string;
+  lgpdConsentAccepted: boolean;
+}
+
+export type UpdateMemberRequestSex =
+  (typeof UpdateMemberRequestSex)[keyof typeof UpdateMemberRequestSex];
+
+export const UpdateMemberRequestSex = {
+  masculino: "masculino",
+  feminino: "feminino",
+  outro: "outro",
+} as const;
+
+export interface UpdateMemberRequest {
+  fullName?: string;
+  cpf?: string;
+  dateOfBirth?: string;
+  sex?: UpdateMemberRequestSex;
+  phone?: string;
+  email?: string;
+  addressZip?: string;
+  addressStreet?: string;
+  addressNumber?: string;
+  addressComplement?: string;
+  addressNeighborhood?: string;
+  addressCity?: string;
+  addressState?: string;
+  conversionDate?: string;
+  baptismDate?: string;
+  status?: MemberStatus;
+  photoPath?: string;
+  familyId?: string;
+  familyName?: string;
+}
+
+export interface RevealCpfResponse {
+  cpf: string;
+}
+
+export type MemberHistoryEntryFieldChanges = { [key: string]: unknown };
+
+export interface MemberHistoryEntry {
+  id: string;
+  memberId: string;
+  changedByUserId: string;
+  changeType: string;
+  fieldChanges?: MemberHistoryEntryFieldChanges;
+  createdAt: string;
+}
+
+export interface MemberHistoryResponse {
+  history: MemberHistoryEntry[];
+}
+
+export interface ImportCsvRequest {
+  csvContent: string;
+  lgpdConsentAccepted: boolean;
+}
+
+export interface ImportCsvRowResult {
+  row: number;
+  success: boolean;
+  memberId?: string;
+  fullName?: string;
+  error?: string;
+}
+
+export interface ImportCsvResponse {
+  total: number;
+  succeeded: number;
+  failed: number;
+  results: ImportCsvRowResult[];
+}
+
+export interface CepResponse {
+  zip: string;
+  street?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
+}
+
+export interface RequestUploadUrlBody {
+  name: string;
+  size: number;
+  contentType: string;
+}
+
+export interface RequestUploadUrlResponse {
+  uploadURL: string;
+  objectPath: string;
+}
+
 export type GetAuditLogsParams = {
   /**
    * @minimum 1
@@ -117,3 +300,28 @@ export type GetAuditLogsParams = {
   userId?: string;
   action?: string;
 };
+
+export type ListMembersParams = {
+  /**
+   * @minimum 1
+   */
+  page?: number;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
+  search?: string;
+  status?: ListMembersStatus;
+  familyId?: string;
+};
+
+export type ListMembersStatus =
+  (typeof ListMembersStatus)[keyof typeof ListMembersStatus];
+
+export const ListMembersStatus = {
+  ativo: "ativo",
+  inativo: "inativo",
+  transferido: "transferido",
+  falecido: "falecido",
+} as const;

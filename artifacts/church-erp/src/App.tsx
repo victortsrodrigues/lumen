@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 
 import { AuthProvider } from "./hooks/use-auth-context";
 
-// Pages
+// Core Pages
 import Login from "./pages/login";
 import Register from "./pages/register";
 import ForgotPassword from "./pages/forgot-password";
@@ -13,6 +13,13 @@ import MfaVerify from "./pages/mfa-verify";
 import Dashboard from "./pages/dashboard";
 import AuditLogs from "./pages/audit-logs";
 import NotFound from "./pages/not-found";
+
+// Members Module
+import MembersList from "./pages/members";
+import NewMember from "./pages/members/new";
+import MemberProfile from "./pages/members/[id]";
+import EditMember from "./pages/members/[id]/edit";
+import ImportMembers from "./pages/members/import";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,9 +39,16 @@ function Router() {
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/mfa-verify" component={MfaVerify} />
       
-      {/* Protected Routes (AppLayout handles protection) */}
+      {/* Dashboard & Admin */}
       <Route path="/" component={Dashboard} />
       <Route path="/audit-logs" component={AuditLogs} />
+      
+      {/* Members Module */}
+      <Route path="/members" component={MembersList} />
+      <Route path="/members/new" component={NewMember} />
+      <Route path="/members/import" component={ImportMembers} />
+      <Route path="/members/:id/edit" component={EditMember} />
+      <Route path="/members/:id" component={MemberProfile} />
       
       {/* Fallback */}
       <Route component={NotFound} />

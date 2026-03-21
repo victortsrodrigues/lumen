@@ -3,12 +3,11 @@
  * Do not edit manually.
  * Api
  * Church ERP API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import * as zod from "zod";
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
@@ -170,4 +169,249 @@ export const GetAuditLogsResponse = zod.object({
   total: zod.number(),
   page: zod.number(),
   limit: zod.number(),
+});
+
+/**
+ * @summary List members (paginated)
+ */
+export const listMembersQueryPageDefault = 1;
+
+export const listMembersQueryLimitDefault = 20;
+export const listMembersQueryLimitMax = 100;
+
+export const ListMembersQueryParams = zod.object({
+  page: zod.coerce.number().min(1).default(listMembersQueryPageDefault),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(listMembersQueryLimitMax)
+    .default(listMembersQueryLimitDefault),
+  search: zod.coerce.string().optional(),
+  status: zod.enum(["ativo", "inativo", "transferido", "falecido"]).optional(),
+  familyId: zod.coerce.string().optional(),
+});
+
+export const ListMembersResponse = zod.object({
+  members: zod.array(
+    zod.object({
+      id: zod.string(),
+      fullName: zod.string(),
+      cpfMasked: zod.string(),
+      email: zod.string().optional(),
+      status: zod.enum(["ativo", "inativo", "transferido", "falecido"]),
+      photoPath: zod.string().optional(),
+      familyId: zod.string().optional(),
+      familyName: zod.string().optional(),
+      createdAt: zod.date(),
+    }),
+  ),
+  total: zod.number(),
+  page: zod.number(),
+  limit: zod.number(),
+});
+
+/**
+ * @summary Create a new member
+ */
+export const CreateMemberBody = zod.object({
+  fullName: zod.string(),
+  cpf: zod.string().optional(),
+  dateOfBirth: zod.string().optional(),
+  sex: zod.enum(["masculino", "feminino", "outro"]).optional(),
+  phone: zod.string().optional(),
+  email: zod.string().optional(),
+  addressZip: zod.string().optional(),
+  addressStreet: zod.string().optional(),
+  addressNumber: zod.string().optional(),
+  addressComplement: zod.string().optional(),
+  addressNeighborhood: zod.string().optional(),
+  addressCity: zod.string().optional(),
+  addressState: zod.string().optional(),
+  conversionDate: zod.string().optional(),
+  baptismDate: zod.string().optional(),
+  status: zod.enum(["ativo", "inativo", "transferido", "falecido"]),
+  photoPath: zod.string().optional(),
+  familyId: zod.string().optional(),
+  familyName: zod.string().optional(),
+  lgpdConsentAccepted: zod.boolean(),
+});
+
+/**
+ * @summary Get a single member
+ */
+export const GetMemberParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetMemberResponse = zod.object({
+  id: zod.string(),
+  fullName: zod.string(),
+  cpfMasked: zod.string(),
+  dateOfBirth: zod.string().optional(),
+  sex: zod.enum(["masculino", "feminino", "outro"]).optional(),
+  phone: zod.string().optional(),
+  email: zod.string().optional(),
+  addressZip: zod.string().optional(),
+  addressStreet: zod.string().optional(),
+  addressNumber: zod.string().optional(),
+  addressComplement: zod.string().optional(),
+  addressNeighborhood: zod.string().optional(),
+  addressCity: zod.string().optional(),
+  addressState: zod.string().optional(),
+  conversionDate: zod.string().optional(),
+  baptismDate: zod.string().optional(),
+  status: zod.enum(["ativo", "inativo", "transferido", "falecido"]),
+  photoPath: zod.string().optional(),
+  familyId: zod.string().optional(),
+  familyName: zod.string().optional(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary Update a member
+ */
+export const UpdateMemberParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateMemberBody = zod.object({
+  fullName: zod.string().optional(),
+  cpf: zod.string().optional(),
+  dateOfBirth: zod.string().optional(),
+  sex: zod.enum(["masculino", "feminino", "outro"]).optional(),
+  phone: zod.string().optional(),
+  email: zod.string().optional(),
+  addressZip: zod.string().optional(),
+  addressStreet: zod.string().optional(),
+  addressNumber: zod.string().optional(),
+  addressComplement: zod.string().optional(),
+  addressNeighborhood: zod.string().optional(),
+  addressCity: zod.string().optional(),
+  addressState: zod.string().optional(),
+  conversionDate: zod.string().optional(),
+  baptismDate: zod.string().optional(),
+  status: zod.enum(["ativo", "inativo", "transferido", "falecido"]).optional(),
+  photoPath: zod.string().optional(),
+  familyId: zod.string().optional(),
+  familyName: zod.string().optional(),
+});
+
+export const UpdateMemberResponse = zod.object({
+  id: zod.string(),
+  fullName: zod.string(),
+  cpfMasked: zod.string(),
+  dateOfBirth: zod.string().optional(),
+  sex: zod.enum(["masculino", "feminino", "outro"]).optional(),
+  phone: zod.string().optional(),
+  email: zod.string().optional(),
+  addressZip: zod.string().optional(),
+  addressStreet: zod.string().optional(),
+  addressNumber: zod.string().optional(),
+  addressComplement: zod.string().optional(),
+  addressNeighborhood: zod.string().optional(),
+  addressCity: zod.string().optional(),
+  addressState: zod.string().optional(),
+  conversionDate: zod.string().optional(),
+  baptismDate: zod.string().optional(),
+  status: zod.enum(["ativo", "inativo", "transferido", "falecido"]),
+  photoPath: zod.string().optional(),
+  familyId: zod.string().optional(),
+  familyName: zod.string().optional(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary Delete a member (Admin only)
+ */
+export const DeleteMemberParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteMemberResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Get member change history
+ */
+export const GetMemberHistoryParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetMemberHistoryResponse = zod.object({
+  history: zod.array(
+    zod.object({
+      id: zod.string(),
+      memberId: zod.string(),
+      changedByUserId: zod.string(),
+      changeType: zod.string(),
+      fieldChanges: zod.object({}).passthrough().optional(),
+      createdAt: zod.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary Reveal full CPF (Admin only, audit logged)
+ */
+export const RevealMemberCpfParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const RevealMemberCpfResponse = zod.object({
+  cpf: zod.string(),
+});
+
+/**
+ * @summary Bulk import members via CSV (Admin/Leader only)
+ */
+export const ImportMembersCsvBody = zod.object({
+  csvContent: zod.string(),
+  lgpdConsentAccepted: zod.boolean(),
+});
+
+export const ImportMembersCsvResponse = zod.object({
+  total: zod.number(),
+  succeeded: zod.number(),
+  failed: zod.number(),
+  results: zod.array(
+    zod.object({
+      row: zod.number(),
+      success: zod.boolean(),
+      memberId: zod.string().optional(),
+      fullName: zod.string().optional(),
+      error: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Lookup address by CEP (via ViaCEP)
+ */
+export const LookupCepParams = zod.object({
+  cep: zod.coerce.string(),
+});
+
+export const LookupCepResponse = zod.object({
+  zip: zod.string(),
+  street: zod.string().optional(),
+  neighborhood: zod.string().optional(),
+  city: zod.string().optional(),
+  state: zod.string().optional(),
+});
+
+/**
+ * @summary Request a presigned upload URL for photo
+ */
+export const RequestUploadUrlBody = zod.object({
+  name: zod.string(),
+  size: zod.number(),
+  contentType: zod.string(),
+});
+
+export const RequestUploadUrlResponse = zod.object({
+  uploadURL: zod.string(),
+  objectPath: zod.string(),
 });

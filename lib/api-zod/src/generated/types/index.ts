@@ -3,23 +3,44 @@
  * Do not edit manually.
  * Api
  * Church ERP API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 
 export * from "./auditLog";
 export * from "./auditLogDetails";
 export * from "./auditLogListResponse";
 export * from "./authResponse";
+export * from "./cepResponse";
+export * from "./createMemberRequest";
+export * from "./createMemberRequestSex";
 export * from "./csrfTokenResponse";
 export * from "./errorResponse";
 export * from "./forgotPasswordRequest";
 export * from "./getAuditLogsParams";
 export * from "./healthStatus";
+export * from "./importCsvRequest";
+export * from "./importCsvResponse";
+export * from "./importCsvRowResult";
+export * from "./listMembersParams";
+export * from "./listMembersStatus";
 export * from "./loginRequest";
+export * from "./memberDetail";
+export * from "./memberDetailSex";
+export * from "./memberHistoryEntry";
+export * from "./memberHistoryEntryFieldChanges";
+export * from "./memberHistoryResponse";
+export * from "./memberListResponse";
+export * from "./memberStatus";
+export * from "./memberSummary";
 export * from "./messageResponse";
 export * from "./mfaSetupResponse";
 export * from "./mfaVerifyRequest";
 export * from "./registerRequest";
+export * from "./requestUploadUrlBody";
+export * from "./requestUploadUrlResponse";
 export * from "./resetPasswordRequest";
+export * from "./revealCpfResponse";
+export * from "./updateMemberRequest";
+export * from "./updateMemberRequestSex";
 export * from "./userProfile";
 export * from "./userProfileRole";
