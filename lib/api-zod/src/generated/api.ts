@@ -415,3 +415,501 @@ export const RequestUploadUrlResponse = zod.object({
   uploadURL: zod.string(),
   objectPath: zod.string(),
 });
+
+/**
+ * @summary List income entries (tithes, offerings, donations)
+ */
+export const ListFinanceEntriesQueryParams = zod.object({
+  page: zod.coerce.number().optional(),
+  limit: zod.coerce.number().optional(),
+  type: zod.enum(["dizimo", "oferta", "doacao"]).optional(),
+  memberId: zod.coerce.string().optional(),
+  dateFrom: zod.date().optional(),
+  dateTo: zod.date().optional(),
+  includeDeleted: zod.coerce.boolean().optional(),
+});
+
+export const ListFinanceEntriesResponse = zod.object({
+  entries: zod.array(
+    zod.object({
+      id: zod.string(),
+      type: zod.enum(["dizimo", "oferta", "doacao"]),
+      date: zod.date(),
+      amount: zod.string(),
+      paymentMethod: zod.enum(["dinheiro", "pix", "transferencia", "cartao"]),
+      memberId: zod.string().nullish(),
+      memberName: zod.string().nullish(),
+      offeringType: zod
+        .enum(["regular", "missionaria", "especial", "construcao"])
+        .nullish(),
+      donorName: zod.string().nullish(),
+      donationPurpose: zod.string().nullish(),
+      isAnonymous: zod.boolean(),
+      notes: zod.string().nullish(),
+      monthClosingId: zod.string().nullish(),
+      createdAt: zod.date(),
+      deletedAt: zod.date().nullish(),
+    }),
+  ),
+  total: zod.number(),
+  page: zod.number(),
+  limit: zod.number(),
+});
+
+/**
+ * @summary Create income entry
+ */
+export const CreateFinanceEntryBody = zod.object({
+  type: zod.enum(["dizimo", "oferta", "doacao"]),
+  date: zod.date(),
+  amount: zod.number(),
+  paymentMethod: zod.enum(["dinheiro", "pix", "transferencia", "cartao"]),
+  memberId: zod.string().nullish(),
+  isAnonymous: zod.boolean().optional(),
+  offeringType: zod
+    .enum(["regular", "missionaria", "especial", "construcao"])
+    .nullish(),
+  donorName: zod.string().nullish(),
+  donationPurpose: zod.string().nullish(),
+  notes: zod.string().nullish(),
+});
+
+/**
+ * @summary Get single income entry
+ */
+export const GetFinanceEntryParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetFinanceEntryResponse = zod.object({
+  id: zod.string(),
+  type: zod.enum(["dizimo", "oferta", "doacao"]),
+  date: zod.date(),
+  amount: zod.string(),
+  paymentMethod: zod.enum(["dinheiro", "pix", "transferencia", "cartao"]),
+  memberId: zod.string().nullish(),
+  memberName: zod.string().nullish(),
+  offeringType: zod
+    .enum(["regular", "missionaria", "especial", "construcao"])
+    .nullish(),
+  donorName: zod.string().nullish(),
+  donationPurpose: zod.string().nullish(),
+  isAnonymous: zod.boolean(),
+  notes: zod.string().nullish(),
+  monthClosingId: zod.string().nullish(),
+  createdAt: zod.date(),
+  deletedAt: zod.date().nullish(),
+});
+
+/**
+ * @summary Update income entry
+ */
+export const UpdateFinanceEntryParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateFinanceEntryBody = zod.object({
+  date: zod.date().optional(),
+  amount: zod.number().optional(),
+  paymentMethod: zod
+    .enum(["dinheiro", "pix", "transferencia", "cartao"])
+    .optional(),
+  memberId: zod.string().nullish(),
+  isAnonymous: zod.boolean().optional(),
+  offeringType: zod.string().nullish(),
+  donorName: zod.string().nullish(),
+  donationPurpose: zod.string().nullish(),
+  notes: zod.string().nullish(),
+});
+
+export const UpdateFinanceEntryResponse = zod.object({
+  id: zod.string(),
+  type: zod.enum(["dizimo", "oferta", "doacao"]),
+  date: zod.date(),
+  amount: zod.string(),
+  paymentMethod: zod.enum(["dinheiro", "pix", "transferencia", "cartao"]),
+  memberId: zod.string().nullish(),
+  memberName: zod.string().nullish(),
+  offeringType: zod
+    .enum(["regular", "missionaria", "especial", "construcao"])
+    .nullish(),
+  donorName: zod.string().nullish(),
+  donationPurpose: zod.string().nullish(),
+  isAnonymous: zod.boolean(),
+  notes: zod.string().nullish(),
+  monthClosingId: zod.string().nullish(),
+  createdAt: zod.date(),
+  deletedAt: zod.date().nullish(),
+});
+
+/**
+ * @summary Soft delete income entry (fiscal retention)
+ */
+export const DeleteFinanceEntryParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteFinanceEntryResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary List expense entries
+ */
+export const ListFinanceExpensesQueryParams = zod.object({
+  page: zod.coerce.number().optional(),
+  limit: zod.coerce.number().optional(),
+  category: zod
+    .enum([
+      "aluguel",
+      "agua",
+      "luz",
+      "internet",
+      "salarios",
+      "manutencao",
+      "eventos",
+      "missoes",
+      "benevolencia",
+      "material",
+      "outros",
+    ])
+    .optional(),
+  dateFrom: zod.date().optional(),
+  dateTo: zod.date().optional(),
+  includeDeleted: zod.coerce.boolean().optional(),
+});
+
+export const ListFinanceExpensesResponse = zod.object({
+  expenses: zod.array(
+    zod.object({
+      id: zod.string(),
+      date: zod.date(),
+      amount: zod.string(),
+      category: zod.enum([
+        "aluguel",
+        "agua",
+        "luz",
+        "internet",
+        "salarios",
+        "manutencao",
+        "eventos",
+        "missoes",
+        "benevolencia",
+        "material",
+        "outros",
+      ]),
+      description: zod.string(),
+      supplier: zod.string().nullish(),
+      receiptPath: zod.string().nullish(),
+      notes: zod.string().nullish(),
+      monthClosingId: zod.string().nullish(),
+      createdAt: zod.date(),
+      deletedAt: zod.date().nullish(),
+    }),
+  ),
+  total: zod.number(),
+  page: zod.number(),
+  limit: zod.number(),
+});
+
+/**
+ * @summary Create expense entry
+ */
+export const CreateFinanceExpenseBody = zod.object({
+  date: zod.date(),
+  amount: zod.number(),
+  category: zod.enum([
+    "aluguel",
+    "agua",
+    "luz",
+    "internet",
+    "salarios",
+    "manutencao",
+    "eventos",
+    "missoes",
+    "benevolencia",
+    "material",
+    "outros",
+  ]),
+  description: zod.string(),
+  supplier: zod.string().nullish(),
+  receiptPath: zod.string().nullish(),
+  notes: zod.string().nullish(),
+});
+
+/**
+ * @summary Get single expense
+ */
+export const GetFinanceExpenseParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetFinanceExpenseResponse = zod.object({
+  id: zod.string(),
+  date: zod.date(),
+  amount: zod.string(),
+  category: zod.enum([
+    "aluguel",
+    "agua",
+    "luz",
+    "internet",
+    "salarios",
+    "manutencao",
+    "eventos",
+    "missoes",
+    "benevolencia",
+    "material",
+    "outros",
+  ]),
+  description: zod.string(),
+  supplier: zod.string().nullish(),
+  receiptPath: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  monthClosingId: zod.string().nullish(),
+  createdAt: zod.date(),
+  deletedAt: zod.date().nullish(),
+});
+
+/**
+ * @summary Update expense
+ */
+export const UpdateFinanceExpenseParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateFinanceExpenseBody = zod.object({
+  date: zod.date().optional(),
+  amount: zod.number().optional(),
+  category: zod
+    .enum([
+      "aluguel",
+      "agua",
+      "luz",
+      "internet",
+      "salarios",
+      "manutencao",
+      "eventos",
+      "missoes",
+      "benevolencia",
+      "material",
+      "outros",
+    ])
+    .optional(),
+  description: zod.string().optional(),
+  supplier: zod.string().nullish(),
+  receiptPath: zod.string().nullish(),
+  notes: zod.string().nullish(),
+});
+
+export const UpdateFinanceExpenseResponse = zod.object({
+  id: zod.string(),
+  date: zod.date(),
+  amount: zod.string(),
+  category: zod.enum([
+    "aluguel",
+    "agua",
+    "luz",
+    "internet",
+    "salarios",
+    "manutencao",
+    "eventos",
+    "missoes",
+    "benevolencia",
+    "material",
+    "outros",
+  ]),
+  description: zod.string(),
+  supplier: zod.string().nullish(),
+  receiptPath: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  monthClosingId: zod.string().nullish(),
+  createdAt: zod.date(),
+  deletedAt: zod.date().nullish(),
+});
+
+/**
+ * @summary Soft delete expense (fiscal retention)
+ */
+export const DeleteFinanceExpenseParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteFinanceExpenseResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Get signed URL for expense receipt
+ */
+export const GetExpenseReceiptUrlParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetExpenseReceiptUrlResponse = zod.object({
+  receiptPath: zod.string(),
+  available: zod.boolean(),
+});
+
+/**
+ * @summary List monthly closings
+ */
+export const ListFinanceClosingsResponse = zod.object({
+  closings: zod.array(
+    zod.object({
+      id: zod.string(),
+      year: zod.string(),
+      month: zod.string(),
+      closedAt: zod.date(),
+      closedByUserId: zod.string(),
+      notes: zod.string().nullish(),
+      createdAt: zod.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary Close a month (makes entries read-only)
+ */
+export const CloseFinanceMonthBody = zod.object({
+  year: zod.string(),
+  month: zod.string(),
+  notes: zod.string().nullish(),
+});
+
+/**
+ * @summary Monthly summary (totals by type/category, balance)
+ */
+export const GetFinanceSummaryQueryParams = zod.object({
+  year: zod.coerce.string().optional(),
+  month: zod.coerce.string().optional(),
+});
+
+export const GetFinanceSummaryResponse = zod.object({
+  year: zod.string(),
+  month: zod.string(),
+  isClosed: zod.boolean(),
+  closedAt: zod.date().nullish(),
+  totalEntries: zod.string(),
+  totalExpenses: zod.string(),
+  balance: zod.string(),
+  entriesByType: zod.array(
+    zod.object({
+      type: zod.string(),
+      total: zod.string(),
+      count: zod.number(),
+    }),
+  ),
+  expensesByCategory: zod.array(
+    zod.object({
+      category: zod.string(),
+      total: zod.string(),
+      count: zod.number(),
+    }),
+  ),
+});
+
+/**
+ * @summary Dashboard data (12-month chart, balance, top 5 expenses)
+ */
+export const GetFinanceDashboardResponse = zod.object({
+  chartData: zod.array(
+    zod.object({
+      label: zod.string(),
+      year: zod.string(),
+      month: zod.string(),
+      totalEntries: zod.string(),
+      totalExpenses: zod.string(),
+    }),
+  ),
+  totalBalance: zod.string(),
+  currentMonth: zod.object({
+    totalEntries: zod.string(),
+    totalExpenses: zod.string(),
+    balance: zod.string(),
+  }),
+  topExpenseCategories: zod.array(
+    zod.object({
+      category: zod.string(),
+      total: zod.string(),
+      count: zod.number(),
+    }),
+  ),
+});
+
+/**
+ * @summary Detailed report with filters
+ */
+export const GetFinanceReportQueryParams = zod.object({
+  dateFrom: zod.date().optional(),
+  dateTo: zod.date().optional(),
+  type: zod.enum(["dizimo", "oferta", "doacao"]).optional(),
+  category: zod.coerce.string().optional(),
+  memberId: zod.coerce.string().optional(),
+});
+
+export const GetFinanceReportResponse = zod.object({
+  dateFrom: zod.string().nullish(),
+  dateTo: zod.string().nullish(),
+  totalEntries: zod.string(),
+  totalExpenses: zod.string(),
+  balance: zod.string(),
+  entries: zod.array(
+    zod.object({
+      id: zod.string(),
+      type: zod.enum(["dizimo", "oferta", "doacao"]),
+      date: zod.date(),
+      amount: zod.string(),
+      paymentMethod: zod.enum(["dinheiro", "pix", "transferencia", "cartao"]),
+      memberId: zod.string().nullish(),
+      memberName: zod.string().nullish(),
+      offeringType: zod
+        .enum(["regular", "missionaria", "especial", "construcao"])
+        .nullish(),
+      donorName: zod.string().nullish(),
+      donationPurpose: zod.string().nullish(),
+      isAnonymous: zod.boolean(),
+      notes: zod.string().nullish(),
+      monthClosingId: zod.string().nullish(),
+      createdAt: zod.date(),
+      deletedAt: zod.date().nullish(),
+    }),
+  ),
+  expenses: zod.array(
+    zod.object({
+      id: zod.string(),
+      date: zod.date(),
+      amount: zod.string(),
+      category: zod.enum([
+        "aluguel",
+        "agua",
+        "luz",
+        "internet",
+        "salarios",
+        "manutencao",
+        "eventos",
+        "missoes",
+        "benevolencia",
+        "material",
+        "outros",
+      ]),
+      description: zod.string(),
+      supplier: zod.string().nullish(),
+      receiptPath: zod.string().nullish(),
+      notes: zod.string().nullish(),
+      monthClosingId: zod.string().nullish(),
+      createdAt: zod.date(),
+      deletedAt: zod.date().nullish(),
+    }),
+  ),
+});
+
+/**
+ * @summary LGPD anonymize member from financial records
+ */
+export const AnonymizeFinanceMemberParams = zod.object({
+  memberId: zod.coerce.string(),
+});
+
+export const AnonymizeFinanceMemberResponse = zod.object({
+  message: zod.string(),
+});

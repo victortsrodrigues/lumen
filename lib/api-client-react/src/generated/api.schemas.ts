@@ -287,6 +287,295 @@ export interface RequestUploadUrlResponse {
   objectPath: string;
 }
 
+export type FinanceEntryType =
+  (typeof FinanceEntryType)[keyof typeof FinanceEntryType];
+
+export const FinanceEntryType = {
+  dizimo: "dizimo",
+  oferta: "oferta",
+  doacao: "doacao",
+} as const;
+
+export type FinanceEntryPaymentMethod =
+  (typeof FinanceEntryPaymentMethod)[keyof typeof FinanceEntryPaymentMethod];
+
+export const FinanceEntryPaymentMethod = {
+  dinheiro: "dinheiro",
+  pix: "pix",
+  transferencia: "transferencia",
+  cartao: "cartao",
+} as const;
+
+export type FinanceEntryOfferingType =
+  | (typeof FinanceEntryOfferingType)[keyof typeof FinanceEntryOfferingType]
+  | null;
+
+export const FinanceEntryOfferingType = {
+  regular: "regular",
+  missionaria: "missionaria",
+  especial: "especial",
+  construcao: "construcao",
+} as const;
+
+export interface FinanceEntry {
+  id: string;
+  type: FinanceEntryType;
+  date: string;
+  amount: string;
+  paymentMethod: FinanceEntryPaymentMethod;
+  memberId?: string | null;
+  memberName?: string | null;
+  offeringType?: FinanceEntryOfferingType;
+  donorName?: string | null;
+  donationPurpose?: string | null;
+  isAnonymous: boolean;
+  notes?: string | null;
+  monthClosingId?: string | null;
+  createdAt: string;
+  deletedAt?: string | null;
+}
+
+export interface FinanceEntriesResponse {
+  entries: FinanceEntry[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export type CreateFinanceEntryRequestType =
+  (typeof CreateFinanceEntryRequestType)[keyof typeof CreateFinanceEntryRequestType];
+
+export const CreateFinanceEntryRequestType = {
+  dizimo: "dizimo",
+  oferta: "oferta",
+  doacao: "doacao",
+} as const;
+
+export type CreateFinanceEntryRequestPaymentMethod =
+  (typeof CreateFinanceEntryRequestPaymentMethod)[keyof typeof CreateFinanceEntryRequestPaymentMethod];
+
+export const CreateFinanceEntryRequestPaymentMethod = {
+  dinheiro: "dinheiro",
+  pix: "pix",
+  transferencia: "transferencia",
+  cartao: "cartao",
+} as const;
+
+export type CreateFinanceEntryRequestOfferingType =
+  | (typeof CreateFinanceEntryRequestOfferingType)[keyof typeof CreateFinanceEntryRequestOfferingType]
+  | null;
+
+export const CreateFinanceEntryRequestOfferingType = {
+  regular: "regular",
+  missionaria: "missionaria",
+  especial: "especial",
+  construcao: "construcao",
+} as const;
+
+export interface CreateFinanceEntryRequest {
+  type: CreateFinanceEntryRequestType;
+  date: string;
+  amount: number;
+  paymentMethod: CreateFinanceEntryRequestPaymentMethod;
+  memberId?: string | null;
+  isAnonymous?: boolean;
+  offeringType?: CreateFinanceEntryRequestOfferingType;
+  donorName?: string | null;
+  donationPurpose?: string | null;
+  notes?: string | null;
+}
+
+export type UpdateFinanceEntryRequestPaymentMethod =
+  (typeof UpdateFinanceEntryRequestPaymentMethod)[keyof typeof UpdateFinanceEntryRequestPaymentMethod];
+
+export const UpdateFinanceEntryRequestPaymentMethod = {
+  dinheiro: "dinheiro",
+  pix: "pix",
+  transferencia: "transferencia",
+  cartao: "cartao",
+} as const;
+
+export interface UpdateFinanceEntryRequest {
+  date?: string;
+  amount?: number;
+  paymentMethod?: UpdateFinanceEntryRequestPaymentMethod;
+  memberId?: string | null;
+  isAnonymous?: boolean;
+  offeringType?: string | null;
+  donorName?: string | null;
+  donationPurpose?: string | null;
+  notes?: string | null;
+}
+
+export type FinanceExpenseCategory =
+  (typeof FinanceExpenseCategory)[keyof typeof FinanceExpenseCategory];
+
+export const FinanceExpenseCategory = {
+  aluguel: "aluguel",
+  agua: "agua",
+  luz: "luz",
+  internet: "internet",
+  salarios: "salarios",
+  manutencao: "manutencao",
+  eventos: "eventos",
+  missoes: "missoes",
+  benevolencia: "benevolencia",
+  material: "material",
+  outros: "outros",
+} as const;
+
+export interface FinanceExpense {
+  id: string;
+  date: string;
+  amount: string;
+  category: FinanceExpenseCategory;
+  description: string;
+  supplier?: string | null;
+  receiptPath?: string | null;
+  notes?: string | null;
+  monthClosingId?: string | null;
+  createdAt: string;
+  deletedAt?: string | null;
+}
+
+export interface FinanceExpensesResponse {
+  expenses: FinanceExpense[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export type CreateFinanceExpenseRequestCategory =
+  (typeof CreateFinanceExpenseRequestCategory)[keyof typeof CreateFinanceExpenseRequestCategory];
+
+export const CreateFinanceExpenseRequestCategory = {
+  aluguel: "aluguel",
+  agua: "agua",
+  luz: "luz",
+  internet: "internet",
+  salarios: "salarios",
+  manutencao: "manutencao",
+  eventos: "eventos",
+  missoes: "missoes",
+  benevolencia: "benevolencia",
+  material: "material",
+  outros: "outros",
+} as const;
+
+export interface CreateFinanceExpenseRequest {
+  date: string;
+  amount: number;
+  category: CreateFinanceExpenseRequestCategory;
+  description: string;
+  supplier?: string | null;
+  receiptPath?: string | null;
+  notes?: string | null;
+}
+
+export type UpdateFinanceExpenseRequestCategory =
+  (typeof UpdateFinanceExpenseRequestCategory)[keyof typeof UpdateFinanceExpenseRequestCategory];
+
+export const UpdateFinanceExpenseRequestCategory = {
+  aluguel: "aluguel",
+  agua: "agua",
+  luz: "luz",
+  internet: "internet",
+  salarios: "salarios",
+  manutencao: "manutencao",
+  eventos: "eventos",
+  missoes: "missoes",
+  benevolencia: "benevolencia",
+  material: "material",
+  outros: "outros",
+} as const;
+
+export interface UpdateFinanceExpenseRequest {
+  date?: string;
+  amount?: number;
+  category?: UpdateFinanceExpenseRequestCategory;
+  description?: string;
+  supplier?: string | null;
+  receiptPath?: string | null;
+  notes?: string | null;
+}
+
+export interface FinanceMonthlyClosing {
+  id: string;
+  year: string;
+  month: string;
+  closedAt: string;
+  closedByUserId: string;
+  notes?: string | null;
+  createdAt: string;
+}
+
+export interface CloseMonthRequest {
+  year: string;
+  month: string;
+  notes?: string | null;
+}
+
+export type FinanceSummaryEntriesByTypeItem = {
+  type: string;
+  total: string;
+  count: number;
+};
+
+export type FinanceSummaryExpensesByCategoryItem = {
+  category: string;
+  total: string;
+  count: number;
+};
+
+export interface FinanceSummary {
+  year: string;
+  month: string;
+  isClosed: boolean;
+  closedAt?: string | null;
+  totalEntries: string;
+  totalExpenses: string;
+  balance: string;
+  entriesByType: FinanceSummaryEntriesByTypeItem[];
+  expensesByCategory: FinanceSummaryExpensesByCategoryItem[];
+}
+
+export interface FinanceDashboardMonth {
+  label: string;
+  year: string;
+  month: string;
+  totalEntries: string;
+  totalExpenses: string;
+}
+
+export type FinanceDashboardCurrentMonth = {
+  totalEntries: string;
+  totalExpenses: string;
+  balance: string;
+};
+
+export type FinanceDashboardTopExpenseCategoriesItem = {
+  category: string;
+  total: string;
+  count: number;
+};
+
+export interface FinanceDashboard {
+  chartData: FinanceDashboardMonth[];
+  totalBalance: string;
+  currentMonth: FinanceDashboardCurrentMonth;
+  topExpenseCategories: FinanceDashboardTopExpenseCategoriesItem[];
+}
+
+export interface FinanceReport {
+  dateFrom?: string | null;
+  dateTo?: string | null;
+  totalEntries: string;
+  totalExpenses: string;
+  balance: string;
+  entries: FinanceEntry[];
+  expenses: FinanceExpense[];
+}
+
 export type GetAuditLogsParams = {
   /**
    * @minimum 1
@@ -324,4 +613,84 @@ export const ListMembersStatus = {
   inativo: "inativo",
   transferido: "transferido",
   falecido: "falecido",
+} as const;
+
+export type ListFinanceEntriesParams = {
+  page?: number;
+  limit?: number;
+  type?: ListFinanceEntriesType;
+  memberId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  includeDeleted?: boolean;
+};
+
+export type ListFinanceEntriesType =
+  (typeof ListFinanceEntriesType)[keyof typeof ListFinanceEntriesType];
+
+export const ListFinanceEntriesType = {
+  dizimo: "dizimo",
+  oferta: "oferta",
+  doacao: "doacao",
+} as const;
+
+export type ListFinanceExpensesParams = {
+  page?: number;
+  limit?: number;
+  category?: ListFinanceExpensesCategory;
+  dateFrom?: string;
+  dateTo?: string;
+  includeDeleted?: boolean;
+};
+
+export type ListFinanceExpensesCategory =
+  (typeof ListFinanceExpensesCategory)[keyof typeof ListFinanceExpensesCategory];
+
+export const ListFinanceExpensesCategory = {
+  aluguel: "aluguel",
+  agua: "agua",
+  luz: "luz",
+  internet: "internet",
+  salarios: "salarios",
+  manutencao: "manutencao",
+  eventos: "eventos",
+  missoes: "missoes",
+  benevolencia: "benevolencia",
+  material: "material",
+  outros: "outros",
+} as const;
+
+export type GetExpenseReceiptUrl200 = {
+  receiptPath: string;
+  available: boolean;
+};
+
+export type ListFinanceClosings200 = {
+  closings: FinanceMonthlyClosing[];
+};
+
+export type CloseFinanceMonth201 = {
+  closing: FinanceMonthlyClosing;
+};
+
+export type GetFinanceSummaryParams = {
+  year?: string;
+  month?: string;
+};
+
+export type GetFinanceReportParams = {
+  dateFrom?: string;
+  dateTo?: string;
+  type?: GetFinanceReportType;
+  category?: string;
+  memberId?: string;
+};
+
+export type GetFinanceReportType =
+  (typeof GetFinanceReportType)[keyof typeof GetFinanceReportType];
+
+export const GetFinanceReportType = {
+  dizimo: "dizimo",
+  oferta: "oferta",
+  doacao: "doacao",
 } as const;

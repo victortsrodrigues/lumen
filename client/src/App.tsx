@@ -22,10 +22,10 @@ import EditMember from "./pages/members/[id]/edit";
 import ImportMembers from "./pages/members/import";
 
 // Finance Module
-import FinanceDashboard from "./pages/finance";
+import FinanceDashboard from "./pages/finance/dashboard";
 import FinanceEntries from "./pages/finance/entries";
 import FinanceExpenses from "./pages/finance/expenses";
-import FinanceReport from "./pages/finance/report";
+import FinanceReports from "./pages/finance/reports";
 import FinanceClosings from "./pages/finance/closings";
 
 const queryClient = new QueryClient({
@@ -61,7 +61,7 @@ function Router() {
       <Route path="/finance" component={FinanceDashboard} />
       <Route path="/finance/entries" component={FinanceEntries} />
       <Route path="/finance/expenses" component={FinanceExpenses} />
-      <Route path="/finance/report" component={FinanceReport} />
+      <Route path="/finance/reports" component={FinanceReports} />
       <Route path="/finance/closings" component={FinanceClosings} />
       
       {/* Fallback */}

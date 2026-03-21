@@ -17,6 +17,8 @@ tags:
     description: Member management
   - name: storage
     description: File storage operations
+  - name: finance
+    description: Financial management operations
   - name: utils
     description: Utility endpoints
 paths:
@@ -672,6 +674,408 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  # ─── Finance Entries ──────────────────────────────────────────────────────
+  /finance/entries:
+    get:
+      operationId: listFinanceEntries
+      tags: [finance]
+      summary: List income entries (tithes, offerings, donations)
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: [dizimo, oferta, doacao]
+        - in: query
+          name: memberId
+          schema:
+            type: string
+        - in: query
+          name: dateFrom
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: dateTo
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: includeDeleted
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinanceEntriesResponse"
+    post:
+      operationId: createFinanceEntry
+      tags: [finance]
+      summary: Create income entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFinanceEntryRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinanceEntry"
+
+  /finance/entries/{id}:
+    get:
+      operationId: getFinanceEntry
+      tags: [finance]
+      summary: Get single income entry
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinanceEntry"
+    put:
+      operationId: updateFinanceEntry
+      tags: [finance]
+      summary: Update income entry
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateFinanceEntryRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinanceEntry"
+    delete:
+      operationId: deleteFinanceEntry
+      tags: [finance]
+      summary: Soft delete income entry (fiscal retention)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Soft deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # ─── Finance Expenses ─────────────────────────────────────────────────────
+  /finance/expenses:
+    get:
+      operationId: listFinanceExpenses
+      tags: [finance]
+      summary: List expense entries
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: category
+          schema:
+            type: string
+            enum: [aluguel, agua, luz, internet, salarios, manutencao, eventos, missoes, benevolencia, material, outros]
+        - in: query
+          name: dateFrom
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: dateTo
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: includeDeleted
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinanceExpensesResponse"
+    post:
+      operationId: createFinanceExpense
+      tags: [finance]
+      summary: Create expense entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFinanceExpenseRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinanceExpense"
+
+  /finance/expenses/{id}:
+    get:
+      operationId: getFinanceExpense
+      tags: [finance]
+      summary: Get single expense
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinanceExpense"
+    put:
+      operationId: updateFinanceExpense
+      tags: [finance]
+      summary: Update expense
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateFinanceExpenseRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinanceExpense"
+    delete:
+      operationId: deleteFinanceExpense
+      tags: [finance]
+      summary: Soft delete expense (fiscal retention)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Soft deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /finance/expenses/{id}/receipt-url:
+    post:
+      operationId: getExpenseReceiptUrl
+      tags: [finance]
+      summary: Get signed URL for expense receipt
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  receiptPath:
+                    type: string
+                  available:
+                    type: boolean
+                required:
+                  - receiptPath
+                  - available
+
+  # ─── Monthly Closings ─────────────────────────────────────────────────────
+  /finance/closings:
+    get:
+      operationId: listFinanceClosings
+      tags: [finance]
+      summary: List monthly closings
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  closings:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/FinanceMonthlyClosing"
+                required:
+                  - closings
+    post:
+      operationId: closeFinanceMonth
+      tags: [finance]
+      summary: Close a month (makes entries read-only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CloseMonthRequest"
+      responses:
+        "201":
+          description: Month closed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  closing:
+                    $ref: "#/components/schemas/FinanceMonthlyClosing"
+                required:
+                  - closing
+
+  # ─── Summary & Reports ────────────────────────────────────────────────────
+  /finance/summary:
+    get:
+      operationId: getFinanceSummary
+      tags: [finance]
+      summary: Monthly summary (totals by type/category, balance)
+      parameters:
+        - in: query
+          name: year
+          schema:
+            type: string
+        - in: query
+          name: month
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinanceSummary"
+
+  /finance/dashboard:
+    get:
+      operationId: getFinanceDashboard
+      tags: [finance]
+      summary: Dashboard data (12-month chart, balance, top 5 expenses)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinanceDashboard"
+
+  /finance/report:
+    get:
+      operationId: getFinanceReport
+      tags: [finance]
+      summary: Detailed report with filters
+      parameters:
+        - in: query
+          name: dateFrom
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: dateTo
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: [dizimo, oferta, doacao]
+        - in: query
+          name: category
+          schema:
+            type: string
+        - in: query
+          name: memberId
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinanceReport"
+
+  /finance/members/{memberId}/anonymize:
+    post:
+      operationId: anonymizeFinanceMember
+      tags: [finance]
+      summary: LGPD anonymize member from financial records
+      parameters:
+        - in: path
+          name: memberId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Anonymized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
 components:
   securitySchemes:
     cookieAuth:
@@ -1219,3 +1623,452 @@ components:
       required:
         - uploadURL
         - objectPath
+
+    # ─── Finance Schemas ───────────────────────────────────────────────────
+    FinanceEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [dizimo, oferta, doacao]
+        date:
+          type: string
+          format: date
+        amount:
+          type: string
+        paymentMethod:
+          type: string
+          enum: [dinheiro, pix, transferencia, cartao]
+        memberId:
+          type: string
+          nullable: true
+        memberName:
+          type: string
+          nullable: true
+        offeringType:
+          type: string
+          nullable: true
+          enum: [regular, missionaria, especial, construcao]
+        donorName:
+          type: string
+          nullable: true
+        donationPurpose:
+          type: string
+          nullable: true
+        isAnonymous:
+          type: boolean
+        notes:
+          type: string
+          nullable: true
+        monthClosingId:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - id
+        - type
+        - date
+        - amount
+        - paymentMethod
+        - isAnonymous
+        - createdAt
+
+    FinanceEntriesResponse:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/FinanceEntry"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - entries
+        - total
+        - page
+        - limit
+
+    CreateFinanceEntryRequest:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [dizimo, oferta, doacao]
+        date:
+          type: string
+          format: date
+        amount:
+          type: number
+        paymentMethod:
+          type: string
+          enum: [dinheiro, pix, transferencia, cartao]
+        memberId:
+          type: string
+          nullable: true
+        isAnonymous:
+          type: boolean
+        offeringType:
+          type: string
+          nullable: true
+          enum: [regular, missionaria, especial, construcao]
+        donorName:
+          type: string
+          nullable: true
+        donationPurpose:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+      required:
+        - type
+        - date
+        - amount
+        - paymentMethod
+
+    UpdateFinanceEntryRequest:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        amount:
+          type: number
+        paymentMethod:
+          type: string
+          enum: [dinheiro, pix, transferencia, cartao]
+        memberId:
+          type: string
+          nullable: true
+        isAnonymous:
+          type: boolean
+        offeringType:
+          type: string
+          nullable: true
+        donorName:
+          type: string
+          nullable: true
+        donationPurpose:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+
+    FinanceExpense:
+      type: object
+      properties:
+        id:
+          type: string
+        date:
+          type: string
+          format: date
+        amount:
+          type: string
+        category:
+          type: string
+          enum: [aluguel, agua, luz, internet, salarios, manutencao, eventos, missoes, benevolencia, material, outros]
+        description:
+          type: string
+        supplier:
+          type: string
+          nullable: true
+        receiptPath:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        monthClosingId:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - id
+        - date
+        - amount
+        - category
+        - description
+        - createdAt
+
+    FinanceExpensesResponse:
+      type: object
+      properties:
+        expenses:
+          type: array
+          items:
+            $ref: "#/components/schemas/FinanceExpense"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - expenses
+        - total
+        - page
+        - limit
+
+    CreateFinanceExpenseRequest:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        amount:
+          type: number
+        category:
+          type: string
+          enum: [aluguel, agua, luz, internet, salarios, manutencao, eventos, missoes, benevolencia, material, outros]
+        description:
+          type: string
+        supplier:
+          type: string
+          nullable: true
+        receiptPath:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+      required:
+        - date
+        - amount
+        - category
+        - description
+
+    UpdateFinanceExpenseRequest:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        amount:
+          type: number
+        category:
+          type: string
+          enum: [aluguel, agua, luz, internet, salarios, manutencao, eventos, missoes, benevolencia, material, outros]
+        description:
+          type: string
+        supplier:
+          type: string
+          nullable: true
+        receiptPath:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+
+    FinanceMonthlyClosing:
+      type: object
+      properties:
+        id:
+          type: string
+        year:
+          type: string
+        month:
+          type: string
+        closedAt:
+          type: string
+          format: date-time
+        closedByUserId:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - year
+        - month
+        - closedAt
+        - closedByUserId
+        - createdAt
+
+    CloseMonthRequest:
+      type: object
+      properties:
+        year:
+          type: string
+        month:
+          type: string
+        notes:
+          type: string
+          nullable: true
+      required:
+        - year
+        - month
+
+    FinanceSummary:
+      type: object
+      properties:
+        year:
+          type: string
+        month:
+          type: string
+        isClosed:
+          type: boolean
+        closedAt:
+          type: string
+          format: date-time
+          nullable: true
+        totalEntries:
+          type: string
+        totalExpenses:
+          type: string
+        balance:
+          type: string
+        entriesByType:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              total:
+                type: string
+              count:
+                type: integer
+            required:
+              - type
+              - total
+              - count
+        expensesByCategory:
+          type: array
+          items:
+            type: object
+            properties:
+              category:
+                type: string
+              total:
+                type: string
+              count:
+                type: integer
+            required:
+              - category
+              - total
+              - count
+      required:
+        - year
+        - month
+        - isClosed
+        - totalEntries
+        - totalExpenses
+        - balance
+        - entriesByType
+        - expensesByCategory
+
+    FinanceDashboardMonth:
+      type: object
+      properties:
+        label:
+          type: string
+        year:
+          type: string
+        month:
+          type: string
+        totalEntries:
+          type: string
+        totalExpenses:
+          type: string
+      required:
+        - label
+        - year
+        - month
+        - totalEntries
+        - totalExpenses
+
+    FinanceDashboard:
+      type: object
+      properties:
+        chartData:
+          type: array
+          items:
+            $ref: "#/components/schemas/FinanceDashboardMonth"
+        totalBalance:
+          type: string
+        currentMonth:
+          type: object
+          properties:
+            totalEntries:
+              type: string
+            totalExpenses:
+              type: string
+            balance:
+              type: string
+          required:
+            - totalEntries
+            - totalExpenses
+            - balance
+        topExpenseCategories:
+          type: array
+          items:
+            type: object
+            properties:
+              category:
+                type: string
+              total:
+                type: string
+              count:
+                type: integer
+            required:
+              - category
+              - total
+              - count
+      required:
+        - chartData
+        - totalBalance
+        - currentMonth
+        - topExpenseCategories
+
+    FinanceReport:
+      type: object
+      properties:
+        dateFrom:
+          type: string
+          nullable: true
+        dateTo:
+          type: string
+          nullable: true
+        totalEntries:
+          type: string
+        totalExpenses:
+          type: string
+        balance:
+          type: string
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/FinanceEntry"
+        expenses:
+          type: array
+          items:
+            $ref: "#/components/schemas/FinanceExpense"
+      required:
+        - totalEntries
+        - totalExpenses
+        - balance
+        - entries
+        - expenses
