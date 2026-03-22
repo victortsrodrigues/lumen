@@ -12,17 +12,16 @@ export default function FinanceReports() {
   const [dateTo, setDateTo] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [type, setType] = useState("");
   
-  // Use enabled: false to only fetch on demand, but we can also auto-fetch
-  const { data, isLoading, refetch, isFetching } = useGetFinanceReport({
-    query: {
-      queryKey: ['financeReport', dateFrom, dateTo, type],
-      enabled: !!dateFrom && !!dateTo,
-      retry: 1
-    },
-    dateFrom,
-    dateTo,
-    type: type as any || undefined
-  });
+  const { data, isLoading, refetch, isFetching } = useGetFinanceReport(
+    { dateFrom, dateTo, type: (type || undefined) as any },
+    {
+      query: {
+        queryKey: ['financeReport', dateFrom, dateTo, type],
+        enabled: !!dateFrom && !!dateTo,
+        retry: 1,
+      },
+    }
+  );
 
   const handleExportExcel = () => {
     if (!data) return;
