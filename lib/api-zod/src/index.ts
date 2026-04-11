@@ -1,2 +1,2 @@
 export * from "./generated/api";
-export * from "./generated/types";
+// types re-exports are already covered by api — skip to avoid duplicate export errors

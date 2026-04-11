@@ -1,7 +1,9 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, MutationCache } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { toast } from "@/hooks/use-toast";
+import { getErrorMessage } from "@/lib/api-error";
 
 import { AuthProvider } from "./hooks/use-auth-context";
 
@@ -27,19 +29,124 @@ import FinanceEntries from "./pages/finance/entries";
 import FinanceExpenses from "./pages/finance/expenses";
 import FinanceReport from "./pages/finance/report";
 import FinanceClosings from "./pages/finance/closings";
+import FinanceBudget from "./pages/finance/budget";
+import FinanceBudgetComparison from "./pages/finance/budget-comparison";
 
-const queryClient = new QueryClient({
+// Teaching Module
+import TeachingDashboard from "./pages/teaching";
+import TeachingCourses from "./pages/teaching/courses";
+import TeachingCourseDetail from "./pages/teaching/course-detail";
+import TeachingAttendance from "./pages/teaching/attendance";
+import TeachingMyCourses from "./pages/teaching/my-courses";
+import TeachingMyCourseContent from "./pages/teaching/my-course-content";
+import TeachingContents from "./pages/teaching/contents";
+import TeachingContentDetail from "./pages/teaching/content-detail";
+
+// Events Module
+import EventsPage from "./pages/events";
+import EventDetailPage from "./pages/events/event-detail";
+
+// Ministries Module
+import MinistriesPage from "./pages/ministries";
+import MinistryDetailPage from "./pages/ministries/ministry-detail";
+
+// Assets Module
+import AssetsPage from "./pages/assets";
+
+// Schedules Module
+import ServiceRolesPage from "./pages/schedules/roles";
+
+// Planning Module
+import PlanningDashboard from "./pages/planning";
+import PlanningDirectives from "./pages/planning/directives";
+import PlanningInitiatives from "./pages/planning/initiatives";
+
+// Profile (own data for member/leader)
+import ProfilePage from "./pages/profile";
+
+// Pastoral Module
+import PastoralPage from "./pages/pastoral";
+
+// Counseling Module
+import CounselingPage from "./pages/counseling";
+import CounselingCaseDetail from "./pages/counseling/case-detail";
+
+// Songs Module
+import SongsPage from "./pages/songs";
+import SongDetailPage from "./pages/songs/song-detail";
+
+// Liturgy Module
+import LiturgyPage from "./pages/liturgy";
+import LiturgyDetailPage from "./pages/liturgy/liturgy-detail";
+
+// Articles Module
+import ArticlesPage from "./pages/articles";
+import NewArticle from "./pages/articles/new";
+import ArticleDetailPage from "./pages/articles/article-detail";
+
+// Forum Module
+import ForumPage from "./pages/forum";
+import ForumTopicDetail from "./pages/forum/topic-detail";
+
+// Institutional Module
+import InstitutionalPage from "./pages/institutional";
+
+// PIX Module
+import PixAdminPage from "./pages/pix/admin";
+import ContributionsPage from "./pages/contributions";
+
+// Public Pages
+import PublicSite from "./pages/public/site";
+import PublicPage from "./pages/public/page";
+import PublicDonate from "./pages/public/donate";
+
+// LGPD Module
+import LgpdMyData from "./pages/lgpd/my-data";
+import LgpdAdminRequests from "./pages/lgpd/admin-requests";
+
+// Global mutation cache:
+// - onSuccess: auto-invalidates all /api/* queries so lists/details refresh
+//   without manual invalidation calls.
+// - onError: shows a toast with the actual backend error message (unless the
+//   mutation opts out via `meta.silentError`).
+let queryClient: QueryClient;
+queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
     },
   },
+  mutationCache: new MutationCache({
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        predicate: (q) => {
+          const key = q.queryKey[0];
+          return typeof key === "string" && key.startsWith("/api/");
+        },
+      });
+    },
+    onError: (error, _vars, _ctx, mutation) => {
+      // Opt-out: pages that want to handle the error themselves can set
+      // meta: { silentError: true } on the mutation options.
+      if (mutation.meta?.silentError) return;
+      toast({
+        title: "Erro",
+        description: getErrorMessage(error),
+        variant: "destructive",
+      });
+    },
+  }),
 });
 
 function Router() {
   return (
     <Switch>
+      {/* Public Pages (no auth) */}
+      <Route path="/site/:slug" component={PublicPage} />
+      <Route path="/site" component={PublicSite} />
+      <Route path="/donate" component={PublicDonate} />
+
       {/* Public / Auth Routes */}
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
@@ -63,7 +170,76 @@ function Router() {
       <Route path="/finance/expenses" component={FinanceExpenses} />
       <Route path="/finance/report" component={FinanceReport} />
       <Route path="/finance/closings" component={FinanceClosings} />
-      
+      <Route path="/finance/budget/comparison" component={FinanceBudgetComparison} />
+      <Route path="/finance/budget" component={FinanceBudget} />
+
+      {/* Events Module */}
+      <Route path="/events/:id" component={EventDetailPage} />
+      <Route path="/events" component={EventsPage} />
+
+      {/* Ministries Module */}
+      <Route path="/ministries/:id" component={MinistryDetailPage} />
+      <Route path="/ministries" component={MinistriesPage} />
+
+      {/* Assets Module */}
+      <Route path="/assets" component={AssetsPage} />
+
+      {/* Schedules Module */}
+      <Route path="/schedules/roles" component={ServiceRolesPage} />
+
+      {/* Planning Module */}
+      <Route path="/planning/directives" component={PlanningDirectives} />
+      <Route path="/planning/initiatives" component={PlanningInitiatives} />
+      <Route path="/planning" component={PlanningDashboard} />
+
+      {/* Profile (own data) */}
+      <Route path="/profile" component={ProfilePage} />
+
+      {/* Pastoral Module */}
+      <Route path="/pastoral" component={PastoralPage} />
+
+      {/* Counseling Module */}
+      <Route path="/counseling/:id" component={CounselingCaseDetail} />
+      <Route path="/counseling" component={CounselingPage} />
+
+      {/* Songs Module */}
+      <Route path="/songs/:id" component={SongDetailPage} />
+      <Route path="/songs" component={SongsPage} />
+
+      {/* Liturgy Module */}
+      <Route path="/liturgy/:id" component={LiturgyDetailPage} />
+      <Route path="/liturgy" component={LiturgyPage} />
+
+      {/* Articles Module */}
+      <Route path="/articles/new" component={NewArticle} />
+      <Route path="/articles/:id" component={ArticleDetailPage} />
+      <Route path="/articles" component={ArticlesPage} />
+
+      {/* Forum Module */}
+      <Route path="/forum/:id" component={ForumTopicDetail} />
+      <Route path="/forum" component={ForumPage} />
+
+      {/* Institutional Module */}
+      <Route path="/pages" component={InstitutionalPage} />
+
+      {/* PIX Module */}
+      <Route path="/finance/pix" component={PixAdminPage} />
+      <Route path="/contributions" component={ContributionsPage} />
+
+      {/* LGPD Module */}
+      <Route path="/lgpd/my-data" component={LgpdMyData} />
+      <Route path="/lgpd/admin-requests" component={LgpdAdminRequests} />
+
+      {/* Teaching Module */}
+      <Route path="/teaching" component={TeachingDashboard} />
+      <Route path="/teaching/courses/:id" component={TeachingCourseDetail} />
+      <Route path="/teaching/courses" component={TeachingCourses} />
+      <Route path="/teaching/attendance" component={TeachingAttendance} />
+      <Route path="/teaching/my-courses/:id" component={TeachingMyCourseContent} />
+      <Route path="/teaching/my-courses" component={TeachingMyCourses} />
+      <Route path="/teaching/contents/:id" component={TeachingContentDetail} />
+      <Route path="/teaching/contents" component={TeachingContents} />
+
       {/* Fallback */}
       <Route component={NotFound} />
     </Switch>

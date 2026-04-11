@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.2.0
  */
 import type { MemberStatus } from "./memberStatus";
+import type { MemberSummaryPipelineStage } from "./memberSummaryPipelineStage";
 
 export interface MemberSummary {
   id: string;
@@ -13,6 +14,7 @@ export interface MemberSummary {
   cpfMasked: string;
   email?: string;
   status: MemberStatus;
+  pipelineStage?: MemberSummaryPipelineStage;
   photoPath?: string;
   familyId?: string;
   familyName?: string;

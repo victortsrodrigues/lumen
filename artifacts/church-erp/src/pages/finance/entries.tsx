@@ -56,18 +56,21 @@ export default function FinanceEntries() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState<string>("");
-  
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const { data, isLoading } = useListFinanceEntries({
-    page, limit: 20, type: typeFilter || undefined
+    page, limit: 20, type: typeFilter || undefined,
+    dateFrom: dateFrom || undefined, dateTo: dateTo || undefined
   });
 
   const createMutation = useCreateFinanceEntry({
     mutation: {
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['listFinanceEntries'] });
+        queryClient.invalidateQueries({ queryKey: ["/api/finance"] });
         toast({ title: "Sucesso", description: "Entrada registrada com sucesso." });
         handleCloseModal();
       },
@@ -78,7 +81,7 @@ export default function FinanceEntries() {
   const updateMutation = useUpdateFinanceEntry({
     mutation: {
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['listFinanceEntries'] });
+        queryClient.invalidateQueries({ queryKey: ["/api/finance"] });
         toast({ title: "Sucesso", description: "Entrada atualizada com sucesso." });
         handleCloseModal();
       },
@@ -89,7 +92,7 @@ export default function FinanceEntries() {
   const deleteMutation = useDeleteFinanceEntry({
     mutation: {
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['listFinanceEntries'] });
+        queryClient.invalidateQueries({ queryKey: ["/api/finance"] });
         toast({ title: "Excluído", description: "Registro marcado como excluído (soft delete)." });
       },
       onError: (err: any) => toast({ title: "Erro", description: err.response?.data?.message || "Erro ao excluir", variant: "destructive" })
@@ -156,7 +159,7 @@ export default function FinanceEntries() {
   };
 
   return (
-    <AppLayout title="Entradas (Receitas)">
+    <AppLayout breadcrumbs={[{ label: "Financeiro", href: "/finance" }, { label: "Entradas" }]}>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h2 className="text-2xl font-display font-bold text-foreground flex items-center">
@@ -175,12 +178,12 @@ export default function FinanceEntries() {
       </div>
 
       <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-border bg-secondary/20 flex gap-4">
+        <div className="p-4 border-b border-border bg-secondary/20 flex flex-wrap gap-4 items-end">
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-muted-foreground" />
             <select
               value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
+              onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
               className="px-4 py-2 rounded-lg bg-background border border-border text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
             >
               <option value="">Todos os Tipos</option>
@@ -189,6 +192,19 @@ export default function FinanceEntries() {
               <option value="doacao">Doações</option>
             </select>
           </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-muted-foreground">De:</label>
+            <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(1); }} className="px-3 py-2 rounded-lg bg-background border border-border text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-muted-foreground">Até:</label>
+            <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(1); }} className="px-3 py-2 rounded-lg bg-background border border-border text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+          </div>
+          {(dateFrom || dateTo || typeFilter) && (
+            <button onClick={() => { setDateFrom(""); setDateTo(""); setTypeFilter(""); setPage(1); }} className="px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+              Limpar filtros
+            </button>
+          )}
         </div>
 
         <div className="overflow-x-auto">
@@ -252,6 +268,33 @@ export default function FinanceEntries() {
         </div>
       </div>
 
+      {data && data.total > 20 && (
+        <div className="flex items-center justify-between mt-4 px-2">
+          <p className="text-sm text-muted-foreground">
+            Mostrando {((page - 1) * 20) + 1}-{Math.min(page * 20, data.total)} de {data.total} registros
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              className="px-4 py-2 rounded-lg border border-border text-sm font-medium hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Anterior
+            </button>
+            <span className="px-4 py-2 text-sm font-medium text-muted-foreground">
+              Página {page} de {Math.ceil(data.total / 20)}
+            </span>
+            <button
+              onClick={() => setPage(p => p + 1)}
+              disabled={page * 20 >= data.total}
+              className="px-4 py-2 rounded-lg border border-border text-sm font-medium hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Próxima
+            </button>
+          </div>
+        </div>
+      )}
+
       <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingId ? "Editar Entrada" : "Nova Entrada"}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
           <div className="grid grid-cols-2 gap-4">
@@ -264,7 +307,7 @@ export default function FinanceEntries() {
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium text-foreground">Data</label>
+              <label className="text-sm font-medium text-foreground">Data *</label>
               <input type="date" {...form.register("date")} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
               {form.formState.errors.date && <p className="text-xs text-destructive">{form.formState.errors.date.message}</p>}
             </div>
@@ -272,8 +315,8 @@ export default function FinanceEntries() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-sm font-medium text-foreground">Valor (R$)</label>
-              <input type="number" step="0.01" {...form.register("amount")} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary/20 outline-none transition-all font-mono" placeholder="0.00" />
+              <label className="text-sm font-medium text-foreground">Valor (R$) *</label>
+              <input type="number" inputMode="decimal" step="0.01" {...form.register("amount")} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary/20 outline-none transition-all font-mono" placeholder="0.00" />
               {form.formState.errors.amount && <p className="text-xs text-destructive">{form.formState.errors.amount.message}</p>}
             </div>
             <div className="space-y-1">

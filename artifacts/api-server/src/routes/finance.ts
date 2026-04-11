@@ -1,5 +1,5 @@
 import { Router, type IRouter, Request, Response } from "express";
-import { db, financeEntriesTable, financeExpensesTable, financeMonthlyClosingsTable, membersTable } from "@workspace/db";
+import { db, financeEntriesTable, financeExpensesTable, financeMonthlyClosingsTable, membersTable, budgetsTable, budgetItemsTable } from "@workspace/db";
 import { eq, desc, and, isNull, gte, lte, sql, count, sum, or, ilike } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middlewares/auth.js";
 import { createAuditLog } from "../lib/audit.js";
@@ -7,6 +7,13 @@ import { ObjectStorageService } from "../lib/objectStorage.js";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
+
+function lastDayOfMonth(year: string | number, month: string | number): string {
+  const y = Number(year);
+  const m = Number(month);
+  const lastDay = new Date(y, m, 0).getDate(); // day 0 of next month = last day of current
+  return `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+}
 
 function getIp(req: Request): string {
   const fwd = req.headers["x-forwarded-for"];
@@ -63,6 +70,7 @@ function serializeExpense(e: typeof financeExpensesTable.$inferSelect): Record<s
     receiptPath: e.receiptPath,
     notes: e.notes,
     monthClosingId: e.monthClosingId,
+    initiativeId: e.initiativeId,
     createdAt: e.createdAt,
     deletedAt: e.deletedAt,
   };
@@ -90,7 +98,7 @@ function getYearMonth(dateStr: string): { year: string; month: string } {
 // ─── ENTRIES ─────────────────────────────────────────────────────────────────
 
 // GET /finance/entries
-router.get("/entries", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.get("/entries", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
   const role = req.user!.role;
   const page = Math.max(1, parseInt(req.query.page as string) || 1);
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
@@ -171,7 +179,7 @@ router.post("/entries", requireAuth, requireRole("admin"), async (req: Request, 
 });
 
 // GET /finance/entries/:id
-router.get("/entries/:id", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.get("/entries/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
   const role = req.user!.role;
   const [entry] = await db.select().from(financeEntriesTable).where(eq(financeEntriesTable.id, req.params.id)).limit(1);
   if (!entry) {
@@ -283,7 +291,7 @@ router.delete("/entries/:id", requireAuth, requireRole("admin"), async (req: Req
 // ─── EXPENSES ─────────────────────────────────────────────────────────────────
 
 // GET /finance/expenses
-router.get("/expenses", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.get("/expenses", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
   const page = Math.max(1, parseInt(req.query.page as string) || 1);
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
   const offset = (page - 1) * limit;
@@ -313,7 +321,7 @@ router.get("/expenses", requireAuth, requireRole("admin", "leader"), async (req:
 router.post("/expenses", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
-  const { date, amount, category, description, supplier, receiptPath, notes } = req.body;
+  const { date, amount, category, description, supplier, receiptPath, notes, initiativeId } = req.body;
 
   if (!date || !amount || !category || !description) {
     res.status(400).json({ error: "VALIDATION_ERROR", message: "Campos obrigatórios: data, valor, categoria, descrição" });
@@ -334,6 +342,7 @@ router.post("/expenses", requireAuth, requireRole("admin"), async (req: Request,
     supplier: supplier ?? null,
     receiptPath: receiptPath ?? null,
     notes: notes ?? null,
+    initiativeId: initiativeId ?? null,
     createdByUserId: userId,
     updatedByUserId: userId,
   }).returning();
@@ -351,7 +360,7 @@ router.post("/expenses", requireAuth, requireRole("admin"), async (req: Request,
 });
 
 // GET /finance/expenses/:id
-router.get("/expenses/:id", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.get("/expenses/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
   const [expense] = await db.select().from(financeExpensesTable).where(eq(financeExpensesTable.id, req.params.id)).limit(1);
   if (!expense) {
     res.status(404).json({ error: "NOT_FOUND", message: "Despesa não encontrada" });
@@ -379,7 +388,7 @@ router.put("/expenses/:id", requireAuth, requireRole("admin"), async (req: Reque
     return;
   }
 
-  const { date, amount, category, description, supplier, receiptPath, notes } = req.body;
+  const { date, amount, category, description, supplier, receiptPath, notes, initiativeId } = req.body;
   const checkDate = date ?? existing.date;
   const { year, month } = getYearMonth(checkDate);
   if (await isMonthClosed(year, month)) {
@@ -395,6 +404,7 @@ router.put("/expenses/:id", requireAuth, requireRole("admin"), async (req: Reque
     supplier: supplier !== undefined ? supplier : existing.supplier,
     receiptPath: receiptPath !== undefined ? receiptPath : existing.receiptPath,
     notes: notes !== undefined ? notes : existing.notes,
+    initiativeId: initiativeId !== undefined ? (initiativeId || null) : existing.initiativeId,
     updatedByUserId: userId,
     updatedAt: new Date(),
   }).where(eq(financeExpensesTable.id, req.params.id)).returning();
@@ -444,18 +454,16 @@ router.delete("/expenses/:id", requireAuth, requireRole("admin"), async (req: Re
   res.json({ message: "Despesa excluída (soft delete). Dado fiscal mantido por obrigação legal." });
 });
 
-// POST /finance/expenses/:id/receipt-url — generate signed URL for receipt
-router.post("/expenses/:id/receipt-url", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+// POST /finance/expenses/:id/receipt-url — check receipt availability
+router.post("/expenses/:id/receipt-url", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
   const [expense] = await db.select().from(financeExpensesTable).where(eq(financeExpensesTable.id, req.params.id)).limit(1);
   if (!expense || !expense.receiptPath) {
     res.status(404).json({ error: "NOT_FOUND", message: "Comprovante não encontrado" });
     return;
   }
   try {
-    const objectFile = await objectStorageService.getObjectEntityFile(expense.receiptPath);
-    const response = await objectStorageService.downloadObject(objectFile);
-    // Return a signed URL — just proxy the path for now, caller uses /api/storage/objects/...
-    res.json({ receiptPath: expense.receiptPath, available: response.ok });
+    const available = await objectStorageService.fileExists(expense.receiptPath);
+    res.json({ receiptPath: expense.receiptPath, available });
   } catch {
     res.status(500).json({ error: "RECEIPT_UNAVAILABLE", message: "Comprovante indisponível" });
   }
@@ -464,7 +472,7 @@ router.post("/expenses/:id/receipt-url", requireAuth, requireRole("admin", "lead
 // ─── MONTHLY CLOSINGS ────────────────────────────────────────────────────────
 
 // GET /finance/closings
-router.get("/closings", requireAuth, requireRole("admin", "leader"), async (_req, res) => {
+router.get("/closings", requireAuth, requireRole("admin"), async (_req, res) => {
   const closings = await db.select().from(financeMonthlyClosingsTable).orderBy(desc(financeMonthlyClosingsTable.year), desc(financeMonthlyClosingsTable.month));
   res.json({ closings });
 });
@@ -494,7 +502,7 @@ router.post("/closings", requireAuth, requireRole("admin"), async (req: Request,
 
   // Tag all entries and expenses of that month with closing ID
   const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
-  const endDate = `${year}-${String(month).padStart(2, "0")}-31`;
+  const endDate = lastDayOfMonth(year, month);
 
   await Promise.all([
     db.update(financeEntriesTable)
@@ -520,13 +528,13 @@ router.post("/closings", requireAuth, requireRole("admin"), async (req: Request,
 // ─── SUMMARY & REPORTS ───────────────────────────────────────────────────────
 
 // GET /finance/summary?year=2024&month=01
-router.get("/summary", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.get("/summary", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
   const role = req.user!.role;
   const year = (req.query.year as string) || String(new Date().getFullYear());
   const month = (req.query.month as string) || String(new Date().getMonth() + 1).padStart(2, "0");
 
   const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
-  const endDate = `${year}-${String(month).padStart(2, "0")}-31`;
+  const endDate = lastDayOfMonth(year, month);
 
   const [entriesByType, expensesByCategory, closing] = await Promise.all([
     db
@@ -581,7 +589,7 @@ router.get("/summary", requireAuth, requireRole("admin", "leader"), async (req: 
 });
 
 // GET /finance/dashboard — últimos 12 meses + saldo atual + top 5 despesas
-router.get("/dashboard", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.get("/dashboard", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
   const today = new Date();
   const months: { year: string; month: string; label: string }[] = [];
 
@@ -595,7 +603,7 @@ router.get("/dashboard", requireAuth, requireRole("admin", "leader"), async (req
   }
 
   const startDate = `${months[0].year}-${months[0].month}-01`;
-  const endDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-31`;
+  const endDate = lastDayOfMonth(today.getFullYear(), today.getMonth() + 1);
 
   const [entriesByMonth, expensesByMonth, topExpenseCategories] = await Promise.all([
     db
@@ -665,7 +673,7 @@ router.get("/dashboard", requireAuth, requireRole("admin", "leader"), async (req
 });
 
 // GET /finance/report?dateFrom=...&dateTo=...&type=...&category=...&memberId=...
-router.get("/report", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.get("/report", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
   const role = req.user!.role;
   const dateFrom = req.query.dateFrom as string | undefined;
   const dateTo = req.query.dateTo as string | undefined;
@@ -727,6 +735,389 @@ router.post("/members/:memberId/anonymize", requireAuth, requireRole("admin"), a
   });
 
   res.json({ message: "Dados do membro anonimizados nos registros financeiros. Valores mantidos por obrigação fiscal." });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// BUDGETS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const VALID_EXPENSE_CATEGORIES = ["aluguel", "agua", "luz", "internet", "salarios", "manutencao", "eventos", "missoes", "benevolencia", "material", "outros"];
+const VALID_REVENUE_CATEGORIES = ["dizimo", "oferta", "doacao"];
+
+function validateBudgetItemCategory(type: string, category: string): boolean {
+  if (type === "despesa") return VALID_EXPENSE_CATEGORIES.includes(category);
+  if (type === "receita") return VALID_REVENUE_CATEGORIES.includes(category);
+  return false;
+}
+
+function serializeBudget(b: typeof budgetsTable.$inferSelect) {
+  return {
+    id: b.id,
+    year: b.year,
+    status: b.status,
+    notes: b.notes,
+    createdAt: b.createdAt?.toISOString(),
+    updatedAt: b.updatedAt?.toISOString(),
+  };
+}
+
+function serializeBudgetItem(i: typeof budgetItemsTable.$inferSelect) {
+  return {
+    id: i.id,
+    budgetId: i.budgetId,
+    type: i.type,
+    category: i.category,
+    month: i.month,
+    plannedAmount: i.plannedAmount,
+    notes: i.notes,
+    createdAt: i.createdAt?.toISOString(),
+    updatedAt: i.updatedAt?.toISOString(),
+  };
+}
+
+// GET /finance/budgets
+router.get("/budgets", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+  const year = req.query.year as string | undefined;
+  const conditions = year ? [eq(budgetsTable.year, year)] : [];
+
+  const budgets = await db.select().from(budgetsTable)
+    .where(conditions.length ? and(...conditions) : undefined)
+    .orderBy(desc(budgetsTable.year));
+
+  res.json({ budgets: budgets.map(serializeBudget) });
+});
+
+// GET /finance/budgets/:id
+router.get("/budgets/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const [budget] = await db.select().from(budgetsTable).where(eq(budgetsTable.id, id));
+  if (!budget) {
+    res.status(404).json({ error: "Orcamento nao encontrado" });
+    return;
+  }
+
+  const items = await db.select().from(budgetItemsTable)
+    .where(eq(budgetItemsTable.budgetId, id))
+    .orderBy(budgetItemsTable.type, budgetItemsTable.category, budgetItemsTable.month);
+
+  res.json({ ...serializeBudget(budget), items: items.map(serializeBudgetItem) });
+});
+
+// POST /finance/budgets
+router.post("/budgets", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+  const { year, notes } = req.body;
+  const user = req.user!;
+  const ip = getIp(req);
+
+  if (!year) {
+    res.status(400).json({ error: "Ano e obrigatorio" });
+    return;
+  }
+
+  // Check no approved/closed budget for same year
+  const [existing] = await db.select().from(budgetsTable)
+    .where(and(
+      eq(budgetsTable.year, year),
+      or(eq(budgetsTable.status, "aprovado"), eq(budgetsTable.status, "encerrado")),
+    )).limit(1);
+
+  if (existing) {
+    res.status(409).json({ error: `Ja existe um orcamento aprovado/encerrado para ${year}` });
+    return;
+  }
+
+  const [budget] = await db.insert(budgetsTable).values({
+    year,
+    notes: notes || null,
+    createdByUserId: user.userId,
+    updatedByUserId: user.userId,
+  }).returning();
+
+  await createAuditLog({
+    userId: user.userId,
+    action: "BUDGET_CREATED",
+    resourceType: "budget",
+    resourceId: budget.id,
+    details: { year },
+    ipAddress: ip,
+  });
+
+  res.status(201).json(serializeBudget(budget));
+});
+
+// PUT /finance/budgets/:id
+router.put("/budgets/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const user = req.user!;
+  const ip = getIp(req);
+
+  const [existing] = await db.select().from(budgetsTable).where(eq(budgetsTable.id, id));
+  if (!existing) {
+    res.status(404).json({ error: "Orcamento nao encontrado" });
+    return;
+  }
+
+  const { status, notes } = req.body;
+  const updates: Record<string, any> = {
+    updatedByUserId: user.userId,
+    updatedAt: new Date(),
+  };
+  if (status !== undefined) updates.status = status;
+  if (notes !== undefined) updates.notes = notes || null;
+
+  const [updated] = await db.update(budgetsTable).set(updates)
+    .where(eq(budgetsTable.id, id)).returning();
+
+  await createAuditLog({
+    userId: user.userId,
+    action: "BUDGET_UPDATED",
+    resourceType: "budget",
+    resourceId: id,
+    details: { status, year: existing.year },
+    ipAddress: ip,
+  });
+
+  res.json(serializeBudget(updated));
+});
+
+// DELETE /finance/budgets/:id
+router.delete("/budgets/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const user = req.user!;
+  const ip = getIp(req);
+
+  const [existing] = await db.select().from(budgetsTable).where(eq(budgetsTable.id, id));
+  if (!existing) {
+    res.status(404).json({ error: "Orcamento nao encontrado" });
+    return;
+  }
+
+  if (existing.status !== "rascunho") {
+    res.status(409).json({ error: "Apenas orcamentos em rascunho podem ser removidos" });
+    return;
+  }
+
+  // Delete items first, then budget
+  await db.delete(budgetItemsTable).where(eq(budgetItemsTable.budgetId, id));
+  await db.delete(budgetsTable).where(eq(budgetsTable.id, id));
+
+  await createAuditLog({
+    userId: user.userId,
+    action: "BUDGET_DELETED",
+    resourceType: "budget",
+    resourceId: id,
+    details: { year: existing.year },
+    ipAddress: ip,
+  });
+
+  res.json({ message: "Orcamento removido com sucesso" });
+});
+
+// POST /finance/budgets/:id/items (batch)
+router.post("/budgets/:id/items", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const user = req.user!;
+  const ip = getIp(req);
+
+  const [budget] = await db.select().from(budgetsTable).where(eq(budgetsTable.id, id));
+  if (!budget) {
+    res.status(404).json({ error: "Orcamento nao encontrado" });
+    return;
+  }
+
+  const { items } = req.body;
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    res.status(400).json({ error: "Array de items e obrigatorio" });
+    return;
+  }
+
+  // Validate all items
+  for (const item of items) {
+    if (!item.type || !item.category || !item.month || !item.plannedAmount) {
+      res.status(400).json({ error: "Cada item precisa de type, category, month e plannedAmount" });
+      return;
+    }
+    if (!["receita", "despesa"].includes(item.type)) {
+      res.status(400).json({ error: `Tipo invalido: ${item.type}. Use 'receita' ou 'despesa'` });
+      return;
+    }
+    if (!validateBudgetItemCategory(item.type, item.category)) {
+      const validList = item.type === "despesa" ? VALID_EXPENSE_CATEGORIES : VALID_REVENUE_CATEGORIES;
+      res.status(400).json({ error: `Categoria '${item.category}' invalida para tipo '${item.type}'. Valores aceitos: ${validList.join(", ")}` });
+      return;
+    }
+  }
+
+  // Check for duplicates
+  for (const item of items) {
+    const [dup] = await db.select().from(budgetItemsTable)
+      .where(and(
+        eq(budgetItemsTable.budgetId, id),
+        eq(budgetItemsTable.type, item.type as any),
+        eq(budgetItemsTable.category, item.category),
+        eq(budgetItemsTable.month, item.month),
+      )).limit(1);
+    if (dup) {
+      res.status(409).json({ error: `Item duplicado: ${item.type}/${item.category}/${item.month} ja existe` });
+      return;
+    }
+  }
+
+  const created = [];
+  for (const item of items) {
+    const [row] = await db.insert(budgetItemsTable).values({
+      budgetId: id,
+      type: item.type as any,
+      category: item.category,
+      month: item.month,
+      plannedAmount: String(item.plannedAmount),
+      notes: item.notes || null,
+      createdByUserId: user.userId,
+      updatedByUserId: user.userId,
+    }).returning();
+    created.push(serializeBudgetItem(row));
+  }
+
+  await createAuditLog({
+    userId: user.userId,
+    action: "BUDGET_ITEM_ADDED",
+    resourceType: "budget",
+    resourceId: id,
+    details: { count: created.length },
+    ipAddress: ip,
+  });
+
+  res.status(201).json({ items: created });
+});
+
+// PUT /finance/budgets/:budgetId/items/:itemId
+router.put("/budgets/:budgetId/items/:itemId", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+  const { budgetId, itemId } = req.params;
+  const user = req.user!;
+  const ip = getIp(req);
+
+  const [existing] = await db.select().from(budgetItemsTable)
+    .where(and(eq(budgetItemsTable.id, itemId), eq(budgetItemsTable.budgetId, budgetId)));
+  if (!existing) {
+    res.status(404).json({ error: "Item nao encontrado" });
+    return;
+  }
+
+  const { plannedAmount, notes } = req.body;
+  const updates: Record<string, any> = {
+    updatedByUserId: user.userId,
+    updatedAt: new Date(),
+  };
+  if (plannedAmount !== undefined) updates.plannedAmount = String(plannedAmount);
+  if (notes !== undefined) updates.notes = notes || null;
+
+  const [updated] = await db.update(budgetItemsTable).set(updates)
+    .where(eq(budgetItemsTable.id, itemId)).returning();
+
+  await createAuditLog({
+    userId: user.userId,
+    action: "BUDGET_ITEM_UPDATED",
+    resourceType: "budget_item",
+    resourceId: itemId,
+    details: { budgetId, plannedAmount },
+    ipAddress: ip,
+  });
+
+  res.json(serializeBudgetItem(updated));
+});
+
+// DELETE /finance/budgets/:budgetId/items/:itemId
+router.delete("/budgets/:budgetId/items/:itemId", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+  const { budgetId, itemId } = req.params;
+  const user = req.user!;
+
+  const [existing] = await db.select().from(budgetItemsTable)
+    .where(and(eq(budgetItemsTable.id, itemId), eq(budgetItemsTable.budgetId, budgetId)));
+  if (!existing) {
+    res.status(404).json({ error: "Item nao encontrado" });
+    return;
+  }
+
+  await db.delete(budgetItemsTable).where(eq(budgetItemsTable.id, itemId));
+  res.json({ message: "Item removido" });
+});
+
+// GET /finance/budgets/:id/comparison
+router.get("/budgets/:id/comparison", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const [budget] = await db.select().from(budgetsTable).where(eq(budgetsTable.id, id));
+  if (!budget) {
+    res.status(404).json({ error: "Orcamento nao encontrado" });
+    return;
+  }
+
+  const items = await db.select().from(budgetItemsTable)
+    .where(eq(budgetItemsTable.budgetId, id));
+
+  // Get actual data for the budget year
+  const yearStart = `${budget.year}-01-01`;
+  const yearEnd = `${budget.year}-12-31`;
+
+  // Revenue actuals by type/month
+  const revenueActuals = await db.select({
+    type: financeEntriesTable.type,
+    month: sql<string>`to_char(${financeEntriesTable.date}::date, 'MM')`,
+    total: sum(financeEntriesTable.amount),
+  }).from(financeEntriesTable)
+    .where(and(
+      isNull(financeEntriesTable.deletedAt),
+      gte(financeEntriesTable.date, yearStart),
+      lte(financeEntriesTable.date, yearEnd),
+    ))
+    .groupBy(financeEntriesTable.type, sql`to_char(${financeEntriesTable.date}::date, 'MM')`);
+
+  // Expense actuals by category/month
+  const expenseActuals = await db.select({
+    category: financeExpensesTable.category,
+    month: sql<string>`to_char(${financeExpensesTable.date}::date, 'MM')`,
+    total: sum(financeExpensesTable.amount),
+  }).from(financeExpensesTable)
+    .where(and(
+      isNull(financeExpensesTable.deletedAt),
+      gte(financeExpensesTable.date, yearStart),
+      lte(financeExpensesTable.date, yearEnd),
+    ))
+    .groupBy(financeExpensesTable.category, sql`to_char(${financeExpensesTable.date}::date, 'MM')`);
+
+  // Build comparison
+  const comparison = items.map(item => {
+    let actual = "0";
+    if (item.type === "receita") {
+      const match = revenueActuals.find(r => r.type === item.category && r.month === item.month);
+      actual = match?.total ?? "0";
+    } else {
+      const match = expenseActuals.find(e => e.category === item.category && e.month === item.month);
+      actual = match?.total ?? "0";
+    }
+    const planned = parseFloat(item.plannedAmount ?? "0");
+    const actualVal = parseFloat(actual);
+    const variance = planned - actualVal;
+    const variancePercent = planned > 0 ? Math.round((variance / planned) * 100) : 0;
+
+    return {
+      type: item.type,
+      category: item.category,
+      month: item.month,
+      planned: planned.toFixed(2),
+      actual: actualVal.toFixed(2),
+      variance: variance.toFixed(2),
+      variancePercent,
+    };
+  });
+
+  res.json({
+    budgetId: id,
+    year: budget.year,
+    status: budget.status,
+    comparison,
+  });
 });
 
 export default router;

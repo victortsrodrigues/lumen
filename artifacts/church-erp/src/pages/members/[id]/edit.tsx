@@ -11,9 +11,7 @@ export default function EditMember() {
   const id = params.id as string;
 
   const { data: member, isLoading, isError } = useGetMember(id, {
-    query: {
-      enabled: !!id,
-    }
+    query: { enabled: !!id }
   });
 
   if (user?.role === 'member') {
@@ -21,12 +19,7 @@ export default function EditMember() {
   }
 
   return (
-    <AppLayout title="Editar Membro">
-      <div className="mb-8">
-        <h2 className="text-2xl font-display font-bold text-foreground">Editar Dados</h2>
-        <p className="text-muted-foreground mt-1">Atualize as informações do membro no sistema.</p>
-      </div>
-
+    <AppLayout breadcrumbs={[{ label: "Membros", href: "/members" }, ...(member ? [{ label: member.fullName, href: `/members/${id}` }, { label: "Editar" }] : [{ label: "Editar" }])]}>
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20 bg-card rounded-2xl border border-border shadow-sm">
           <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />

@@ -23,7 +23,7 @@ export default function NotFound() {
   );
 
   if (isAuthenticated) {
-    return <AppLayout title="Não Encontrado">{Content}</AppLayout>;
+    return <AppLayout breadcrumbs={[{ label: "Não Encontrado" }]}>{Content}</AppLayout>;
   }
 
   return (

@@ -1,8 +1,16 @@
-import { Bell, Moon, Sun } from "lucide-react";
+import { Moon, Sun, ArrowLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useLocation } from "wouter";
+import { NotificationBell } from "@/components/NotificationBell";
 
-export function Header({ title }: { title: string }) {
+export interface BreadcrumbItem {
+  label: string;
+  href?: string;
+}
+
+export function Header({ breadcrumbs }: { breadcrumbs?: BreadcrumbItem[] }) {
   const [isDark, setIsDark] = useState(false);
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
     const isDarkMode = document.documentElement.classList.contains('dark');
@@ -20,19 +28,39 @@ export function Header({ title }: { title: string }) {
     }
   };
 
+  // Find the last clickable breadcrumb for the back button
+  const backHref = breadcrumbs && breadcrumbs.length > 1
+    ? breadcrumbs.filter(b => b.href).pop()?.href
+    : undefined;
+
   return (
     <header className="h-16 flex items-center justify-between px-8 bg-card/50 backdrop-blur-sm border-b border-border/50 sticky top-0 z-10">
-      <h1 className="text-xl font-bold text-foreground font-display tracking-tight">{title}</h1>
-      
+      <div className="flex items-center gap-2 text-sm">
+        {backHref && (
+          <button onClick={() => setLocation(backHref)} className="p-1.5 hover:bg-secondary rounded-lg transition-colors mr-1">
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+        )}
+        {breadcrumbs && breadcrumbs.map((item, i) => (
+          <span key={i} className="flex items-center gap-2">
+            {i > 0 && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
+            {item.href ? (
+              <button onClick={() => setLocation(item.href!)} className="text-muted-foreground hover:text-foreground transition-colors">
+                {item.label}
+              </button>
+            ) : (
+              <span className="text-foreground font-medium">{item.label}</span>
+            )}
+          </span>
+        ))}
+      </div>
+
       <div className="flex items-center gap-4">
-        <button className="p-2 text-muted-foreground hover:text-foreground transition-colors relative rounded-full hover:bg-secondary">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full ring-2 ring-card"></span>
-        </button>
-        
+        <NotificationBell />
+
         <div className="w-px h-6 bg-border/50 mx-1"></div>
-        
-        <button 
+
+        <button
           onClick={toggleTheme}
           className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-secondary"
         >

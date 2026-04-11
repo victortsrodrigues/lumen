@@ -17,6 +17,7 @@ export interface FinanceExpense {
   receiptPath?: string | null;
   notes?: string | null;
   monthClosingId?: string | null;
+  initiativeId?: string | null;
   createdAt: Date;
   deletedAt?: Date | null;
 }

@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, pgEnum, numeric, date } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, pgEnum, numeric, date, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -105,12 +105,60 @@ export const financeExpensesTable = pgTable("finance_expenses", {
   // Monthly closing reference
   monthClosingId: text("month_closing_id"),
 
+  // Planning initiative reference (soft reference — no FK constraint)
+  initiativeId: text("initiative_id"),
+
   createdByUserId: text("created_by_user_id").notNull(),
   updatedByUserId: text("updated_by_user_id").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// ─── BUDGETS ─────────────────────────────────────────────────────────────────
+
+export const budgetStatusEnum = pgEnum("budget_status", [
+  "rascunho",
+  "aprovado",
+  "encerrado",
+]);
+
+export const budgetItemTypeEnum = pgEnum("budget_item_type", [
+  "receita",
+  "despesa",
+]);
+
+export const budgetsTable = pgTable("budgets", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  year: text("year").notNull(),
+  status: budgetStatusEnum("status").notNull().default("rascunho"),
+  notes: text("notes"),
+  createdByUserId: text("created_by_user_id").notNull(),
+  updatedByUserId: text("updated_by_user_id").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const budgetItemsTable = pgTable("budget_items", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  budgetId: text("budget_id").notNull(),
+  type: budgetItemTypeEnum("type").notNull(),
+  category: text("category").notNull(),
+  month: text("month").notNull(), // "01".."12"
+  plannedAmount: numeric("planned_amount", { precision: 12, scale: 2 }).notNull(),
+  notes: text("notes"),
+  createdByUserId: text("created_by_user_id").notNull(),
+  updatedByUserId: text("updated_by_user_id").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("idx_budget_items_unique")
+    .on(table.budgetId, table.type, table.category, table.month),
+]);
+
+// ─── TYPES ───────────────────────────────────────────────────────────────────
+
 export type FinanceEntry = typeof financeEntriesTable.$inferSelect;
 export type FinanceExpense = typeof financeExpensesTable.$inferSelect;
 export type FinanceMonthlyClosing = typeof financeMonthlyClosingsTable.$inferSelect;
+export type Budget = typeof budgetsTable.$inferSelect;
+export type BudgetItem = typeof budgetItemsTable.$inferSelect;

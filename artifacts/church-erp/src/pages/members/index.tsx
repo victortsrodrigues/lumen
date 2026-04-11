@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useListMembers, useRevealMemberCpf, ListMembersStatus } from '@workspace/api-client-react';
+import { useListMembers, useRevealMemberCpf, useGetPipelineSummary, ListMembersStatus } from '@workspace/api-client-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/hooks/use-auth-context';
 import { Link, Redirect } from 'wouter';
@@ -12,6 +12,38 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+
+const PIPELINE_STAGES = [
+  { key: "culto", label: "Culto", color: "bg-blue-200" },
+  { key: "pequeno_grupo", label: "Pequeno Grupo", color: "bg-green-200" },
+  { key: "ministerio", label: "Ministério", color: "bg-amber-200" },
+];
+
+function PipelineFunnel() {
+  const { data } = useGetPipelineSummary();
+  if (!data?.summary) return null;
+  const maxVal = Math.max(1, ...Object.values(data.summary as Record<string, number>));
+  return (
+    <div className="mb-6 p-4 rounded-xl border bg-card">
+      <h3 className="text-sm font-semibold text-muted-foreground mb-3">Funil de Integração</h3>
+      <div className="space-y-1.5">
+        {PIPELINE_STAGES.map(s => {
+          const val = (data.summary as Record<string, number>)[s.key] || 0;
+          const pct = Math.max(5, (val / maxVal) * 100);
+          return (
+            <div key={s.key} className="flex items-center gap-3">
+              <span className="text-xs text-muted-foreground w-24 text-right">{s.label}</span>
+              <div className="flex-1 h-5 bg-muted rounded-full overflow-hidden">
+                <div className={`h-full rounded-full ${s.color} transition-all`} style={{ width: `${pct}%` }} />
+              </div>
+              <span className="text-xs font-medium w-8">{val}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default function MembersList() {
   const { user } = useAuth();
@@ -84,7 +116,7 @@ export default function MembersList() {
     switch(status) {
       case 'ativo': return 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300 border-green-200 dark:border-green-500/30';
       case 'inativo': return 'bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-300 border-slate-200 dark:border-slate-500/30';
-      case 'transferido': return 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300 border-orange-200 dark:border-orange-500/30';
+      case 'visitante': return 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300 border-orange-200 dark:border-orange-500/30';
       case 'falecido': return 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300 border-purple-200 dark:border-purple-500/30';
       default: return 'bg-gray-100 text-gray-700';
     }
@@ -95,7 +127,7 @@ export default function MembersList() {
   const totalPages = Math.ceil(total / limit);
 
   return (
-    <AppLayout title="Cadastro de Membros">
+    <AppLayout breadcrumbs={[{ label: "Membros" }]}>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h2 className="text-2xl font-display font-bold text-foreground flex items-center">
@@ -145,13 +177,16 @@ export default function MembersList() {
               className="px-4 py-2.5 rounded-xl bg-background border border-border text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 w-full sm:w-48 appearance-none transition-all"
             >
               <option value="">Todos os Status</option>
+              <option value="visitante">Visitante</option>
               <option value="ativo">Ativo</option>
               <option value="inativo">Inativo</option>
-              <option value="transferido">Transferido</option>
               <option value="falecido">Falecido</option>
             </select>
           </div>
         </div>
+
+        {/* Pipeline Funnel */}
+        <PipelineFunnel />
 
         {/* Table */}
         <div className="overflow-x-auto">
@@ -212,6 +247,15 @@ export default function MembersList() {
                       <span className={cn("inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold capitalize border", getStatusStyle(member.status))}>
                         {member.status}
                       </span>
+                      {(member as any).pipelineStage && (
+                        <span className={cn("ml-1.5 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium", {
+                          "bg-blue-100 text-blue-700": (member as any).pipelineStage === "culto",
+                          "bg-green-100 text-green-700": (member as any).pipelineStage === "pequeno_grupo",
+                          "bg-amber-100 text-amber-700": (member as any).pipelineStage === "ministerio",
+                        })}>
+                          {(member as any).pipelineStage === "culto" ? "Culto" : (member as any).pipelineStage === "pequeno_grupo" ? "Pequeno Grupo" : "Ministério"}
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center font-mono text-sm">

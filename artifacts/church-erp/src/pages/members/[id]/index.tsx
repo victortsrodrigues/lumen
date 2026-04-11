@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/hooks/use-auth-context';
-import { useGetMember, useGetMemberHistory, useRevealMemberCpf, useDeleteMember } from '@workspace/api-client-react';
+import { useGetMember, useGetMemberHistory, useRevealMemberCpf, useDeleteMember, useMoveMemberPipeline, useGetMemberPipelineHistory } from '@workspace/api-client-react';
 import { Redirect, useParams, Link, useLocation } from 'wouter';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { 
-  Loader2, User, Edit, Trash2, Calendar, MapPin, 
+import {
+  Loader2, User, Edit, Trash2, Calendar, MapPin,
   Phone, Mail, Heart, Activity, Clock, ShieldCheck, Eye
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -25,6 +25,9 @@ export default function MemberProfile() {
   const [isRevealing, setIsRevealing] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showPipelineModal, setShowPipelineModal] = useState(false);
+  const [newStage, setNewStage] = useState("");
+  const [stageReason, setStageReason] = useState("");
 
   const { data: member, isLoading, isError } = useGetMember(id, {
     query: { enabled: !!id }
@@ -36,6 +39,23 @@ export default function MemberProfile() {
 
   const { mutateAsync: revealCpf } = useRevealMemberCpf();
   const { mutateAsync: deleteMember } = useDeleteMember();
+
+  const { data: pipelineData } = useGetMemberPipelineHistory(id, { query: { enabled: !!id } });
+  const movePipelineMut = useMoveMemberPipeline({
+    mutation: {
+      onSuccess: () => {
+        toast({ title: "Sucesso", description: "Etapa atualizada." });
+        setShowPipelineModal(false);
+        setNewStage("");
+        setStageReason("");
+        // Refresh member data
+        window.location.reload();
+      },
+      onError: (err: any) => {
+        toast({ title: "Erro", description: err?.response?.data?.error || "Falha.", variant: "destructive" });
+      },
+    },
+  });
 
   if (user?.role === 'member' && user.id !== id) {
     // Membros só podem ver o próprio perfil
@@ -72,7 +92,7 @@ export default function MemberProfile() {
     switch(status) {
       case 'ativo': return 'bg-green-100 text-green-700 border-green-200';
       case 'inativo': return 'bg-slate-100 text-slate-700 border-slate-200';
-      case 'transferido': return 'bg-orange-100 text-orange-700 border-orange-200';
+      case 'visitante': return 'bg-orange-100 text-orange-700 border-orange-200';
       case 'falecido': return 'bg-purple-100 text-purple-700 border-purple-200';
       default: return 'bg-gray-100 text-gray-700';
     }
@@ -80,7 +100,7 @@ export default function MemberProfile() {
 
   if (isLoading) {
     return (
-      <AppLayout title="Perfil do Membro">
+      <AppLayout breadcrumbs={[{ label: "Membros", href: "/members" }, { label: member?.fullName || "Membro" }]}>
         <div className="flex justify-center py-32"><Loader2 className="w-10 h-10 animate-spin text-primary" /></div>
       </AppLayout>
     );
@@ -88,7 +108,7 @@ export default function MemberProfile() {
 
   if (isError || !member) {
     return (
-      <AppLayout title="Perfil do Membro">
+      <AppLayout breadcrumbs={[{ label: "Membros", href: "/members" }, { label: member?.fullName || "Membro" }]}>
         <div className="bg-destructive/10 text-destructive p-6 rounded-xl border border-destructive/20 text-center">
           Membro não encontrado ou acesso negado.
         </div>
@@ -100,7 +120,7 @@ export default function MemberProfile() {
   const canDelete = user?.role === 'admin';
 
   return (
-    <AppLayout title="Perfil do Membro">
+    <AppLayout breadcrumbs={[{ label: "Membros", href: "/members" }, { label: member?.fullName || "Membro" }]}>
       {/* Header Profile */}
       <div className="bg-card rounded-3xl border border-border shadow-sm p-6 sm:p-8 mb-8 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-r from-primary/20 to-primary/5"></div>
@@ -329,6 +349,85 @@ export default function MemberProfile() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Pipeline Section - below tabs content */}
+      {canEdit && (
+        <div className="mt-8 rounded-2xl border bg-card p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Activity className="h-5 w-5" /> Funil de Integração
+            </h3>
+            <button onClick={() => { setNewStage((member as any).pipelineStage || "culto"); setShowPipelineModal(true); }} className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90">
+              Mover Etapa
+            </button>
+          </div>
+          <div className="flex items-center gap-4 mb-4">
+            {["culto", "pequeno_grupo", "ministerio"].map((stage, i) => {
+              const labels: Record<string, string> = { culto: "Culto", pequeno_grupo: "Pequeno Grupo", ministerio: "Ministério" };
+              const isCurrent = (member as any).pipelineStage === stage;
+              const isPast = ["culto", "pequeno_grupo", "ministerio"].indexOf((member as any).pipelineStage) > i;
+              return (
+                <div key={stage} className="flex items-center gap-2">
+                  {i > 0 && <div className={`w-8 h-0.5 ${isPast || isCurrent ? "bg-primary" : "bg-border"}`} />}
+                  <div className={`px-3 py-1.5 rounded-full text-sm font-medium ${isCurrent ? "bg-primary text-primary-foreground" : isPast ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
+                    {labels[stage]}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {pipelineData?.history && pipelineData.history.length > 0 && (
+            <div className="border-t pt-4 space-y-2">
+              <p className="text-sm font-medium text-muted-foreground mb-2">Histórico</p>
+              {(pipelineData.history as any[]).slice(0, 5).map((h: any) => {
+                const labels: Record<string, string> = { culto: "Culto", pequeno_grupo: "Pequeno Grupo", ministerio: "Ministério" };
+                return (
+                  <div key={h.id} className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>{labels[h.fromStage] || h.fromStage || "—"}</span>
+                    <span>→</span>
+                    <span className="font-medium text-foreground">{labels[h.toStage] || h.toStage}</span>
+                    {h.reason && <span className="text-muted-foreground">— {h.reason}</span>}
+                    <span className="ml-auto">{h.createdAt ? new Date(h.createdAt).toLocaleDateString("pt-BR") : ""}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Move Pipeline Modal */}
+      {showPipelineModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowPipelineModal(false)}>
+          <div className="bg-card rounded-2xl border shadow-xl w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b"><h2 className="text-lg font-bold">Mover Etapa</h2></div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="text-sm font-medium">Nova Etapa</label>
+                <select value={newStage} onChange={e => setNewStage(e.target.value)} className="w-full mt-1 px-3 py-2 border rounded-lg bg-background text-sm">
+                  <option value="culto">Culto</option>
+                  <option value="pequeno_grupo">Pequeno Grupo</option>
+                  <option value="ministerio">Ministério</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Motivo (opcional)</label>
+                <input value={stageReason} onChange={e => setStageReason(e.target.value)} className="w-full mt-1 px-3 py-2 border rounded-lg bg-background text-sm" placeholder="Ex: Entrou no grupo de jovens" />
+              </div>
+            </div>
+            <div className="p-6 border-t flex justify-end gap-3">
+              <button onClick={() => setShowPipelineModal(false)} className="px-4 py-2 border rounded-lg text-sm">Cancelar</button>
+              <button
+                onClick={() => movePipelineMut.mutate({ id, data: { stage: newStage, reason: stageReason || undefined } as any })}
+                disabled={movePipelineMut.isPending}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm flex items-center gap-2 disabled:opacity-50"
+              >
+                {movePipelineMut.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Mover
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 }

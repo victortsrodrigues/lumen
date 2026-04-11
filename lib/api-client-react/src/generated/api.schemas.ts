@@ -107,10 +107,19 @@ export interface AuditLogListResponse {
 export type MemberStatus = (typeof MemberStatus)[keyof typeof MemberStatus];
 
 export const MemberStatus = {
+  visitante: "visitante",
   ativo: "ativo",
   inativo: "inativo",
-  transferido: "transferido",
   falecido: "falecido",
+} as const;
+
+export type MemberSummaryPipelineStage =
+  (typeof MemberSummaryPipelineStage)[keyof typeof MemberSummaryPipelineStage];
+
+export const MemberSummaryPipelineStage = {
+  culto: "culto",
+  pequeno_grupo: "pequeno_grupo",
+  ministerio: "ministerio",
 } as const;
 
 export interface MemberSummary {
@@ -119,6 +128,7 @@ export interface MemberSummary {
   cpfMasked: string;
   email?: string;
   status: MemberStatus;
+  pipelineStage?: MemberSummaryPipelineStage;
   photoPath?: string;
   familyId?: string;
   familyName?: string;
@@ -132,6 +142,27 @@ export const MemberDetailSex = {
   masculino: "masculino",
   feminino: "feminino",
   outro: "outro",
+} as const;
+
+export type MemberDetailEnrollmentType =
+  | (typeof MemberDetailEnrollmentType)[keyof typeof MemberDetailEnrollmentType]
+  | null;
+
+export const MemberDetailEnrollmentType = {
+  batismo: "batismo",
+  profissao_de_fe: "profissao_de_fe",
+  transferencia: "transferencia",
+  jurisdicao: "jurisdicao",
+  restauracao: "restauracao",
+} as const;
+
+export type MemberDetailPipelineStage =
+  (typeof MemberDetailPipelineStage)[keyof typeof MemberDetailPipelineStage];
+
+export const MemberDetailPipelineStage = {
+  culto: "culto",
+  pequeno_grupo: "pequeno_grupo",
+  ministerio: "ministerio",
 } as const;
 
 export interface MemberDetail {
@@ -151,7 +182,9 @@ export interface MemberDetail {
   addressState?: string;
   conversionDate?: string;
   baptismDate?: string;
+  enrollmentType?: MemberDetailEnrollmentType;
   status: MemberStatus;
+  pipelineStage?: MemberDetailPipelineStage;
   photoPath?: string;
   familyId?: string;
   familyName?: string;
@@ -227,6 +260,32 @@ export interface UpdateMemberRequest {
   photoPath?: string;
   familyId?: string;
   familyName?: string;
+}
+
+export type UpdateOwnProfileRequestSex =
+  (typeof UpdateOwnProfileRequestSex)[keyof typeof UpdateOwnProfileRequestSex];
+
+export const UpdateOwnProfileRequestSex = {
+  masculino: "masculino",
+  feminino: "feminino",
+} as const;
+
+export interface UpdateOwnProfileRequest {
+  fullName?: string;
+  cpf?: string;
+  dateOfBirth?: string;
+  sex?: UpdateOwnProfileRequestSex;
+  phone?: string;
+  addressZip?: string;
+  addressStreet?: string;
+  addressNumber?: string;
+  addressComplement?: string;
+  addressNeighborhood?: string;
+  addressCity?: string;
+  addressState?: string;
+  conversionDate?: string;
+  baptismDate?: string;
+  photoPath?: string;
 }
 
 export interface RevealCpfResponse {
@@ -434,6 +493,7 @@ export interface FinanceExpense {
   receiptPath?: string | null;
   notes?: string | null;
   monthClosingId?: string | null;
+  initiativeId?: string | null;
   createdAt: string;
   deletedAt?: string | null;
 }
@@ -576,6 +636,2302 @@ export interface FinanceReport {
   expenses: FinanceExpense[];
 }
 
+export type BudgetStatus = (typeof BudgetStatus)[keyof typeof BudgetStatus];
+
+export const BudgetStatus = {
+  rascunho: "rascunho",
+  aprovado: "aprovado",
+  encerrado: "encerrado",
+} as const;
+
+export interface Budget {
+  id: string;
+  year: string;
+  status: BudgetStatus;
+  notes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type BudgetItemType =
+  (typeof BudgetItemType)[keyof typeof BudgetItemType];
+
+export const BudgetItemType = {
+  receita: "receita",
+  despesa: "despesa",
+} as const;
+
+export interface BudgetItem {
+  id: string;
+  budgetId: string;
+  type: BudgetItemType;
+  category: string;
+  month: string;
+  plannedAmount: string;
+  notes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface BudgetsListResponse {
+  budgets: Budget[];
+}
+
+export interface BudgetDetail {
+  id: string;
+  year: string;
+  status: string;
+  notes?: string | null;
+  items: BudgetItem[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateBudgetRequest {
+  year: string;
+  notes?: string;
+}
+
+export type UpdateBudgetRequestStatus =
+  (typeof UpdateBudgetRequestStatus)[keyof typeof UpdateBudgetRequestStatus];
+
+export const UpdateBudgetRequestStatus = {
+  rascunho: "rascunho",
+  aprovado: "aprovado",
+  encerrado: "encerrado",
+} as const;
+
+export interface UpdateBudgetRequest {
+  status?: UpdateBudgetRequestStatus;
+  notes?: string;
+}
+
+export type BatchBudgetItemsRequestItemsItemType =
+  (typeof BatchBudgetItemsRequestItemsItemType)[keyof typeof BatchBudgetItemsRequestItemsItemType];
+
+export const BatchBudgetItemsRequestItemsItemType = {
+  receita: "receita",
+  despesa: "despesa",
+} as const;
+
+export type BatchBudgetItemsRequestItemsItem = {
+  type: BatchBudgetItemsRequestItemsItemType;
+  category: string;
+  month: string;
+  plannedAmount: string;
+  notes?: string;
+};
+
+export interface BatchBudgetItemsRequest {
+  items: BatchBudgetItemsRequestItemsItem[];
+}
+
+export interface BudgetComparisonItem {
+  type?: string;
+  category?: string;
+  month?: string;
+  planned?: string;
+  actual?: string;
+  variance?: string;
+  variancePercent?: number;
+}
+
+export interface BudgetComparison {
+  budgetId: string;
+  year: string;
+  status?: string;
+  comparison: BudgetComparisonItem[];
+}
+
+export type CourseCategory =
+  (typeof CourseCategory)[keyof typeof CourseCategory];
+
+export const CourseCategory = {
+  ebd: "ebd",
+  discipulado: "discipulado",
+  seminario: "seminario",
+  curso_livre: "curso_livre",
+  escola_de_lideres: "escola_de_lideres",
+} as const;
+
+export type CourseStatus = (typeof CourseStatus)[keyof typeof CourseStatus];
+
+export const CourseStatus = {
+  aberto: "aberto",
+  em_andamento: "em_andamento",
+  encerrado: "encerrado",
+} as const;
+
+export interface Course {
+  id: string;
+  title: string;
+  description?: string | null;
+  syllabus?: string | null;
+  introVideoUrl?: string | null;
+  teacherId: string;
+  teacherName?: string | null;
+  category: CourseCategory;
+  status: CourseStatus;
+  startDate?: string | null;
+  endDate?: string | null;
+  dayOfWeek?: string | null;
+  timeSlot?: string | null;
+  location?: string | null;
+  lessonDurationMinutes?: number | null;
+  totalWeeks?: number | null;
+  maxSlots?: number | null;
+  enrolledCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type CreateCourseRequestCategory =
+  (typeof CreateCourseRequestCategory)[keyof typeof CreateCourseRequestCategory];
+
+export const CreateCourseRequestCategory = {
+  ebd: "ebd",
+  discipulado: "discipulado",
+  seminario: "seminario",
+  curso_livre: "curso_livre",
+  escola_de_lideres: "escola_de_lideres",
+} as const;
+
+export type CreateCourseRequestStatus =
+  (typeof CreateCourseRequestStatus)[keyof typeof CreateCourseRequestStatus];
+
+export const CreateCourseRequestStatus = {
+  aberto: "aberto",
+  em_andamento: "em_andamento",
+  encerrado: "encerrado",
+} as const;
+
+export interface CreateCourseRequest {
+  title: string;
+  description?: string;
+  syllabus?: string;
+  introVideoUrl?: string;
+  teacherId: string;
+  category: CreateCourseRequestCategory;
+  status?: CreateCourseRequestStatus;
+  startDate?: string;
+  endDate?: string;
+  dayOfWeek?: string;
+  timeSlot?: string;
+  location?: string;
+  lessonDurationMinutes?: number;
+  totalWeeks?: number;
+  maxSlots?: number;
+}
+
+export interface CoursesListResponse {
+  courses: Course[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface CourseLesson {
+  id: string;
+  courseId: string;
+  title: string;
+  description?: string | null;
+  content?: string | null;
+  videoUrl?: string | null;
+  lessonDate?: string | null;
+  lessonOrder: number;
+  materialPath?: string | null;
+  createdAt?: string;
+}
+
+export interface CreateLessonRequest {
+  title: string;
+  description?: string;
+  content?: string;
+  videoUrl?: string;
+  lessonDate?: string;
+  lessonOrder: number;
+  materialPath?: string;
+}
+
+export interface LessonsListResponse {
+  lessons: CourseLesson[];
+}
+
+export interface CourseEnrollment {
+  id: string;
+  courseId: string;
+  memberId: string;
+  memberName?: string | null;
+  enrolledAt?: string;
+  completedAt?: string | null;
+  certificatePath?: string | null;
+}
+
+export interface EnrollmentsListResponse {
+  enrollments: CourseEnrollment[];
+}
+
+export interface LessonDiscussion {
+  id: string;
+  lessonId: string;
+  authorId: string;
+  authorName: string;
+  body: string;
+  parentId?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface LessonDiscussionsListResponse {
+  discussions: LessonDiscussion[];
+}
+
+export interface CreateLessonDiscussionRequest {
+  body: string;
+  parentId?: string;
+}
+
+export interface UpdateLessonDiscussionRequest {
+  body: string;
+}
+
+export interface CourseDetail {
+  id: string;
+  title: string;
+  description?: string | null;
+  syllabus?: string | null;
+  introVideoUrl?: string | null;
+  teacherId: string;
+  teacherName?: string | null;
+  category: string;
+  status: string;
+  startDate?: string | null;
+  endDate?: string | null;
+  dayOfWeek?: string | null;
+  timeSlot?: string | null;
+  location?: string | null;
+  lessonDurationMinutes?: number | null;
+  totalWeeks?: number | null;
+  maxSlots?: number | null;
+  createdAt?: string;
+  updatedAt?: string;
+  lessons: CourseLesson[];
+  enrollments: CourseEnrollment[];
+}
+
+export interface AttendanceRecord {
+  id: string;
+  lessonId: string;
+  memberId: string;
+  present: boolean;
+  createdAt?: string;
+}
+
+export interface AttendanceListResponse {
+  attendance: AttendanceRecord[];
+}
+
+export type RecordAttendanceRequestRecordsItem = {
+  memberId: string;
+  present: boolean;
+};
+
+export interface RecordAttendanceRequest {
+  records: RecordAttendanceRequestRecordsItem[];
+}
+
+export interface StudentProgress {
+  totalLessons: number;
+  attendedLessons: number;
+  percentage: number;
+}
+
+export interface CertificateData {
+  studentName: string;
+  courseName: string;
+  courseCategory: string;
+  teacherName?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  completionDate: string;
+  totalLessons: number;
+  attendedLessons: number;
+  percentage: number;
+}
+
+export type TeachingDashboardUpcomingLessonsItem = {
+  lessonId?: string;
+  lessonTitle?: string;
+  lessonDate?: string;
+  courseId?: string;
+  courseTitle?: string;
+  teacherName?: string | null;
+  timeSlot?: string | null;
+  location?: string | null;
+};
+
+export type TeachingDashboardLowAttendanceStudentsItem = {
+  memberName?: string;
+  courseName?: string;
+  percentage?: number;
+};
+
+export interface TeachingDashboard {
+  activeCourses: number;
+  totalEnrollments: number;
+  avgAttendance: number;
+  upcomingLessons: TeachingDashboardUpcomingLessonsItem[];
+  lowAttendanceStudents: TeachingDashboardLowAttendanceStudentsItem[];
+}
+
+export type EventRecurrence =
+  (typeof EventRecurrence)[keyof typeof EventRecurrence];
+
+export const EventRecurrence = {
+  unico: "unico",
+  semanal: "semanal",
+  quinzenal: "quinzenal",
+  mensal: "mensal",
+} as const;
+
+export type EventType = (typeof EventType)[keyof typeof EventType];
+
+export const EventType = {
+  culto: "culto",
+  reuniao: "reuniao",
+  conferencia: "conferencia",
+  social: "social",
+  outro: "outro",
+} as const;
+
+export type EventStatus = (typeof EventStatus)[keyof typeof EventStatus];
+
+export const EventStatus = {
+  agendado: "agendado",
+  em_andamento: "em_andamento",
+  encerrado: "encerrado",
+  cancelado: "cancelado",
+} as const;
+
+export interface Event {
+  id: string;
+  title: string;
+  description?: string | null;
+  startDate: string;
+  endDate: string;
+  location?: string | null;
+  responsibleId?: string | null;
+  responsibleName?: string | null;
+  recurrence?: EventRecurrence;
+  type: EventType;
+  maxSlots?: number | null;
+  status: EventStatus;
+  registeredCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type CreateEventRequestRecurrence =
+  (typeof CreateEventRequestRecurrence)[keyof typeof CreateEventRequestRecurrence];
+
+export const CreateEventRequestRecurrence = {
+  unico: "unico",
+  semanal: "semanal",
+  quinzenal: "quinzenal",
+  mensal: "mensal",
+} as const;
+
+export type CreateEventRequestType =
+  (typeof CreateEventRequestType)[keyof typeof CreateEventRequestType];
+
+export const CreateEventRequestType = {
+  culto: "culto",
+  reuniao: "reuniao",
+  conferencia: "conferencia",
+  social: "social",
+  outro: "outro",
+} as const;
+
+export type CreateEventRequestStatus =
+  (typeof CreateEventRequestStatus)[keyof typeof CreateEventRequestStatus];
+
+export const CreateEventRequestStatus = {
+  agendado: "agendado",
+  em_andamento: "em_andamento",
+  encerrado: "encerrado",
+  cancelado: "cancelado",
+} as const;
+
+export interface CreateEventRequest {
+  title: string;
+  description?: string;
+  startDate: string;
+  endDate: string;
+  location?: string;
+  responsibleId?: string;
+  recurrence?: CreateEventRequestRecurrence;
+  type: CreateEventRequestType;
+  maxSlots?: number;
+  status?: CreateEventRequestStatus;
+}
+
+export interface EventsListResponse {
+  events: Event[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface UpcomingEventsResponse {
+  events: Event[];
+}
+
+export interface EventRegistration {
+  id: string;
+  eventId: string;
+  memberId: string;
+  memberName?: string | null;
+  registeredAt?: string;
+}
+
+export interface EventRegistrationsListResponse {
+  registrations: EventRegistration[];
+}
+
+export interface EventDetail {
+  id: string;
+  title: string;
+  description?: string | null;
+  startDate: string;
+  endDate: string;
+  location?: string | null;
+  responsibleId?: string | null;
+  responsibleName?: string | null;
+  recurrence?: string;
+  type: string;
+  maxSlots?: number | null;
+  status: string;
+  createdAt?: string;
+  updatedAt?: string;
+  registrations: EventRegistration[];
+}
+
+export interface EventAttendanceRecord {
+  id: string;
+  eventId: string;
+  memberId: string;
+  present: boolean;
+  createdAt?: string;
+}
+
+export interface EventAttendanceListResponse {
+  attendance: EventAttendanceRecord[];
+}
+
+export type RecordEventAttendanceRequestRecordsItem = {
+  memberId: string;
+  present: boolean;
+};
+
+export interface RecordEventAttendanceRequest {
+  records: RecordEventAttendanceRequestRecordsItem[];
+}
+
+export type MyDataResponseMember = { [key: string]: unknown };
+
+export type MyDataResponseConsentsItem = { [key: string]: unknown };
+
+export type LgpdRequestRequestType =
+  (typeof LgpdRequestRequestType)[keyof typeof LgpdRequestRequestType];
+
+export const LgpdRequestRequestType = {
+  correcao: "correcao",
+  exclusao: "exclusao",
+  exportacao: "exportacao",
+  revogacao_consentimento: "revogacao_consentimento",
+} as const;
+
+export type LgpdRequestStatus =
+  (typeof LgpdRequestStatus)[keyof typeof LgpdRequestStatus];
+
+export const LgpdRequestStatus = {
+  pendente: "pendente",
+  em_analise: "em_analise",
+  concluido: "concluido",
+  rejeitado: "rejeitado",
+} as const;
+
+export interface LgpdRequest {
+  id: string;
+  memberId: string;
+  memberName?: string | null;
+  userId: string;
+  requestType: LgpdRequestRequestType;
+  status: LgpdRequestStatus;
+  description?: string | null;
+  adminNotes?: string | null;
+  processedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MyDataResponse {
+  member: MyDataResponseMember;
+  consents: MyDataResponseConsentsItem[];
+  requests: LgpdRequest[];
+}
+
+export type ConsentsListResponseConsentsItem = { [key: string]: unknown };
+
+export interface ConsentsListResponse {
+  consents: ConsentsListResponseConsentsItem[];
+}
+
+export interface LgpdRequestsListResponse {
+  requests: LgpdRequest[];
+  total?: number;
+  page?: number;
+  limit?: number;
+}
+
+export type CreateLgpdRequestBodyRequestType =
+  (typeof CreateLgpdRequestBodyRequestType)[keyof typeof CreateLgpdRequestBodyRequestType];
+
+export const CreateLgpdRequestBodyRequestType = {
+  correcao: "correcao",
+  exclusao: "exclusao",
+  exportacao: "exportacao",
+  revogacao_consentimento: "revogacao_consentimento",
+} as const;
+
+export interface CreateLgpdRequestBody {
+  requestType: CreateLgpdRequestBodyRequestType;
+  description?: string;
+}
+
+export type ProcessLgpdRequestBodyStatus =
+  (typeof ProcessLgpdRequestBodyStatus)[keyof typeof ProcessLgpdRequestBodyStatus];
+
+export const ProcessLgpdRequestBodyStatus = {
+  concluido: "concluido",
+  rejeitado: "rejeitado",
+} as const;
+
+export interface ProcessLgpdRequestBody {
+  status: ProcessLgpdRequestBodyStatus;
+  adminNotes?: string;
+}
+
+export type MediaLinkType = (typeof MediaLinkType)[keyof typeof MediaLinkType];
+
+export const MediaLinkType = {
+  youtube: "youtube",
+  vimeo: "vimeo",
+  drive: "drive",
+  link: "link",
+  outro: "outro",
+} as const;
+
+export type MediaLinkEntityType =
+  (typeof MediaLinkEntityType)[keyof typeof MediaLinkEntityType];
+
+export const MediaLinkEntityType = {
+  course_lesson: "course_lesson",
+  course: "course",
+  ministry: "ministry",
+  event: "event",
+  asset: "asset",
+  content: "content",
+} as const;
+
+export interface MediaLink {
+  id: string;
+  url: string;
+  title?: string | null;
+  type: MediaLinkType;
+  entityType: MediaLinkEntityType;
+  entityId: string;
+  createdByUserId: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MediaListResponse {
+  media: MediaLink[];
+  total: number;
+  page?: number;
+  limit?: number;
+}
+
+export type CreateMediaRequestEntityType =
+  (typeof CreateMediaRequestEntityType)[keyof typeof CreateMediaRequestEntityType];
+
+export const CreateMediaRequestEntityType = {
+  course_lesson: "course_lesson",
+  course: "course",
+  ministry: "ministry",
+  event: "event",
+  asset: "asset",
+  content: "content",
+} as const;
+
+export interface CreateMediaRequest {
+  url: string;
+  title?: string;
+  entityType: CreateMediaRequestEntityType;
+  entityId: string;
+}
+
+export interface UpdateMediaRequest {
+  url?: string;
+  title?: string;
+}
+
+export type MinistryStatus =
+  (typeof MinistryStatus)[keyof typeof MinistryStatus];
+
+export const MinistryStatus = {
+  ativo: "ativo",
+  inativo: "inativo",
+} as const;
+
+export interface Ministry {
+  id: string;
+  name: string;
+  description?: string | null;
+  meetingDay?: string | null;
+  meetingTime?: string | null;
+  meetingLocation?: string | null;
+  status: MinistryStatus;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type MinistryWithCountsLeadersItem = {
+  memberId?: string;
+  memberName?: string | null;
+};
+
+export interface MinistryWithCounts {
+  id: string;
+  name: string;
+  description?: string | null;
+  meetingDay?: string | null;
+  meetingTime?: string | null;
+  meetingLocation?: string | null;
+  status?: string;
+  memberCount: number;
+  leaders?: MinistryWithCountsLeadersItem[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MinistriesListResponse {
+  ministries: MinistryWithCounts[];
+  total: number;
+  page?: number;
+  limit?: number;
+}
+
+export type MinistryMemberRole =
+  (typeof MinistryMemberRole)[keyof typeof MinistryMemberRole];
+
+export const MinistryMemberRole = {
+  lider: "lider",
+  vice_lider: "vice_lider",
+  membro: "membro",
+  voluntario: "voluntario",
+} as const;
+
+export interface MinistryMember {
+  id: string;
+  ministryId: string;
+  memberId: string;
+  memberName?: string | null;
+  role: MinistryMemberRole;
+  joinedAt?: string;
+  leftAt?: string | null;
+  updatedAt?: string;
+}
+
+export interface MinistryDetail {
+  id: string;
+  name: string;
+  description?: string | null;
+  category?: string;
+  meetingDay?: string | null;
+  meetingTime?: string | null;
+  meetingLocation?: string | null;
+  status?: string;
+  members: MinistryMember[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type CreateMinistryRequestStatus =
+  (typeof CreateMinistryRequestStatus)[keyof typeof CreateMinistryRequestStatus];
+
+export const CreateMinistryRequestStatus = {
+  ativo: "ativo",
+  inativo: "inativo",
+} as const;
+
+export interface CreateMinistryRequest {
+  name: string;
+  description?: string;
+  meetingDay?: string;
+  meetingTime?: string;
+  meetingLocation?: string;
+  status?: CreateMinistryRequestStatus;
+}
+
+export type UpdateMinistryRequestStatus =
+  (typeof UpdateMinistryRequestStatus)[keyof typeof UpdateMinistryRequestStatus];
+
+export const UpdateMinistryRequestStatus = {
+  ativo: "ativo",
+  inativo: "inativo",
+} as const;
+
+export interface UpdateMinistryRequest {
+  name?: string;
+  description?: string;
+  meetingDay?: string;
+  meetingTime?: string;
+  meetingLocation?: string;
+  status?: UpdateMinistryRequestStatus;
+}
+
+export type AddMinistryMemberRequestRole =
+  (typeof AddMinistryMemberRequestRole)[keyof typeof AddMinistryMemberRequestRole];
+
+export const AddMinistryMemberRequestRole = {
+  lider: "lider",
+  vice_lider: "vice_lider",
+  membro: "membro",
+  voluntario: "voluntario",
+} as const;
+
+export interface AddMinistryMemberRequest {
+  memberId: string;
+  role?: AddMinistryMemberRequestRole;
+}
+
+export type MemberMinistriesResponseMinistriesItem = {
+  id?: string;
+  ministryId?: string;
+  ministryName?: string;
+  ministryStatus?: string;
+  role?: string;
+  joinedAt?: string;
+};
+
+export interface MemberMinistriesResponse {
+  ministries: MemberMinistriesResponseMinistriesItem[];
+}
+
+export type AssetCategory = (typeof AssetCategory)[keyof typeof AssetCategory];
+
+export const AssetCategory = {
+  instrumento: "instrumento",
+  som_iluminacao: "som_iluminacao",
+  mobiliario: "mobiliario",
+  informatica: "informatica",
+  veiculo: "veiculo",
+  imovel: "imovel",
+  outro: "outro",
+} as const;
+
+export type AssetStatus = (typeof AssetStatus)[keyof typeof AssetStatus];
+
+export const AssetStatus = {
+  ativo: "ativo",
+  manutencao: "manutencao",
+  baixa: "baixa",
+  emprestado: "emprestado",
+} as const;
+
+export interface Asset {
+  id: string;
+  name: string;
+  description?: string | null;
+  category: AssetCategory;
+  acquisitionDate?: string | null;
+  acquisitionValue?: string | null;
+  currentValue?: string | null;
+  serialNumber?: string | null;
+  location: string;
+  responsibleId?: string | null;
+  responsibleName?: string | null;
+  status: AssetStatus;
+  notes?: string | null;
+  photoPath?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AssetsListResponse {
+  assets: Asset[];
+  total: number;
+  page?: number;
+  limit?: number;
+}
+
+export type AssetsSummaryByCategory = { [key: string]: unknown };
+
+export interface AssetsSummary {
+  totalAssets: number;
+  totalValue: string;
+  byCategory?: AssetsSummaryByCategory;
+}
+
+export type CreateAssetRequestCategory =
+  (typeof CreateAssetRequestCategory)[keyof typeof CreateAssetRequestCategory];
+
+export const CreateAssetRequestCategory = {
+  instrumento: "instrumento",
+  som_iluminacao: "som_iluminacao",
+  mobiliario: "mobiliario",
+  informatica: "informatica",
+  veiculo: "veiculo",
+  imovel: "imovel",
+  outro: "outro",
+} as const;
+
+export type CreateAssetRequestStatus =
+  (typeof CreateAssetRequestStatus)[keyof typeof CreateAssetRequestStatus];
+
+export const CreateAssetRequestStatus = {
+  ativo: "ativo",
+  manutencao: "manutencao",
+  baixa: "baixa",
+  emprestado: "emprestado",
+} as const;
+
+export interface CreateAssetRequest {
+  name: string;
+  description?: string;
+  category?: CreateAssetRequestCategory;
+  acquisitionDate?: string;
+  acquisitionValue?: string;
+  currentValue?: string;
+  serialNumber?: string;
+  location: string;
+  responsibleId?: string;
+  status?: CreateAssetRequestStatus;
+  notes?: string;
+  photoPath?: string;
+}
+
+export type UpdateAssetRequestCategory =
+  (typeof UpdateAssetRequestCategory)[keyof typeof UpdateAssetRequestCategory];
+
+export const UpdateAssetRequestCategory = {
+  instrumento: "instrumento",
+  som_iluminacao: "som_iluminacao",
+  mobiliario: "mobiliario",
+  informatica: "informatica",
+  veiculo: "veiculo",
+  imovel: "imovel",
+  outro: "outro",
+} as const;
+
+export type UpdateAssetRequestStatus =
+  (typeof UpdateAssetRequestStatus)[keyof typeof UpdateAssetRequestStatus];
+
+export const UpdateAssetRequestStatus = {
+  ativo: "ativo",
+  manutencao: "manutencao",
+  baixa: "baixa",
+  emprestado: "emprestado",
+} as const;
+
+export interface UpdateAssetRequest {
+  name?: string;
+  description?: string;
+  category?: UpdateAssetRequestCategory;
+  acquisitionDate?: string;
+  acquisitionValue?: string;
+  currentValue?: string;
+  serialNumber?: string;
+  location?: string;
+  responsibleId?: string;
+  status?: UpdateAssetRequestStatus;
+  notes?: string;
+  photoPath?: string;
+}
+
+export interface ServiceRole {
+  id: string;
+  name: string;
+  description?: string | null;
+  ministryId?: string | null;
+  ministryName?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ServiceRolesListResponse {
+  roles: ServiceRole[];
+}
+
+export interface CreateServiceRoleRequest {
+  name: string;
+  description?: string;
+  ministryId?: string;
+}
+
+export interface UpdateServiceRoleRequest {
+  name?: string;
+  description?: string;
+  ministryId?: string;
+}
+
+export type EventScheduleEntryStatus =
+  (typeof EventScheduleEntryStatus)[keyof typeof EventScheduleEntryStatus];
+
+export const EventScheduleEntryStatus = {
+  escalado: "escalado",
+  confirmado: "confirmado",
+  ausente: "ausente",
+  substituido: "substituido",
+} as const;
+
+export interface EventScheduleEntry {
+  id: string;
+  eventId: string;
+  serviceRoleId: string;
+  serviceRoleName?: string | null;
+  memberId: string;
+  memberName?: string | null;
+  status: EventScheduleEntryStatus;
+  notes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface EventScheduleListResponse {
+  schedule: EventScheduleEntry[];
+}
+
+export interface AddToScheduleRequest {
+  serviceRoleId: string;
+  memberId: string;
+  notes?: string;
+}
+
+export type DashboardStatsMembersByStatus = {
+  ativo?: number;
+  inativo?: number;
+  transferido?: number;
+  falecido?: number;
+};
+
+export type DashboardStatsMembers = {
+  total?: number;
+  newThisMonth?: number;
+  byStatus?: DashboardStatsMembersByStatus;
+};
+
+export type DashboardStatsFinanceCurrentMonth = {
+  totalEntries?: string;
+  totalExpenses?: string;
+  balance?: string;
+};
+
+export type DashboardStatsFinancePreviousMonth = {
+  totalEntries?: string;
+  totalExpenses?: string;
+};
+
+export type DashboardStatsFinance = {
+  currentMonth?: DashboardStatsFinanceCurrentMonth;
+  previousMonth?: DashboardStatsFinancePreviousMonth;
+  entriesGrowth?: number;
+} | null;
+
+export type DashboardStatsEventsUpcomingItem = {
+  id?: string;
+  title?: string;
+  startDate?: string;
+  type?: string;
+  location?: string | null;
+};
+
+export type DashboardStatsEvents = {
+  upcomingCount?: number;
+  upcoming?: DashboardStatsEventsUpcomingItem[];
+};
+
+export type DashboardStatsTeaching = {
+  activeCourses?: number;
+  totalEnrollments?: number;
+};
+
+export type DashboardStatsMinistries = {
+  total?: number;
+  totalMembers?: number;
+};
+
+export type DashboardStatsPlanning = {
+  activeInitiatives?: number;
+  overdueInitiatives?: number;
+};
+
+export interface DashboardStats {
+  members: DashboardStatsMembers;
+  finance?: DashboardStatsFinance;
+  events: DashboardStatsEvents;
+  teaching: DashboardStatsTeaching;
+  ministries: DashboardStatsMinistries;
+  planning?: DashboardStatsPlanning;
+}
+
+export type LeaderWidgetsPastoral = {
+  pending?: number;
+  overdueFollowUps?: number;
+};
+
+export type LeaderWidgetsCounseling = {
+  openCases?: number;
+};
+
+export type LeaderWidgetsArticles = {
+  inReview?: number;
+  drafts?: number;
+};
+
+export interface LeaderWidgets {
+  pastoral?: LeaderWidgetsPastoral;
+  counseling?: LeaderWidgetsCounseling;
+  articles?: LeaderWidgetsArticles;
+}
+
+export type MemberStatsProfile = {
+  id?: string;
+  fullName?: string;
+  status?: string;
+  pipelineStage?: string | null;
+  baptismDate?: string | null;
+  conversionDate?: string | null;
+} | null;
+
+export type MemberStatsUpcomingRegisteredEventsItem = {
+  id?: string;
+  title?: string;
+  startDate?: string;
+  type?: string;
+  location?: string | null;
+};
+
+export type MemberStatsNextEvent = {
+  id?: string;
+  title?: string;
+  startDate?: string;
+  type?: string;
+  location?: string | null;
+} | null;
+
+export type MemberStatsMyMinistriesItem = {
+  id?: string;
+  name?: string;
+  role?: string;
+};
+
+export type MemberStatsRecentArticlesItem = {
+  id?: string;
+  title?: string;
+  excerpt?: string | null;
+  authorName?: string;
+  publishedAt?: string | null;
+  category?: string;
+};
+
+export interface MemberStats {
+  profile?: MemberStatsProfile;
+  enrolledCourses?: number;
+  upcomingRegisteredEvents?: MemberStatsUpcomingRegisteredEventsItem[];
+  nextEvent?: MemberStatsNextEvent;
+  myMinistries?: MemberStatsMyMinistriesItem[];
+  recentArticles?: MemberStatsRecentArticlesItem[];
+}
+
+export type DirectiveStatus =
+  (typeof DirectiveStatus)[keyof typeof DirectiveStatus];
+
+export const DirectiveStatus = {
+  ativa: "ativa",
+  concluida: "concluida",
+  cancelada: "cancelada",
+} as const;
+
+export interface Directive {
+  id: string;
+  title: string;
+  description?: string | null;
+  startYear: string;
+  endYear: string;
+  status: DirectiveStatus;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DirectivesListResponse {
+  directives: Directive[];
+}
+
+export type DirectiveDetailObjectivesItem = { [key: string]: unknown };
+
+export interface DirectiveDetail {
+  id: string;
+  title: string;
+  description?: string | null;
+  startYear?: string;
+  endYear?: string;
+  status?: string;
+  objectives: DirectiveDetailObjectivesItem[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateDirectiveRequest {
+  title: string;
+  description?: string;
+  startYear: string;
+  endYear: string;
+}
+
+export type UpdateDirectiveRequestStatus =
+  (typeof UpdateDirectiveRequestStatus)[keyof typeof UpdateDirectiveRequestStatus];
+
+export const UpdateDirectiveRequestStatus = {
+  ativa: "ativa",
+  concluida: "concluida",
+  cancelada: "cancelada",
+} as const;
+
+export interface UpdateDirectiveRequest {
+  title?: string;
+  description?: string;
+  startYear?: string;
+  endYear?: string;
+  status?: UpdateDirectiveRequestStatus;
+}
+
+export type ObjectiveStatus =
+  (typeof ObjectiveStatus)[keyof typeof ObjectiveStatus];
+
+export const ObjectiveStatus = {
+  em_andamento: "em_andamento",
+  concluido: "concluido",
+  cancelado: "cancelado",
+} as const;
+
+export interface Objective {
+  id: string;
+  directiveId: string;
+  title: string;
+  description?: string | null;
+  targetValue?: string | null;
+  currentValue?: string | null;
+  unit?: string | null;
+  deadline?: string | null;
+  status: ObjectiveStatus;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateObjectiveRequest {
+  title: string;
+  description?: string;
+  targetValue?: number;
+  unit?: string;
+  deadline?: string;
+}
+
+export type UpdateObjectiveRequestStatus =
+  (typeof UpdateObjectiveRequestStatus)[keyof typeof UpdateObjectiveRequestStatus];
+
+export const UpdateObjectiveRequestStatus = {
+  em_andamento: "em_andamento",
+  concluido: "concluido",
+  cancelado: "cancelado",
+} as const;
+
+export interface UpdateObjectiveRequest {
+  title?: string;
+  description?: string;
+  targetValue?: number;
+  currentValue?: number;
+  unit?: string;
+  deadline?: string;
+  status?: UpdateObjectiveRequestStatus;
+}
+
+export interface Initiative {
+  id: string;
+  objectiveId?: string | null;
+  ministryId?: string | null;
+  title: string;
+  description?: string | null;
+  type: string;
+  priority: string;
+  status: string;
+  responsibleId?: string | null;
+  responsibleName?: string | null;
+  plannedBudget?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  completedAt?: string | null;
+  notes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface InitiativesListResponse {
+  initiatives: Initiative[];
+}
+
+export interface InitiativeStep {
+  id: string;
+  initiativeId: string;
+  title: string;
+  completed: boolean;
+  completedAt?: string | null;
+  sortOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface InitiativeDetail {
+  id: string;
+  objectiveId?: string | null;
+  ministryId?: string | null;
+  title: string;
+  description?: string | null;
+  type?: string;
+  priority?: string;
+  status?: string;
+  responsibleId?: string | null;
+  responsibleName?: string | null;
+  plannedBudget?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  notes?: string | null;
+  steps: InitiativeStep[];
+  realizedCost: string;
+  progress: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type CreateInitiativeRequestType =
+  (typeof CreateInitiativeRequestType)[keyof typeof CreateInitiativeRequestType];
+
+export const CreateInitiativeRequestType = {
+  aquisicao: "aquisicao",
+  reforma: "reforma",
+  campanha: "campanha",
+  evento_especial: "evento_especial",
+  capacitacao: "capacitacao",
+  missoes: "missoes",
+  administrativo: "administrativo",
+  outro: "outro",
+} as const;
+
+export type CreateInitiativeRequestPriority =
+  (typeof CreateInitiativeRequestPriority)[keyof typeof CreateInitiativeRequestPriority];
+
+export const CreateInitiativeRequestPriority = {
+  alta: "alta",
+  media: "media",
+  baixa: "baixa",
+} as const;
+
+export interface CreateInitiativeRequest {
+  title: string;
+  description?: string;
+  type: CreateInitiativeRequestType;
+  priority?: CreateInitiativeRequestPriority;
+  objectiveId?: string;
+  ministryId?: string;
+  responsibleId?: string;
+  plannedBudget?: string;
+  startDate?: string;
+  endDate?: string;
+  notes?: string;
+}
+
+export interface UpdateInitiativeRequest {
+  title?: string;
+  description?: string;
+  type?: string;
+  priority?: string;
+  status?: string;
+  objectiveId?: string;
+  ministryId?: string;
+  responsibleId?: string;
+  plannedBudget?: string;
+  startDate?: string;
+  endDate?: string;
+  notes?: string;
+}
+
+export type PlanningSummaryByStatus = { [key: string]: unknown };
+
+export interface PlanningSummary {
+  totalInitiatives: number;
+  activeInitiatives: number;
+  overdueInitiatives: number;
+  byStatus?: PlanningSummaryByStatus;
+  totalPlannedBudget?: string;
+  totalRealizedCost?: string;
+}
+
+export type PipelineSummarySummary = { [key: string]: unknown };
+
+export interface PipelineSummary {
+  summary: PipelineSummarySummary;
+  total: number;
+}
+
+export type StagnantMembersResponseStagnantItem = {
+  id?: string;
+  fullName?: string;
+  pipelineStage?: string;
+  daysSinceChange?: number;
+  lastChangeAt?: string;
+};
+
+export interface StagnantMembersResponse {
+  stagnant: StagnantMembersResponseStagnantItem[];
+  total: number;
+  thresholdDays?: number;
+}
+
+export type MovePipelineRequestStage =
+  (typeof MovePipelineRequestStage)[keyof typeof MovePipelineRequestStage];
+
+export const MovePipelineRequestStage = {
+  culto: "culto",
+  pequeno_grupo: "pequeno_grupo",
+  ministerio: "ministerio",
+} as const;
+
+export interface MovePipelineRequest {
+  stage: MovePipelineRequestStage;
+  reason?: string;
+}
+
+export interface MovePipelineResponse {
+  message: string;
+  fromStage: string;
+  toStage: string;
+}
+
+export type MemberPipelineResponseHistoryItem = {
+  id?: string;
+  fromStage?: string | null;
+  toStage?: string;
+  reason?: string | null;
+  createdAt?: string;
+};
+
+export interface MemberPipelineResponse {
+  currentStage: string;
+  history: MemberPipelineResponseHistoryItem[];
+}
+
+export type MinistryGoalStatus =
+  (typeof MinistryGoalStatus)[keyof typeof MinistryGoalStatus];
+
+export const MinistryGoalStatus = {
+  em_andamento: "em_andamento",
+  concluida: "concluida",
+  cancelada: "cancelada",
+} as const;
+
+export interface MinistryGoal {
+  id: string;
+  ministryId: string;
+  title: string;
+  description?: string | null;
+  targetValue: string;
+  currentValue: string;
+  unit?: string | null;
+  deadline?: string | null;
+  initiativeId?: string | null;
+  status: MinistryGoalStatus;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MinistryGoalsListResponse {
+  goals: MinistryGoal[];
+}
+
+export interface CreateMinistryGoalRequest {
+  title: string;
+  description?: string;
+  targetValue: number;
+  unit?: string;
+  deadline?: string;
+  initiativeId?: string;
+}
+
+export type UpdateMinistryGoalRequestStatus =
+  (typeof UpdateMinistryGoalRequestStatus)[keyof typeof UpdateMinistryGoalRequestStatus];
+
+export const UpdateMinistryGoalRequestStatus = {
+  em_andamento: "em_andamento",
+  concluida: "concluida",
+  cancelada: "cancelada",
+} as const;
+
+export interface UpdateMinistryGoalRequest {
+  title?: string;
+  description?: string;
+  targetValue?: number;
+  currentValue?: number;
+  unit?: string;
+  deadline?: string;
+  initiativeId?: string;
+  status?: UpdateMinistryGoalRequestStatus;
+}
+
+export interface CalendarMonth {
+  month: string;
+  label: string;
+  events: Event[];
+}
+
+export interface CalendarYearResponse {
+  year: string;
+  months: CalendarMonth[];
+  totalEvents: number;
+}
+
+export type ContentItemCategory =
+  (typeof ContentItemCategory)[keyof typeof ContentItemCategory];
+
+export const ContentItemCategory = {
+  pequenos_grupos: "pequenos_grupos",
+  devocionais: "devocionais",
+  escola_biblica: "escola_biblica",
+  esboco_sermao: "esboco_sermao",
+  estudo_biblico: "estudo_biblico",
+} as const;
+
+export interface ContentItem {
+  id: string;
+  title: string;
+  description?: string | null;
+  category: ContentItemCategory;
+  authorName?: string | null;
+  mediaCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ContentsListResponse {
+  contents: ContentItem[];
+  total: number;
+  page?: number;
+  limit?: number;
+}
+
+export type CreateContentRequestCategory =
+  (typeof CreateContentRequestCategory)[keyof typeof CreateContentRequestCategory];
+
+export const CreateContentRequestCategory = {
+  pequenos_grupos: "pequenos_grupos",
+  devocionais: "devocionais",
+  escola_biblica: "escola_biblica",
+  esboco_sermao: "esboco_sermao",
+  estudo_biblico: "estudo_biblico",
+} as const;
+
+export interface CreateContentRequest {
+  title: string;
+  description?: string;
+  category: CreateContentRequestCategory;
+  authorName?: string;
+}
+
+export type UpdateContentRequestCategory =
+  (typeof UpdateContentRequestCategory)[keyof typeof UpdateContentRequestCategory];
+
+export const UpdateContentRequestCategory = {
+  pequenos_grupos: "pequenos_grupos",
+  devocionais: "devocionais",
+  escola_biblica: "escola_biblica",
+  esboco_sermao: "esboco_sermao",
+  estudo_biblico: "estudo_biblico",
+} as const;
+
+export interface UpdateContentRequest {
+  title?: string;
+  description?: string;
+  category?: UpdateContentRequestCategory;
+  authorName?: string;
+}
+
+export type CounselingCaseStatus =
+  (typeof CounselingCaseStatus)[keyof typeof CounselingCaseStatus];
+
+export const CounselingCaseStatus = {
+  aberto: "aberto",
+  em_andamento: "em_andamento",
+  encerrado: "encerrado",
+} as const;
+
+export interface CounselingCase {
+  id: string;
+  memberId: string;
+  memberName: string;
+  counselorId: string;
+  counselorName: string;
+  topic: string;
+  status: CounselingCaseStatus;
+  startDate: string;
+  endDate?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CounselingSession {
+  id: string;
+  caseId: string;
+  date: string;
+  notes?: string | null;
+  durationMinutes?: number | null;
+  createdAt?: string;
+}
+
+export interface CounselingSummary {
+  openCases: number;
+  inProgressCases: number;
+  closedCases: number;
+  totalSessions: number;
+}
+
+export interface CounselingCasesListResponse {
+  cases: CounselingCase[];
+  total: number;
+  page?: number;
+  limit?: number;
+}
+
+export type CounselingCaseDetail = CounselingCase & {
+  sessions?: CounselingSession[];
+};
+
+export interface CounselingSessionsListResponse {
+  sessions: CounselingSession[];
+}
+
+export interface CreateCounselingCaseRequest {
+  memberId: string;
+  counselorId: string;
+  topic: string;
+  startDate: string;
+}
+
+export type UpdateCounselingCaseRequestStatus =
+  (typeof UpdateCounselingCaseRequestStatus)[keyof typeof UpdateCounselingCaseRequestStatus];
+
+export const UpdateCounselingCaseRequestStatus = {
+  aberto: "aberto",
+  em_andamento: "em_andamento",
+  encerrado: "encerrado",
+} as const;
+
+export interface UpdateCounselingCaseRequest {
+  topic?: string;
+  status?: UpdateCounselingCaseRequestStatus;
+}
+
+export interface CreateCounselingSessionRequest {
+  date: string;
+  notes?: string;
+  durationMinutes?: number;
+}
+
+export type PastoralVisitType =
+  (typeof PastoralVisitType)[keyof typeof PastoralVisitType];
+
+export const PastoralVisitType = {
+  visita: "visita",
+  ligacao: "ligacao",
+  reuniao: "reuniao",
+  oracao: "oracao",
+} as const;
+
+export type PastoralVisitStatus =
+  (typeof PastoralVisitStatus)[keyof typeof PastoralVisitStatus];
+
+export const PastoralVisitStatus = {
+  pendente: "pendente",
+  realizado: "realizado",
+  cancelado: "cancelado",
+} as const;
+
+export interface PastoralVisit {
+  id: string;
+  memberId: string;
+  memberName: string;
+  pastorId: string;
+  pastorName: string;
+  type: PastoralVisitType;
+  date: string;
+  notes?: string | null;
+  status: PastoralVisitStatus;
+  followUpDate?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface PastoralSummary {
+  pending: number;
+  doneThisMonth: number;
+  overdueFollowUps: number;
+  totalVisits: number;
+}
+
+export interface PastoralVisitsListResponse {
+  visits: PastoralVisit[];
+  total: number;
+  page?: number;
+  limit?: number;
+}
+
+export interface PastoralVisitsHistoryResponse {
+  visits: PastoralVisit[];
+}
+
+export type CreatePastoralVisitRequestType =
+  (typeof CreatePastoralVisitRequestType)[keyof typeof CreatePastoralVisitRequestType];
+
+export const CreatePastoralVisitRequestType = {
+  visita: "visita",
+  ligacao: "ligacao",
+  reuniao: "reuniao",
+  oracao: "oracao",
+} as const;
+
+export interface CreatePastoralVisitRequest {
+  memberId: string;
+  pastorId: string;
+  type: CreatePastoralVisitRequestType;
+  date: string;
+  notes?: string;
+  followUpDate?: string;
+}
+
+export type UpdatePastoralVisitRequestType =
+  (typeof UpdatePastoralVisitRequestType)[keyof typeof UpdatePastoralVisitRequestType];
+
+export const UpdatePastoralVisitRequestType = {
+  visita: "visita",
+  ligacao: "ligacao",
+  reuniao: "reuniao",
+  oracao: "oracao",
+} as const;
+
+export type UpdatePastoralVisitRequestStatus =
+  (typeof UpdatePastoralVisitRequestStatus)[keyof typeof UpdatePastoralVisitRequestStatus];
+
+export const UpdatePastoralVisitRequestStatus = {
+  pendente: "pendente",
+  realizado: "realizado",
+  cancelado: "cancelado",
+} as const;
+
+export interface UpdatePastoralVisitRequest {
+  type?: UpdatePastoralVisitRequestType;
+  date?: string;
+  notes?: string;
+  status?: UpdatePastoralVisitRequestStatus;
+  followUpDate?: string;
+}
+
+export type SongCategory = (typeof SongCategory)[keyof typeof SongCategory];
+
+export const SongCategory = {
+  louvor: "louvor",
+  adoracao: "adoracao",
+  hino: "hino",
+  especial: "especial",
+} as const;
+
+export interface Song {
+  id: string;
+  title: string;
+  author?: string | null;
+  songKey?: string | null;
+  tempo?: string | null;
+  lyrics?: string | null;
+  chordChart?: string | null;
+  category: SongCategory;
+  youtubeUrl?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SongsListResponse {
+  songs: Song[];
+  total: number;
+  page?: number;
+  limit?: number;
+}
+
+export interface CreateSongRequest {
+  title: string;
+  youtubeUrl: string;
+}
+
+export interface UpdateSongRequest {
+  title?: string;
+  youtubeUrl?: string;
+}
+
+export type SongSuggestionStatus =
+  (typeof SongSuggestionStatus)[keyof typeof SongSuggestionStatus];
+
+export const SongSuggestionStatus = {
+  pendente: "pendente",
+  aprovada: "aprovada",
+  rejeitada: "rejeitada",
+} as const;
+
+export interface SongSuggestion {
+  id: string;
+  songId?: string | null;
+  title: string;
+  url: string;
+  reason?: string | null;
+  status: SongSuggestionStatus;
+  reviewNote?: string | null;
+  createdAt: string;
+}
+
+export interface SongSuggestionsListResponse {
+  suggestions: SongSuggestion[];
+  total: number;
+}
+
+export interface CreateSongSuggestionRequest {
+  title: string;
+  url: string;
+  reason: string;
+}
+
+export type ReviewSongSuggestionRequestStatus =
+  (typeof ReviewSongSuggestionRequestStatus)[keyof typeof ReviewSongSuggestionRequestStatus];
+
+export const ReviewSongSuggestionRequestStatus = {
+  aprovada: "aprovada",
+  rejeitada: "rejeitada",
+} as const;
+
+export interface ReviewSongSuggestionRequest {
+  status: ReviewSongSuggestionRequestStatus;
+  reviewNote?: string;
+}
+
+export type LiturgyType = (typeof LiturgyType)[keyof typeof LiturgyType];
+
+export const LiturgyType = {
+  culto_dominical: "culto_dominical",
+  culto_especial: "culto_especial",
+  santa_ceia: "santa_ceia",
+  culto_oracao: "culto_oracao",
+} as const;
+
+export type LiturgyStatus = (typeof LiturgyStatus)[keyof typeof LiturgyStatus];
+
+export const LiturgyStatus = {
+  rascunho: "rascunho",
+  aprovada: "aprovada",
+} as const;
+
+export interface Liturgy {
+  id: string;
+  title: string;
+  date: string;
+  type: LiturgyType;
+  eventId?: string | null;
+  status: LiturgyStatus;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type LiturgyItemType =
+  (typeof LiturgyItemType)[keyof typeof LiturgyItemType];
+
+export const LiturgyItemType = {
+  louvor: "louvor",
+  oracao: "oracao",
+  leitura: "leitura",
+  pregacao: "pregacao",
+  ofertorio: "ofertorio",
+  avisos: "avisos",
+  santa_ceia: "santa_ceia",
+  outro: "outro",
+} as const;
+
+export interface LiturgyItem {
+  id: string;
+  liturgyId: string;
+  order: number;
+  type: LiturgyItemType;
+  title: string;
+  description?: string | null;
+  responsibleName?: string | null;
+  durationMinutes?: number | null;
+  songId?: string | null;
+  createdAt: string;
+}
+
+export type LiturgyDetail = Liturgy & {
+  items: LiturgyItem[];
+};
+
+export interface LiturgiesListResponse {
+  liturgies: Liturgy[];
+  total: number;
+  page?: number;
+  limit?: number;
+}
+
+export type CreateLiturgyRequestType =
+  (typeof CreateLiturgyRequestType)[keyof typeof CreateLiturgyRequestType];
+
+export const CreateLiturgyRequestType = {
+  culto_dominical: "culto_dominical",
+  culto_especial: "culto_especial",
+  santa_ceia: "santa_ceia",
+  culto_oracao: "culto_oracao",
+} as const;
+
+export interface CreateLiturgyRequest {
+  title: string;
+  date: string;
+  type: CreateLiturgyRequestType;
+  eventId?: string;
+  notes?: string;
+}
+
+export type UpdateLiturgyRequestType =
+  (typeof UpdateLiturgyRequestType)[keyof typeof UpdateLiturgyRequestType];
+
+export const UpdateLiturgyRequestType = {
+  culto_dominical: "culto_dominical",
+  culto_especial: "culto_especial",
+  santa_ceia: "santa_ceia",
+  culto_oracao: "culto_oracao",
+} as const;
+
+export type UpdateLiturgyRequestStatus =
+  (typeof UpdateLiturgyRequestStatus)[keyof typeof UpdateLiturgyRequestStatus];
+
+export const UpdateLiturgyRequestStatus = {
+  rascunho: "rascunho",
+  aprovada: "aprovada",
+} as const;
+
+export interface UpdateLiturgyRequest {
+  title?: string;
+  date?: string;
+  type?: UpdateLiturgyRequestType;
+  eventId?: string;
+  status?: UpdateLiturgyRequestStatus;
+  notes?: string;
+}
+
+export type AddLiturgyItemRequestType =
+  (typeof AddLiturgyItemRequestType)[keyof typeof AddLiturgyItemRequestType];
+
+export const AddLiturgyItemRequestType = {
+  louvor: "louvor",
+  oracao: "oracao",
+  leitura: "leitura",
+  pregacao: "pregacao",
+  ofertorio: "ofertorio",
+  avisos: "avisos",
+  santa_ceia: "santa_ceia",
+  outro: "outro",
+} as const;
+
+export interface AddLiturgyItemRequest {
+  type: AddLiturgyItemRequestType;
+  title: string;
+  description?: string;
+  responsibleMemberId?: string;
+  durationMinutes?: number;
+  songId?: string;
+}
+
+export type UpdateLiturgyItemRequestType =
+  (typeof UpdateLiturgyItemRequestType)[keyof typeof UpdateLiturgyItemRequestType];
+
+export const UpdateLiturgyItemRequestType = {
+  louvor: "louvor",
+  oracao: "oracao",
+  leitura: "leitura",
+  pregacao: "pregacao",
+  ofertorio: "ofertorio",
+  avisos: "avisos",
+  santa_ceia: "santa_ceia",
+  outro: "outro",
+} as const;
+
+export interface UpdateLiturgyItemRequest {
+  type?: UpdateLiturgyItemRequestType;
+  title?: string;
+  description?: string;
+  responsibleMemberId?: string;
+  durationMinutes?: number;
+  songId?: string;
+}
+
+export interface ReorderLiturgyItemsRequest {
+  itemIds: string[];
+}
+
+export type ArticleCategory =
+  (typeof ArticleCategory)[keyof typeof ArticleCategory];
+
+export const ArticleCategory = {
+  artigo: "artigo",
+  devocional: "devocional",
+} as const;
+
+export type ArticleStatus = (typeof ArticleStatus)[keyof typeof ArticleStatus];
+
+export const ArticleStatus = {
+  rascunho: "rascunho",
+  em_revisao: "em_revisao",
+  aprovado: "aprovado",
+  publicado: "publicado",
+  rejeitado: "rejeitado",
+} as const;
+
+export interface Article {
+  id: string;
+  title: string;
+  slug: string;
+  body: string;
+  excerpt?: string | null;
+  authorName: string;
+  category: ArticleCategory;
+  status: ArticleStatus;
+  reviewNote?: string | null;
+  publishedAt?: string | null;
+  coverImageUrl?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ArticlesListResponse {
+  articles: Article[];
+  total: number;
+  page?: number;
+  limit?: number;
+}
+
+export type CreateArticleRequestCategory =
+  (typeof CreateArticleRequestCategory)[keyof typeof CreateArticleRequestCategory];
+
+export const CreateArticleRequestCategory = {
+  artigo: "artigo",
+  devocional: "devocional",
+} as const;
+
+export interface CreateArticleRequest {
+  title: string;
+  body: string;
+  excerpt?: string;
+  category: CreateArticleRequestCategory;
+  coverImageUrl?: string;
+}
+
+export type UpdateArticleRequestCategory =
+  (typeof UpdateArticleRequestCategory)[keyof typeof UpdateArticleRequestCategory];
+
+export const UpdateArticleRequestCategory = {
+  artigo: "artigo",
+  devocional: "devocional",
+} as const;
+
+export interface UpdateArticleRequest {
+  title?: string;
+  body?: string;
+  excerpt?: string;
+  category?: UpdateArticleRequestCategory;
+  coverImageUrl?: string;
+}
+
+export type ReviewArticleRequestAction =
+  (typeof ReviewArticleRequestAction)[keyof typeof ReviewArticleRequestAction];
+
+export const ReviewArticleRequestAction = {
+  approve: "approve",
+  reject: "reject",
+} as const;
+
+export interface ReviewArticleRequest {
+  action: ReviewArticleRequestAction;
+  note?: string;
+}
+
+export type ForumTopicCategory =
+  (typeof ForumTopicCategory)[keyof typeof ForumTopicCategory];
+
+export const ForumTopicCategory = {
+  geral: "geral",
+  oracao: "oracao",
+  estudo: "estudo",
+  testemunho: "testemunho",
+  duvida: "duvida",
+} as const;
+
+export interface ForumTopic {
+  id: string;
+  title: string;
+  body: string;
+  authorName: string;
+  category: ForumTopicCategory;
+  isPinned: boolean;
+  isLocked: boolean;
+  replyCount: number;
+  lastReplyAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ForumReply {
+  id: string;
+  topicId: string;
+  body: string;
+  authorName: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ForumTopicDetail = ForumTopic & {
+  replies: ForumReply[];
+};
+
+export interface ForumTopicsListResponse {
+  topics: ForumTopic[];
+  total: number;
+  page?: number;
+  limit?: number;
+}
+
+export interface ForumSummary {
+  totalTopics: number;
+  activeThisWeek: number;
+}
+
+export type CreateForumTopicRequestCategory =
+  (typeof CreateForumTopicRequestCategory)[keyof typeof CreateForumTopicRequestCategory];
+
+export const CreateForumTopicRequestCategory = {
+  geral: "geral",
+  oracao: "oracao",
+  estudo: "estudo",
+  testemunho: "testemunho",
+  duvida: "duvida",
+} as const;
+
+export interface CreateForumTopicRequest {
+  title: string;
+  body: string;
+  category: CreateForumTopicRequestCategory;
+}
+
+export interface UpdateForumTopicRequest {
+  title?: string;
+  body?: string;
+}
+
+export interface CreateForumReplyRequest {
+  body: string;
+}
+
+export interface UpdateForumReplyRequest {
+  body: string;
+}
+
+export type InstitutionalPageSection =
+  (typeof InstitutionalPageSection)[keyof typeof InstitutionalPageSection];
+
+export const InstitutionalPageSection = {
+  sobre: "sobre",
+  valores: "valores",
+  horarios: "horarios",
+  contato: "contato",
+  pastoral: "pastoral",
+  historia: "historia",
+} as const;
+
+export interface InstitutionalPage {
+  id: string;
+  title: string;
+  slug: string;
+  body: string;
+  section: InstitutionalPageSection;
+  isPublished: boolean;
+  sortOrder: number;
+  coverImageUrl?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PublicPagesListResponse {
+  pages: InstitutionalPage[];
+}
+
+export interface PagesListResponse {
+  pages: InstitutionalPage[];
+  total: number;
+}
+
+export type CreatePageRequestSection =
+  (typeof CreatePageRequestSection)[keyof typeof CreatePageRequestSection];
+
+export const CreatePageRequestSection = {
+  sobre: "sobre",
+  valores: "valores",
+  horarios: "horarios",
+  contato: "contato",
+  pastoral: "pastoral",
+  historia: "historia",
+} as const;
+
+export interface CreatePageRequest {
+  title: string;
+  body: string;
+  section: CreatePageRequestSection;
+  isPublished?: boolean;
+  sortOrder?: number;
+  coverImageUrl?: string;
+}
+
+export type UpdatePageRequestSection =
+  (typeof UpdatePageRequestSection)[keyof typeof UpdatePageRequestSection];
+
+export const UpdatePageRequestSection = {
+  sobre: "sobre",
+  valores: "valores",
+  horarios: "horarios",
+  contato: "contato",
+  pastoral: "pastoral",
+  historia: "historia",
+} as const;
+
+export interface UpdatePageRequest {
+  title?: string;
+  body?: string;
+  section?: UpdatePageRequestSection;
+  isPublished?: boolean;
+  sortOrder?: number;
+  coverImageUrl?: string;
+}
+
+export interface PixConfig {
+  id: string;
+  pixKey: string;
+  pixKeyType: string;
+  recipientName: string;
+  city: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface PixDonateInfo {
+  pixKey: string;
+  recipientName: string;
+  city: string;
+}
+
+export type PixDonationStatus =
+  (typeof PixDonationStatus)[keyof typeof PixDonationStatus];
+
+export const PixDonationStatus = {
+  pendente: "pendente",
+  confirmado: "confirmado",
+  expirado: "expirado",
+  cancelado: "cancelado",
+} as const;
+
+export interface PixDonation {
+  id: string;
+  amount: number;
+  donorName?: string | null;
+  donorEmail?: string | null;
+  txId: string;
+  status: PixDonationStatus;
+  confirmedAt?: string | null;
+  createdAt: string;
+}
+
+export interface PixDonationResponse {
+  id: string;
+  txId: string;
+  pixPayload: string;
+}
+
+export interface PixDonationsListResponse {
+  donations: PixDonation[];
+  total: number;
+  page?: number;
+  limit?: number;
+}
+
+export interface CreatePixConfigRequest {
+  pixKey: string;
+  pixKeyType: string;
+  recipientName: string;
+  city: string;
+}
+
+export interface UpdatePixConfigRequest {
+  pixKey?: string;
+  pixKeyType?: string;
+  recipientName?: string;
+  city?: string;
+}
+
+export interface CreatePixDonationRequest {
+  amount: number;
+  donorName?: string;
+  donorEmail?: string;
+}
+
+export interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  link?: string | null;
+  entityType?: string | null;
+  entityId?: string | null;
+  readAt?: string | null;
+  createdAt?: string;
+}
+
+export interface NotificationsListResponse {
+  notifications: Notification[];
+}
+
+export interface UnreadCountResponse {
+  count: number;
+}
+
 export type GetAuditLogsParams = {
   /**
    * @minimum 1
@@ -609,11 +2965,15 @@ export type ListMembersStatus =
   (typeof ListMembersStatus)[keyof typeof ListMembersStatus];
 
 export const ListMembersStatus = {
+  visitante: "visitante",
   ativo: "ativo",
   inativo: "inativo",
-  transferido: "transferido",
   falecido: "falecido",
 } as const;
+
+export type GetStagnantMembersParams = {
+  days?: number;
+};
 
 export type ListFinanceEntriesParams = {
   page?: number;
@@ -694,3 +3054,241 @@ export const GetFinanceReportType = {
   oferta: "oferta",
   doacao: "doacao",
 } as const;
+
+export type ListBudgetsParams = {
+  year?: string;
+};
+
+export type AddBudgetItems201 = {
+  items?: BudgetItem[];
+};
+
+export type UpdateBudgetItemBody = {
+  plannedAmount?: string;
+  notes?: string;
+};
+
+export type ExportMyData200 = { [key: string]: unknown };
+
+export type ListLgpdRequestsParams = {
+  page?: number;
+  limit?: number;
+  status?: string;
+  type?: string;
+};
+
+export type ListEventsParams = {
+  page?: number;
+  limit?: number;
+  type?: string;
+  status?: string;
+  dateFrom?: string;
+  dateTo?: string;
+};
+
+export type GetEventsCalendarParams = {
+  year?: string;
+};
+
+export type RegisterForEventBody = {
+  memberId?: string;
+};
+
+export type ListTeachingCoursesParams = {
+  page?: number;
+  limit?: number;
+  status?: string;
+  category?: string;
+  /**
+   * If true, returns only courses the current user is enrolled in
+   */
+  mine?: boolean;
+};
+
+export type EnrollInCourseBody = {
+  memberId?: string;
+};
+
+export type ListMediaParams = {
+  entityType?: ListMediaEntityType;
+  entityId?: string;
+  page?: number;
+  limit?: number;
+};
+
+export type ListMediaEntityType =
+  (typeof ListMediaEntityType)[keyof typeof ListMediaEntityType];
+
+export const ListMediaEntityType = {
+  course_lesson: "course_lesson",
+  course: "course",
+  ministry: "ministry",
+  event: "event",
+  asset: "asset",
+  content: "content",
+} as const;
+
+export type ListMinistriesParams = {
+  page?: number;
+  limit?: number;
+  status?: ListMinistriesStatus;
+};
+
+export type ListMinistriesStatus =
+  (typeof ListMinistriesStatus)[keyof typeof ListMinistriesStatus];
+
+export const ListMinistriesStatus = {
+  ativo: "ativo",
+  inativo: "inativo",
+} as const;
+
+export type UpdateMinistryMemberRoleBodyRole =
+  (typeof UpdateMinistryMemberRoleBodyRole)[keyof typeof UpdateMinistryMemberRoleBodyRole];
+
+export const UpdateMinistryMemberRoleBodyRole = {
+  lider: "lider",
+  vice_lider: "vice_lider",
+  membro: "membro",
+  voluntario: "voluntario",
+} as const;
+
+export type UpdateMinistryMemberRoleBody = {
+  role: UpdateMinistryMemberRoleBodyRole;
+};
+
+export type ListAssetsParams = {
+  page?: number;
+  limit?: number;
+  category?: ListAssetsCategory;
+  status?: ListAssetsStatus;
+  location?: string;
+  search?: string;
+};
+
+export type ListAssetsCategory =
+  (typeof ListAssetsCategory)[keyof typeof ListAssetsCategory];
+
+export const ListAssetsCategory = {
+  instrumento: "instrumento",
+  som_iluminacao: "som_iluminacao",
+  mobiliario: "mobiliario",
+  informatica: "informatica",
+  veiculo: "veiculo",
+  imovel: "imovel",
+  outro: "outro",
+} as const;
+
+export type ListAssetsStatus =
+  (typeof ListAssetsStatus)[keyof typeof ListAssetsStatus];
+
+export const ListAssetsStatus = {
+  ativo: "ativo",
+  manutencao: "manutencao",
+  baixa: "baixa",
+  emprestado: "emprestado",
+} as const;
+
+export type UpdateScheduleStatusBodyStatus =
+  (typeof UpdateScheduleStatusBodyStatus)[keyof typeof UpdateScheduleStatusBodyStatus];
+
+export const UpdateScheduleStatusBodyStatus = {
+  escalado: "escalado",
+  confirmado: "confirmado",
+  ausente: "ausente",
+  substituido: "substituido",
+} as const;
+
+export type UpdateScheduleStatusBody = {
+  status?: UpdateScheduleStatusBodyStatus;
+  notes?: string;
+};
+
+export type ListInitiativesParams = {
+  status?: string;
+  type?: string;
+  ministryId?: string;
+  priority?: string;
+};
+
+export type AddInitiativeStepBody = {
+  title: string;
+  sortOrder?: number;
+};
+
+export type UpdateInitiativeStepBody = {
+  title?: string;
+  completed?: boolean;
+  sortOrder?: number;
+};
+
+export type ListContentsParams = {
+  page?: number;
+  limit?: number;
+  category?: ListContentsCategory;
+};
+
+export type ListContentsCategory =
+  (typeof ListContentsCategory)[keyof typeof ListContentsCategory];
+
+export const ListContentsCategory = {
+  pequenos_grupos: "pequenos_grupos",
+  devocionais: "devocionais",
+  escola_biblica: "escola_biblica",
+  esboco_sermao: "esboco_sermao",
+  estudo_biblico: "estudo_biblico",
+} as const;
+
+export type ListCounselingCasesParams = {
+  status?: string;
+  page?: number;
+  limit?: number;
+};
+
+export type ListPastoralVisitsParams = {
+  memberId?: string;
+  pastorId?: string;
+  status?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+  limit?: number;
+};
+
+export type ListSongsParams = {
+  search?: string;
+  category?: string;
+  page?: number;
+  limit?: number;
+};
+
+export type ListLiturgiesParams = {
+  type?: string;
+  status?: string;
+  date?: string;
+  page?: number;
+  limit?: number;
+};
+
+export type ListArticlesParams = {
+  status?: string;
+  category?: string;
+  page?: number;
+  limit?: number;
+};
+
+export type ListForumTopicsParams = {
+  category?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+};
+
+export type ListPixDonationsParams = {
+  status?: string;
+  page?: number;
+  limit?: number;
+};
+
+export type ListNotificationsParams = {
+  limit?: number;
+};

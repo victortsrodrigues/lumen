@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/use-auth-context';
 import { Link, useLocation } from 'wouter';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ArrowRight } from 'lucide-react';
+import { Loader2, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const loginSchema = z.object({
@@ -23,6 +23,7 @@ export default function Login() {
   const { getValidCsrfToken, checkSession } = useAuth();
   const { mutateAsync: loginMutation } = useLogin();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -81,12 +82,22 @@ export default function Login() {
               Esqueceu a senha?
             </Link>
           </div>
-          <input
-            {...register('password')}
-            type="password"
-            placeholder="••••••••"
-            className="w-full px-4 py-3 rounded-xl bg-background border-2 border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
-          />
+          <div className="relative">
+            <input
+              {...register('password')}
+              type={showPassword ? 'text' : 'password'}
+              placeholder="••••••••"
+              className="w-full px-4 py-3 pr-12 rounded-xl bg-background border-2 border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors"
+              tabIndex={-1}
+            >
+              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
+          </div>
           {errors.password && <p className="text-sm text-destructive mt-1">{errors.password.message}</p>}
         </div>
 

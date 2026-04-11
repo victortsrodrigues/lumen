@@ -16,7 +16,7 @@ export default function FinanceClosings() {
   const closeMutation = useCloseFinanceMonth({
     mutation: {
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['listFinanceClosings'] });
+        queryClient.invalidateQueries({ queryKey: ["/api/finance"] });
         toast({ title: "Mês Fechado", description: "O mês foi fechado e os registros estão bloqueados." });
       },
       onError: (err: any) => toast({ title: "Erro", description: err.response?.data?.message || "Erro ao fechar mês", variant: "destructive" })
@@ -34,7 +34,7 @@ export default function FinanceClosings() {
   };
 
   return (
-    <AppLayout title="Fechamentos Mensais">
+    <AppLayout breadcrumbs={[{ label: "Financeiro", href: "/finance" }, { label: "Fechamentos" }]}>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h2 className="text-2xl font-display font-bold text-foreground flex items-center">

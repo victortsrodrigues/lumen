@@ -30,7 +30,7 @@ export default function AuditLogs() {
   const totalPages = Math.ceil(total / limit);
 
   return (
-    <AppLayout title="Logs de Auditoria">
+    <AppLayout breadcrumbs={[{ label: "Logs de Auditoria" }]}>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
           <h2 className="text-2xl font-display font-bold text-foreground">Registro de Atividades</h2>

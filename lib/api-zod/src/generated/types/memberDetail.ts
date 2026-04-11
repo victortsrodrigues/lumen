@@ -5,6 +5,8 @@
  * Church ERP API
  * OpenAPI spec version: 0.2.0
  */
+import type { MemberDetailEnrollmentType } from "./memberDetailEnrollmentType";
+import type { MemberDetailPipelineStage } from "./memberDetailPipelineStage";
 import type { MemberDetailSex } from "./memberDetailSex";
 import type { MemberStatus } from "./memberStatus";
 
@@ -25,7 +27,9 @@ export interface MemberDetail {
   addressState?: string;
   conversionDate?: string;
   baptismDate?: string;
+  enrollmentType?: MemberDetailEnrollmentType;
   status: MemberStatus;
+  pipelineStage?: MemberDetailPipelineStage;
   photoPath?: string;
   familyId?: string;
   familyName?: string;

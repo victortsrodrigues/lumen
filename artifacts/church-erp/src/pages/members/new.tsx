@@ -11,12 +11,7 @@ export default function NewMember() {
   }
 
   return (
-    <AppLayout title="Novo Membro">
-      <div className="mb-8">
-        <h2 className="text-2xl font-display font-bold text-foreground">Cadastro de Membro</h2>
-        <p className="text-muted-foreground mt-1">Preencha os dados abaixo para registrar uma nova pessoa na comunidade.</p>
-      </div>
-
+    <AppLayout breadcrumbs={[{ label: "Membros", href: "/members" }, { label: "Novo Membro" }]}>
       <MemberForm />
     </AppLayout>
   );

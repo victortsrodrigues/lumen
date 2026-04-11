@@ -24,7 +24,7 @@ export default function FinanceDashboard() {
 
   if (isLoading) {
     return (
-      <AppLayout title="Dashboard Financeiro">
+      <AppLayout breadcrumbs={[{ label: "Financeiro" }]}>
         <div className="flex h-[60vh] items-center justify-center">
           <div className="flex flex-col items-center gap-4 text-muted-foreground">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -37,7 +37,7 @@ export default function FinanceDashboard() {
 
   if (isError || !data) {
     return (
-      <AppLayout title="Dashboard Financeiro">
+      <AppLayout breadcrumbs={[{ label: "Financeiro" }]}>
         <div className="flex h-[60vh] items-center justify-center">
           <div className="flex flex-col items-center gap-4 text-destructive bg-destructive/10 p-8 rounded-3xl border border-destructive/20">
             <AlertCircle className="h-12 w-12" />
@@ -62,7 +62,7 @@ export default function FinanceDashboard() {
   };
 
   return (
-    <AppLayout title="Dashboard Financeiro">
+    <AppLayout breadcrumbs={[{ label: "Financeiro" }]}>
       <div className="mb-8 relative overflow-hidden rounded-3xl p-8 border border-border/50 bg-card shadow-sm">
         <div className="absolute inset-0 z-0">
           <img 

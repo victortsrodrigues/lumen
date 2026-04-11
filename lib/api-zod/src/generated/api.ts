@@ -15,6 +15,151 @@ export const HealthCheckResponse = zod.object({
 });
 
 /**
+ * @summary Dashboard KPIs and statistics (admin, leader)
+ */
+export const GetDashboardStatsResponse = zod.object({
+  members: zod.object({
+    total: zod.number().optional(),
+    newThisMonth: zod.number().optional(),
+    byStatus: zod
+      .object({
+        ativo: zod.number().optional(),
+        inativo: zod.number().optional(),
+        transferido: zod.number().optional(),
+        falecido: zod.number().optional(),
+      })
+      .optional(),
+  }),
+  finance: zod
+    .object({
+      currentMonth: zod
+        .object({
+          totalEntries: zod.string().optional(),
+          totalExpenses: zod.string().optional(),
+          balance: zod.string().optional(),
+        })
+        .optional(),
+      previousMonth: zod
+        .object({
+          totalEntries: zod.string().optional(),
+          totalExpenses: zod.string().optional(),
+        })
+        .optional(),
+      entriesGrowth: zod.number().optional(),
+    })
+    .nullish(),
+  events: zod.object({
+    upcomingCount: zod.number().optional(),
+    upcoming: zod
+      .array(
+        zod.object({
+          id: zod.string().optional(),
+          title: zod.string().optional(),
+          startDate: zod.string().optional(),
+          type: zod.string().optional(),
+          location: zod.string().nullish(),
+        }),
+      )
+      .optional(),
+  }),
+  teaching: zod.object({
+    activeCourses: zod.number().optional(),
+    totalEnrollments: zod.number().optional(),
+  }),
+  ministries: zod.object({
+    total: zod.number().optional(),
+    totalMembers: zod.number().optional(),
+  }),
+  planning: zod
+    .object({
+      activeInitiatives: zod.number().optional(),
+      overdueInitiatives: zod.number().optional(),
+    })
+    .optional(),
+});
+
+/**
+ * @summary Personal leader widgets (pastoral, counseling, articles)
+ */
+export const GetLeaderWidgetsResponse = zod.object({
+  pastoral: zod
+    .object({
+      pending: zod.number().optional(),
+      overdueFollowUps: zod.number().optional(),
+    })
+    .optional(),
+  counseling: zod
+    .object({
+      openCases: zod.number().optional(),
+    })
+    .optional(),
+  articles: zod
+    .object({
+      inReview: zod.number().optional(),
+      drafts: zod.number().optional(),
+    })
+    .optional(),
+});
+
+/**
+ * @summary Personal dashboard data for members
+ */
+export const GetMemberStatsResponse = zod.object({
+  profile: zod
+    .object({
+      id: zod.string().optional(),
+      fullName: zod.string().optional(),
+      status: zod.string().optional(),
+      pipelineStage: zod.string().nullish(),
+      baptismDate: zod.string().nullish(),
+      conversionDate: zod.string().nullish(),
+    })
+    .nullish(),
+  enrolledCourses: zod.number().optional(),
+  upcomingRegisteredEvents: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        startDate: zod.string().optional(),
+        type: zod.string().optional(),
+        location: zod.string().nullish(),
+      }),
+    )
+    .optional(),
+  nextEvent: zod
+    .object({
+      id: zod.string().optional(),
+      title: zod.string().optional(),
+      startDate: zod.string().optional(),
+      type: zod.string().optional(),
+      location: zod.string().nullish(),
+    })
+    .nullish(),
+  myMinistries: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        name: zod.string().optional(),
+        role: zod.string().optional(),
+      }),
+    )
+    .optional(),
+  recentArticles: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        excerpt: zod.string().nullish(),
+        authorName: zod.string().optional(),
+        publishedAt: zod.string().nullish(),
+        category: zod.string().optional(),
+      }),
+    )
+    .optional(),
+});
+
+/**
  * @summary Register a new user
  */
 export const registerBodyPasswordMin = 8;
@@ -187,7 +332,7 @@ export const ListMembersQueryParams = zod.object({
     .max(listMembersQueryLimitMax)
     .default(listMembersQueryLimitDefault),
   search: zod.coerce.string().optional(),
-  status: zod.enum(["ativo", "inativo", "transferido", "falecido"]).optional(),
+  status: zod.enum(["visitante", "ativo", "inativo", "falecido"]).optional(),
   familyId: zod.coerce.string().optional(),
 });
 
@@ -198,7 +343,10 @@ export const ListMembersResponse = zod.object({
       fullName: zod.string(),
       cpfMasked: zod.string(),
       email: zod.string().optional(),
-      status: zod.enum(["ativo", "inativo", "transferido", "falecido"]),
+      status: zod.enum(["visitante", "ativo", "inativo", "falecido"]),
+      pipelineStage: zod
+        .enum(["culto", "pequeno_grupo", "ministerio"])
+        .optional(),
       photoPath: zod.string().optional(),
       familyId: zod.string().optional(),
       familyName: zod.string().optional(),
@@ -229,11 +377,174 @@ export const CreateMemberBody = zod.object({
   addressState: zod.string().optional(),
   conversionDate: zod.string().optional(),
   baptismDate: zod.string().optional(),
-  status: zod.enum(["ativo", "inativo", "transferido", "falecido"]),
+  status: zod.enum(["visitante", "ativo", "inativo", "falecido"]),
   photoPath: zod.string().optional(),
   familyId: zod.string().optional(),
   familyName: zod.string().optional(),
   lgpdConsentAccepted: zod.boolean(),
+});
+
+/**
+ * @summary Pipeline funnel summary
+ */
+export const GetPipelineSummaryResponse = zod.object({
+  summary: zod.object({}).passthrough(),
+  total: zod.number(),
+});
+
+/**
+ * @summary Members stagnant in pipeline
+ */
+export const getStagnantMembersQueryDaysDefault = 90;
+
+export const GetStagnantMembersQueryParams = zod.object({
+  days: zod.coerce.number().default(getStagnantMembersQueryDaysDefault),
+});
+
+export const GetStagnantMembersResponse = zod.object({
+  stagnant: zod.array(
+    zod.object({
+      id: zod.string().optional(),
+      fullName: zod.string().optional(),
+      pipelineStage: zod.string().optional(),
+      daysSinceChange: zod.number().optional(),
+      lastChangeAt: zod.string().optional(),
+    }),
+  ),
+  total: zod.number(),
+  thresholdDays: zod.number().optional(),
+});
+
+/**
+ * @summary Member pipeline history
+ */
+export const GetMemberPipelineHistoryParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetMemberPipelineHistoryResponse = zod.object({
+  currentStage: zod.string(),
+  history: zod.array(
+    zod.object({
+      id: zod.string().optional(),
+      fromStage: zod.string().nullish(),
+      toStage: zod.string().optional(),
+      reason: zod.string().nullish(),
+      createdAt: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Move member to new pipeline stage
+ */
+export const MoveMemberPipelineParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const MoveMemberPipelineBody = zod.object({
+  stage: zod.enum(["culto", "pequeno_grupo", "ministerio"]),
+  reason: zod.string().optional(),
+});
+
+export const MoveMemberPipelineResponse = zod.object({
+  message: zod.string(),
+  fromStage: zod.string(),
+  toStage: zod.string(),
+});
+
+/**
+ * @summary Get own member profile
+ */
+export const GetOwnProfileResponse = zod.object({
+  id: zod.string(),
+  fullName: zod.string(),
+  cpfMasked: zod.string(),
+  dateOfBirth: zod.string().optional(),
+  sex: zod.enum(["masculino", "feminino", "outro"]).optional(),
+  phone: zod.string().optional(),
+  email: zod.string().optional(),
+  addressZip: zod.string().optional(),
+  addressStreet: zod.string().optional(),
+  addressNumber: zod.string().optional(),
+  addressComplement: zod.string().optional(),
+  addressNeighborhood: zod.string().optional(),
+  addressCity: zod.string().optional(),
+  addressState: zod.string().optional(),
+  conversionDate: zod.string().optional(),
+  baptismDate: zod.string().optional(),
+  enrollmentType: zod
+    .enum([
+      "batismo",
+      "profissao_de_fe",
+      "transferencia",
+      "jurisdicao",
+      "restauracao",
+    ])
+    .nullish(),
+  status: zod.enum(["visitante", "ativo", "inativo", "falecido"]),
+  pipelineStage: zod.enum(["culto", "pequeno_grupo", "ministerio"]).optional(),
+  photoPath: zod.string().optional(),
+  familyId: zod.string().optional(),
+  familyName: zod.string().optional(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary Update own profile (email cannot change)
+ */
+export const UpdateOwnProfileBody = zod.object({
+  fullName: zod.string().optional(),
+  cpf: zod.string().optional(),
+  dateOfBirth: zod.string().optional(),
+  sex: zod.enum(["masculino", "feminino"]).optional(),
+  phone: zod.string().optional(),
+  addressZip: zod.string().optional(),
+  addressStreet: zod.string().optional(),
+  addressNumber: zod.string().optional(),
+  addressComplement: zod.string().optional(),
+  addressNeighborhood: zod.string().optional(),
+  addressCity: zod.string().optional(),
+  addressState: zod.string().optional(),
+  conversionDate: zod.string().optional(),
+  baptismDate: zod.string().optional(),
+  photoPath: zod.string().optional(),
+});
+
+export const UpdateOwnProfileResponse = zod.object({
+  id: zod.string(),
+  fullName: zod.string(),
+  cpfMasked: zod.string(),
+  dateOfBirth: zod.string().optional(),
+  sex: zod.enum(["masculino", "feminino", "outro"]).optional(),
+  phone: zod.string().optional(),
+  email: zod.string().optional(),
+  addressZip: zod.string().optional(),
+  addressStreet: zod.string().optional(),
+  addressNumber: zod.string().optional(),
+  addressComplement: zod.string().optional(),
+  addressNeighborhood: zod.string().optional(),
+  addressCity: zod.string().optional(),
+  addressState: zod.string().optional(),
+  conversionDate: zod.string().optional(),
+  baptismDate: zod.string().optional(),
+  enrollmentType: zod
+    .enum([
+      "batismo",
+      "profissao_de_fe",
+      "transferencia",
+      "jurisdicao",
+      "restauracao",
+    ])
+    .nullish(),
+  status: zod.enum(["visitante", "ativo", "inativo", "falecido"]),
+  pipelineStage: zod.enum(["culto", "pequeno_grupo", "ministerio"]).optional(),
+  photoPath: zod.string().optional(),
+  familyId: zod.string().optional(),
+  familyName: zod.string().optional(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
 });
 
 /**
@@ -260,7 +571,17 @@ export const GetMemberResponse = zod.object({
   addressState: zod.string().optional(),
   conversionDate: zod.string().optional(),
   baptismDate: zod.string().optional(),
-  status: zod.enum(["ativo", "inativo", "transferido", "falecido"]),
+  enrollmentType: zod
+    .enum([
+      "batismo",
+      "profissao_de_fe",
+      "transferencia",
+      "jurisdicao",
+      "restauracao",
+    ])
+    .nullish(),
+  status: zod.enum(["visitante", "ativo", "inativo", "falecido"]),
+  pipelineStage: zod.enum(["culto", "pequeno_grupo", "ministerio"]).optional(),
   photoPath: zod.string().optional(),
   familyId: zod.string().optional(),
   familyName: zod.string().optional(),
@@ -291,7 +612,7 @@ export const UpdateMemberBody = zod.object({
   addressState: zod.string().optional(),
   conversionDate: zod.string().optional(),
   baptismDate: zod.string().optional(),
-  status: zod.enum(["ativo", "inativo", "transferido", "falecido"]).optional(),
+  status: zod.enum(["visitante", "ativo", "inativo", "falecido"]).optional(),
   photoPath: zod.string().optional(),
   familyId: zod.string().optional(),
   familyName: zod.string().optional(),
@@ -314,7 +635,17 @@ export const UpdateMemberResponse = zod.object({
   addressState: zod.string().optional(),
   conversionDate: zod.string().optional(),
   baptismDate: zod.string().optional(),
-  status: zod.enum(["ativo", "inativo", "transferido", "falecido"]),
+  enrollmentType: zod
+    .enum([
+      "batismo",
+      "profissao_de_fe",
+      "transferencia",
+      "jurisdicao",
+      "restauracao",
+    ])
+    .nullish(),
+  status: zod.enum(["visitante", "ativo", "inativo", "falecido"]),
+  pipelineStage: zod.enum(["culto", "pequeno_grupo", "ministerio"]).optional(),
   photoPath: zod.string().optional(),
   familyId: zod.string().optional(),
   familyName: zod.string().optional(),
@@ -603,6 +934,7 @@ export const ListFinanceExpensesResponse = zod.object({
       receiptPath: zod.string().nullish(),
       notes: zod.string().nullish(),
       monthClosingId: zod.string().nullish(),
+      initiativeId: zod.string().nullish(),
       createdAt: zod.date(),
       deletedAt: zod.date().nullish(),
     }),
@@ -666,6 +998,7 @@ export const GetFinanceExpenseResponse = zod.object({
   receiptPath: zod.string().nullish(),
   notes: zod.string().nullish(),
   monthClosingId: zod.string().nullish(),
+  initiativeId: zod.string().nullish(),
   createdAt: zod.date(),
   deletedAt: zod.date().nullish(),
 });
@@ -723,6 +1056,7 @@ export const UpdateFinanceExpenseResponse = zod.object({
   receiptPath: zod.string().nullish(),
   notes: zod.string().nullish(),
   monthClosingId: zod.string().nullish(),
+  initiativeId: zod.string().nullish(),
   createdAt: zod.date(),
   deletedAt: zod.date().nullish(),
 });
@@ -897,6 +1231,7 @@ export const GetFinanceReportResponse = zod.object({
       receiptPath: zod.string().nullish(),
       notes: zod.string().nullish(),
       monthClosingId: zod.string().nullish(),
+      initiativeId: zod.string().nullish(),
       createdAt: zod.date(),
       deletedAt: zod.date().nullish(),
     }),
@@ -911,5 +1246,3791 @@ export const AnonymizeFinanceMemberParams = zod.object({
 });
 
 export const AnonymizeFinanceMemberResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary List budgets
+ */
+export const ListBudgetsQueryParams = zod.object({
+  year: zod.coerce.string().optional(),
+});
+
+export const ListBudgetsResponse = zod.object({
+  budgets: zod.array(
+    zod.object({
+      id: zod.string(),
+      year: zod.string(),
+      status: zod.enum(["rascunho", "aprovado", "encerrado"]),
+      notes: zod.string().nullish(),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Create a budget
+ */
+export const CreateBudgetBody = zod.object({
+  year: zod.string(),
+  notes: zod.string().optional(),
+});
+
+/**
+ * @summary Get budget with items
+ */
+export const GetBudgetDetailParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetBudgetDetailResponse = zod.object({
+  id: zod.string(),
+  year: zod.string(),
+  status: zod.string(),
+  notes: zod.string().nullish(),
+  items: zod.array(
+    zod.object({
+      id: zod.string(),
+      budgetId: zod.string(),
+      type: zod.enum(["receita", "despesa"]),
+      category: zod.string(),
+      month: zod.string(),
+      plannedAmount: zod.string(),
+      notes: zod.string().nullish(),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    }),
+  ),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Update budget status/notes
+ */
+export const UpdateBudgetParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateBudgetBody = zod.object({
+  status: zod.enum(["rascunho", "aprovado", "encerrado"]).optional(),
+  notes: zod.string().optional(),
+});
+
+export const UpdateBudgetResponse = zod.object({
+  id: zod.string(),
+  year: zod.string(),
+  status: zod.enum(["rascunho", "aprovado", "encerrado"]),
+  notes: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Delete a draft budget
+ */
+export const DeleteBudgetParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteBudgetResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Add items to budget (batch)
+ */
+export const AddBudgetItemsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const AddBudgetItemsBody = zod.object({
+  items: zod.array(
+    zod.object({
+      type: zod.enum(["receita", "despesa"]),
+      category: zod.string(),
+      month: zod.string(),
+      plannedAmount: zod.string(),
+      notes: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Update a budget item
+ */
+export const UpdateBudgetItemParams = zod.object({
+  budgetId: zod.coerce.string(),
+  itemId: zod.coerce.string(),
+});
+
+export const UpdateBudgetItemBody = zod.object({
+  plannedAmount: zod.string().optional(),
+  notes: zod.string().optional(),
+});
+
+export const UpdateBudgetItemResponse = zod.object({
+  id: zod.string(),
+  budgetId: zod.string(),
+  type: zod.enum(["receita", "despesa"]),
+  category: zod.string(),
+  month: zod.string(),
+  plannedAmount: zod.string(),
+  notes: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Delete a budget item
+ */
+export const DeleteBudgetItemParams = zod.object({
+  budgetId: zod.coerce.string(),
+  itemId: zod.coerce.string(),
+});
+
+export const DeleteBudgetItemResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Budget vs actual comparison
+ */
+export const GetBudgetComparisonParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetBudgetComparisonResponse = zod.object({
+  budgetId: zod.string(),
+  year: zod.string(),
+  status: zod.string().optional(),
+  comparison: zod.array(
+    zod.object({
+      type: zod.string().optional(),
+      category: zod.string().optional(),
+      month: zod.string().optional(),
+      planned: zod.string().optional(),
+      actual: zod.string().optional(),
+      variance: zod.string().optional(),
+      variancePercent: zod.number().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get own personal data
+ */
+export const GetMyDataResponse = zod.object({
+  member: zod.object({}).passthrough(),
+  consents: zod.array(zod.object({}).passthrough()),
+  requests: zod.array(
+    zod.object({
+      id: zod.string(),
+      memberId: zod.string(),
+      memberName: zod.string().nullish(),
+      userId: zod.string(),
+      requestType: zod.enum([
+        "correcao",
+        "exclusao",
+        "exportacao",
+        "revogacao_consentimento",
+      ]),
+      status: zod.enum(["pendente", "em_analise", "concluido", "rejeitado"]),
+      description: zod.string().nullish(),
+      adminNotes: zod.string().nullish(),
+      processedAt: zod.string().nullish(),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Export personal data as JSON (portability)
+ */
+export const ExportMyDataResponse = zod.object({}).passthrough();
+
+/**
+ * @summary List my consent records
+ */
+export const GetMyConsentsResponse = zod.object({
+  consents: zod.array(zod.object({}).passthrough()),
+});
+
+/**
+ * @summary List all LGPD requests (Admin only)
+ */
+export const listLgpdRequestsQueryPageDefault = 1;
+export const listLgpdRequestsQueryLimitDefault = 20;
+
+export const ListLgpdRequestsQueryParams = zod.object({
+  page: zod.coerce.number().default(listLgpdRequestsQueryPageDefault),
+  limit: zod.coerce.number().default(listLgpdRequestsQueryLimitDefault),
+  status: zod.coerce.string().optional(),
+  type: zod.coerce.string().optional(),
+});
+
+export const ListLgpdRequestsResponse = zod.object({
+  requests: zod.array(
+    zod.object({
+      id: zod.string(),
+      memberId: zod.string(),
+      memberName: zod.string().nullish(),
+      userId: zod.string(),
+      requestType: zod.enum([
+        "correcao",
+        "exclusao",
+        "exportacao",
+        "revogacao_consentimento",
+      ]),
+      status: zod.enum(["pendente", "em_analise", "concluido", "rejeitado"]),
+      description: zod.string().nullish(),
+      adminNotes: zod.string().nullish(),
+      processedAt: zod.string().nullish(),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    }),
+  ),
+  total: zod.number().optional(),
+  page: zod.number().optional(),
+  limit: zod.number().optional(),
+});
+
+/**
+ * @summary Create LGPD request (any member)
+ */
+export const CreateLgpdRequestBody = zod.object({
+  requestType: zod.enum([
+    "correcao",
+    "exclusao",
+    "exportacao",
+    "revogacao_consentimento",
+  ]),
+  description: zod.string().optional(),
+});
+
+/**
+ * @summary List my own LGPD requests
+ */
+export const GetMyLgpdRequestsResponse = zod.object({
+  requests: zod.array(
+    zod.object({
+      id: zod.string(),
+      memberId: zod.string(),
+      memberName: zod.string().nullish(),
+      userId: zod.string(),
+      requestType: zod.enum([
+        "correcao",
+        "exclusao",
+        "exportacao",
+        "revogacao_consentimento",
+      ]),
+      status: zod.enum(["pendente", "em_analise", "concluido", "rejeitado"]),
+      description: zod.string().nullish(),
+      adminNotes: zod.string().nullish(),
+      processedAt: zod.string().nullish(),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    }),
+  ),
+  total: zod.number().optional(),
+  page: zod.number().optional(),
+  limit: zod.number().optional(),
+});
+
+/**
+ * @summary Process LGPD request (Admin only)
+ */
+export const ProcessLgpdRequestParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ProcessLgpdRequestBody = zod.object({
+  status: zod.enum(["concluido", "rejeitado"]),
+  adminNotes: zod.string().optional(),
+});
+
+export const ProcessLgpdRequestResponse = zod.object({
+  id: zod.string(),
+  memberId: zod.string(),
+  memberName: zod.string().nullish(),
+  userId: zod.string(),
+  requestType: zod.enum([
+    "correcao",
+    "exclusao",
+    "exportacao",
+    "revogacao_consentimento",
+  ]),
+  status: zod.enum(["pendente", "em_analise", "concluido", "rejeitado"]),
+  description: zod.string().nullish(),
+  adminNotes: zod.string().nullish(),
+  processedAt: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary List events
+ */
+export const listEventsQueryPageDefault = 1;
+export const listEventsQueryLimitDefault = 20;
+
+export const ListEventsQueryParams = zod.object({
+  page: zod.coerce.number().default(listEventsQueryPageDefault),
+  limit: zod.coerce.number().default(listEventsQueryLimitDefault),
+  type: zod.coerce.string().optional(),
+  status: zod.coerce.string().optional(),
+  dateFrom: zod.date().optional(),
+  dateTo: zod.date().optional(),
+});
+
+export const ListEventsResponse = zod.object({
+  events: zod.array(
+    zod.object({
+      id: zod.string(),
+      title: zod.string(),
+      description: zod.string().nullish(),
+      startDate: zod.string(),
+      endDate: zod.string(),
+      location: zod.string().nullish(),
+      responsibleId: zod.string().nullish(),
+      responsibleName: zod.string().nullish(),
+      recurrence: zod
+        .enum(["unico", "semanal", "quinzenal", "mensal"])
+        .optional(),
+      type: zod.enum(["culto", "reuniao", "conferencia", "social", "outro"]),
+      maxSlots: zod.number().nullish(),
+      status: zod.enum(["agendado", "em_andamento", "encerrado", "cancelado"]),
+      registeredCount: zod.number().optional(),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    }),
+  ),
+  total: zod.number(),
+  page: zod.number(),
+  limit: zod.number(),
+});
+
+/**
+ * @summary Create event (Admin/Leader)
+ */
+export const CreateEventBody = zod.object({
+  title: zod.string(),
+  description: zod.string().optional(),
+  startDate: zod.string(),
+  endDate: zod.string(),
+  location: zod.string().optional(),
+  responsibleId: zod.string().optional(),
+  recurrence: zod.enum(["unico", "semanal", "quinzenal", "mensal"]).optional(),
+  type: zod.enum(["culto", "reuniao", "conferencia", "social", "outro"]),
+  maxSlots: zod.number().optional(),
+  status: zod
+    .enum(["agendado", "em_andamento", "encerrado", "cancelado"])
+    .optional(),
+});
+
+/**
+ * @summary Get upcoming events (next 7 days)
+ */
+export const GetUpcomingEventsResponse = zod.object({
+  events: zod.array(
+    zod.object({
+      id: zod.string(),
+      title: zod.string(),
+      description: zod.string().nullish(),
+      startDate: zod.string(),
+      endDate: zod.string(),
+      location: zod.string().nullish(),
+      responsibleId: zod.string().nullish(),
+      responsibleName: zod.string().nullish(),
+      recurrence: zod
+        .enum(["unico", "semanal", "quinzenal", "mensal"])
+        .optional(),
+      type: zod.enum(["culto", "reuniao", "conferencia", "social", "outro"]),
+      maxSlots: zod.number().nullish(),
+      status: zod.enum(["agendado", "em_andamento", "encerrado", "cancelado"]),
+      registeredCount: zod.number().optional(),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Events grouped by month for a year
+ */
+export const GetEventsCalendarQueryParams = zod.object({
+  year: zod.coerce.string().optional(),
+});
+
+export const GetEventsCalendarResponse = zod.object({
+  year: zod.string(),
+  months: zod.array(
+    zod.object({
+      month: zod.string(),
+      label: zod.string(),
+      events: zod.array(
+        zod.object({
+          id: zod.string(),
+          title: zod.string(),
+          description: zod.string().nullish(),
+          startDate: zod.string(),
+          endDate: zod.string(),
+          location: zod.string().nullish(),
+          responsibleId: zod.string().nullish(),
+          responsibleName: zod.string().nullish(),
+          recurrence: zod
+            .enum(["unico", "semanal", "quinzenal", "mensal"])
+            .optional(),
+          type: zod.enum([
+            "culto",
+            "reuniao",
+            "conferencia",
+            "social",
+            "outro",
+          ]),
+          maxSlots: zod.number().nullish(),
+          status: zod.enum([
+            "agendado",
+            "em_andamento",
+            "encerrado",
+            "cancelado",
+          ]),
+          registeredCount: zod.number().optional(),
+          createdAt: zod.string().optional(),
+          updatedAt: zod.string().optional(),
+        }),
+      ),
+    }),
+  ),
+  totalEvents: zod.number(),
+});
+
+/**
+ * @summary Get event detail with registrations
+ */
+export const GetEventDetailParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetEventDetailResponse = zod.object({
+  id: zod.string(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  startDate: zod.string(),
+  endDate: zod.string(),
+  location: zod.string().nullish(),
+  responsibleId: zod.string().nullish(),
+  responsibleName: zod.string().nullish(),
+  recurrence: zod.string().optional(),
+  type: zod.string(),
+  maxSlots: zod.number().nullish(),
+  status: zod.string(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+  registrations: zod.array(
+    zod.object({
+      id: zod.string(),
+      eventId: zod.string(),
+      memberId: zod.string(),
+      memberName: zod.string().nullish(),
+      registeredAt: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Update event
+ */
+export const UpdateEventParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateEventBody = zod.object({
+  title: zod.string(),
+  description: zod.string().optional(),
+  startDate: zod.string(),
+  endDate: zod.string(),
+  location: zod.string().optional(),
+  responsibleId: zod.string().optional(),
+  recurrence: zod.enum(["unico", "semanal", "quinzenal", "mensal"]).optional(),
+  type: zod.enum(["culto", "reuniao", "conferencia", "social", "outro"]),
+  maxSlots: zod.number().optional(),
+  status: zod
+    .enum(["agendado", "em_andamento", "encerrado", "cancelado"])
+    .optional(),
+});
+
+export const UpdateEventResponse = zod.object({
+  id: zod.string(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  startDate: zod.string(),
+  endDate: zod.string(),
+  location: zod.string().nullish(),
+  responsibleId: zod.string().nullish(),
+  responsibleName: zod.string().nullish(),
+  recurrence: zod.enum(["unico", "semanal", "quinzenal", "mensal"]).optional(),
+  type: zod.enum(["culto", "reuniao", "conferencia", "social", "outro"]),
+  maxSlots: zod.number().nullish(),
+  status: zod.enum(["agendado", "em_andamento", "encerrado", "cancelado"]),
+  registeredCount: zod.number().optional(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Delete event (soft delete, Admin only)
+ */
+export const DeleteEventParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteEventResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Register for event
+ */
+export const RegisterForEventParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const RegisterForEventBody = zod.object({
+  memberId: zod.string().optional(),
+});
+
+/**
+ * @summary Cancel event registration
+ */
+export const UnregisterFromEventParams = zod.object({
+  id: zod.coerce.string(),
+  memberId: zod.coerce.string(),
+});
+
+export const UnregisterFromEventResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary List event registrations
+ */
+export const ListEventRegistrationsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ListEventRegistrationsResponse = zod.object({
+  registrations: zod.array(
+    zod.object({
+      id: zod.string(),
+      eventId: zod.string(),
+      memberId: zod.string(),
+      memberName: zod.string().nullish(),
+      registeredAt: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get event attendance
+ */
+export const GetEventAttendanceParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetEventAttendanceResponse = zod.object({
+  attendance: zod.array(
+    zod.object({
+      id: zod.string(),
+      eventId: zod.string(),
+      memberId: zod.string(),
+      present: zod.boolean(),
+      createdAt: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Record event attendance (batch)
+ */
+export const RecordEventAttendanceParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const RecordEventAttendanceBody = zod.object({
+  records: zod.array(
+    zod.object({
+      memberId: zod.string(),
+      present: zod.boolean(),
+    }),
+  ),
+});
+
+export const RecordEventAttendanceResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary List courses
+ */
+export const listTeachingCoursesQueryPageDefault = 1;
+export const listTeachingCoursesQueryLimitDefault = 20;
+
+export const ListTeachingCoursesQueryParams = zod.object({
+  page: zod.coerce.number().default(listTeachingCoursesQueryPageDefault),
+  limit: zod.coerce.number().default(listTeachingCoursesQueryLimitDefault),
+  status: zod.coerce.string().optional(),
+  category: zod.coerce.string().optional(),
+  mine: zod.coerce
+    .boolean()
+    .optional()
+    .describe("If true, returns only courses the current user is enrolled in"),
+});
+
+export const ListTeachingCoursesResponse = zod.object({
+  courses: zod.array(
+    zod.object({
+      id: zod.string(),
+      title: zod.string(),
+      description: zod.string().nullish(),
+      syllabus: zod.string().nullish(),
+      introVideoUrl: zod.string().nullish(),
+      teacherId: zod.string(),
+      teacherName: zod.string().nullish(),
+      category: zod.enum([
+        "ebd",
+        "discipulado",
+        "seminario",
+        "curso_livre",
+        "escola_de_lideres",
+      ]),
+      status: zod.enum(["aberto", "em_andamento", "encerrado"]),
+      startDate: zod.string().nullish(),
+      endDate: zod.string().nullish(),
+      dayOfWeek: zod.string().nullish(),
+      timeSlot: zod.string().nullish(),
+      location: zod.string().nullish(),
+      lessonDurationMinutes: zod.number().nullish(),
+      totalWeeks: zod.number().nullish(),
+      maxSlots: zod.number().nullish(),
+      enrolledCount: zod.number().optional(),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    }),
+  ),
+  total: zod.number(),
+  page: zod.number(),
+  limit: zod.number(),
+});
+
+/**
+ * @summary Create course (Admin only)
+ */
+export const CreateCourseBody = zod.object({
+  title: zod.string(),
+  description: zod.string().optional(),
+  syllabus: zod.string().optional(),
+  introVideoUrl: zod.string().optional(),
+  teacherId: zod.string(),
+  category: zod.enum([
+    "ebd",
+    "discipulado",
+    "seminario",
+    "curso_livre",
+    "escola_de_lideres",
+  ]),
+  status: zod.enum(["aberto", "em_andamento", "encerrado"]).optional(),
+  startDate: zod.string().optional(),
+  endDate: zod.string().optional(),
+  dayOfWeek: zod.string().optional(),
+  timeSlot: zod.string().optional(),
+  location: zod.string().optional(),
+  lessonDurationMinutes: zod.number().optional(),
+  totalWeeks: zod.number().optional(),
+  maxSlots: zod.number().optional(),
+});
+
+/**
+ * @summary Get course with lessons and enrollments
+ */
+export const GetCourseDetailParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetCourseDetailResponse = zod.object({
+  id: zod.string(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  syllabus: zod.string().nullish(),
+  introVideoUrl: zod.string().nullish(),
+  teacherId: zod.string(),
+  teacherName: zod.string().nullish(),
+  category: zod.string(),
+  status: zod.string(),
+  startDate: zod.string().nullish(),
+  endDate: zod.string().nullish(),
+  dayOfWeek: zod.string().nullish(),
+  timeSlot: zod.string().nullish(),
+  location: zod.string().nullish(),
+  lessonDurationMinutes: zod.number().nullish(),
+  totalWeeks: zod.number().nullish(),
+  maxSlots: zod.number().nullish(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+  lessons: zod.array(
+    zod.object({
+      id: zod.string(),
+      courseId: zod.string(),
+      title: zod.string(),
+      description: zod.string().nullish(),
+      content: zod.string().nullish(),
+      videoUrl: zod.string().nullish(),
+      lessonDate: zod.string().nullish(),
+      lessonOrder: zod.number(),
+      materialPath: zod.string().nullish(),
+      createdAt: zod.string().optional(),
+    }),
+  ),
+  enrollments: zod.array(
+    zod.object({
+      id: zod.string(),
+      courseId: zod.string(),
+      memberId: zod.string(),
+      memberName: zod.string().nullish(),
+      enrolledAt: zod.string().optional(),
+      completedAt: zod.string().nullish(),
+      certificatePath: zod.string().nullish(),
+    }),
+  ),
+});
+
+/**
+ * @summary Update course
+ */
+export const UpdateCourseParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateCourseBody = zod.object({
+  title: zod.string(),
+  description: zod.string().optional(),
+  syllabus: zod.string().optional(),
+  introVideoUrl: zod.string().optional(),
+  teacherId: zod.string(),
+  category: zod.enum([
+    "ebd",
+    "discipulado",
+    "seminario",
+    "curso_livre",
+    "escola_de_lideres",
+  ]),
+  status: zod.enum(["aberto", "em_andamento", "encerrado"]).optional(),
+  startDate: zod.string().optional(),
+  endDate: zod.string().optional(),
+  dayOfWeek: zod.string().optional(),
+  timeSlot: zod.string().optional(),
+  location: zod.string().optional(),
+  lessonDurationMinutes: zod.number().optional(),
+  totalWeeks: zod.number().optional(),
+  maxSlots: zod.number().optional(),
+});
+
+export const UpdateCourseResponse = zod.object({
+  id: zod.string(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  syllabus: zod.string().nullish(),
+  introVideoUrl: zod.string().nullish(),
+  teacherId: zod.string(),
+  teacherName: zod.string().nullish(),
+  category: zod.enum([
+    "ebd",
+    "discipulado",
+    "seminario",
+    "curso_livre",
+    "escola_de_lideres",
+  ]),
+  status: zod.enum(["aberto", "em_andamento", "encerrado"]),
+  startDate: zod.string().nullish(),
+  endDate: zod.string().nullish(),
+  dayOfWeek: zod.string().nullish(),
+  timeSlot: zod.string().nullish(),
+  location: zod.string().nullish(),
+  lessonDurationMinutes: zod.number().nullish(),
+  totalWeeks: zod.number().nullish(),
+  maxSlots: zod.number().nullish(),
+  enrolledCount: zod.number().optional(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Delete course (soft delete, Admin only)
+ */
+export const DeleteCourseParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteCourseResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary List lessons for a course
+ */
+export const ListCourseLessonsParams = zod.object({
+  courseId: zod.coerce.string(),
+});
+
+export const ListCourseLessonsResponse = zod.object({
+  lessons: zod.array(
+    zod.object({
+      id: zod.string(),
+      courseId: zod.string(),
+      title: zod.string(),
+      description: zod.string().nullish(),
+      content: zod.string().nullish(),
+      videoUrl: zod.string().nullish(),
+      lessonDate: zod.string().nullish(),
+      lessonOrder: zod.number(),
+      materialPath: zod.string().nullish(),
+      createdAt: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Create lesson
+ */
+export const CreateLessonParams = zod.object({
+  courseId: zod.coerce.string(),
+});
+
+export const CreateLessonBody = zod.object({
+  title: zod.string(),
+  description: zod.string().optional(),
+  content: zod.string().optional(),
+  videoUrl: zod.string().optional(),
+  lessonDate: zod.string().optional(),
+  lessonOrder: zod.number(),
+  materialPath: zod.string().optional(),
+});
+
+/**
+ * @summary Update lesson
+ */
+export const UpdateLessonParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateLessonBody = zod.object({
+  title: zod.string(),
+  description: zod.string().optional(),
+  content: zod.string().optional(),
+  videoUrl: zod.string().optional(),
+  lessonDate: zod.string().optional(),
+  lessonOrder: zod.number(),
+  materialPath: zod.string().optional(),
+});
+
+export const UpdateLessonResponse = zod.object({
+  id: zod.string(),
+  courseId: zod.string(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  content: zod.string().nullish(),
+  videoUrl: zod.string().nullish(),
+  lessonDate: zod.string().nullish(),
+  lessonOrder: zod.number(),
+  materialPath: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+});
+
+/**
+ * @summary Delete lesson
+ */
+export const DeleteLessonParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteLessonResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary List enrollments for a course
+ */
+export const ListCourseEnrollmentsParams = zod.object({
+  courseId: zod.coerce.string(),
+});
+
+export const ListCourseEnrollmentsResponse = zod.object({
+  enrollments: zod.array(
+    zod.object({
+      id: zod.string(),
+      courseId: zod.string(),
+      memberId: zod.string(),
+      memberName: zod.string().nullish(),
+      enrolledAt: zod.string().optional(),
+      completedAt: zod.string().nullish(),
+      certificatePath: zod.string().nullish(),
+    }),
+  ),
+});
+
+/**
+ * @summary Enroll member in course
+ */
+export const EnrollInCourseParams = zod.object({
+  courseId: zod.coerce.string(),
+});
+
+export const EnrollInCourseBody = zod.object({
+  memberId: zod.string().optional(),
+});
+
+/**
+ * @summary Cancel enrollment (Admin only)
+ */
+export const UnenrollFromCourseParams = zod.object({
+  courseId: zod.coerce.string(),
+  memberId: zod.coerce.string(),
+});
+
+export const UnenrollFromCourseResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Get attendance for a lesson
+ */
+export const GetLessonAttendanceParams = zod.object({
+  lessonId: zod.coerce.string(),
+});
+
+export const GetLessonAttendanceResponse = zod.object({
+  attendance: zod.array(
+    zod.object({
+      id: zod.string(),
+      lessonId: zod.string(),
+      memberId: zod.string(),
+      present: zod.boolean(),
+      createdAt: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Record attendance (batch)
+ */
+export const RecordLessonAttendanceParams = zod.object({
+  lessonId: zod.coerce.string(),
+});
+
+export const RecordLessonAttendanceBody = zod.object({
+  records: zod.array(
+    zod.object({
+      memberId: zod.string(),
+      present: zod.boolean(),
+    }),
+  ),
+});
+
+export const RecordLessonAttendanceResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Get student progress in a course
+ */
+export const GetStudentProgressParams = zod.object({
+  courseId: zod.coerce.string(),
+  memberId: zod.coerce.string(),
+});
+
+export const GetStudentProgressResponse = zod.object({
+  totalLessons: zod.number(),
+  attendedLessons: zod.number(),
+  percentage: zod.number(),
+});
+
+/**
+ * @summary Get certificate data for PDF generation
+ */
+export const GetCertificateDataParams = zod.object({
+  courseId: zod.coerce.string(),
+  memberId: zod.coerce.string(),
+});
+
+export const GetCertificateDataResponse = zod.object({
+  studentName: zod.string(),
+  courseName: zod.string(),
+  courseCategory: zod.string(),
+  teacherName: zod.string().nullish(),
+  startDate: zod.string().nullish(),
+  endDate: zod.string().nullish(),
+  completionDate: zod.string(),
+  totalLessons: zod.number(),
+  attendedLessons: zod.number(),
+  percentage: zod.number(),
+});
+
+/**
+ * @summary List discussions/questions for a lesson
+ */
+export const ListLessonDiscussionsParams = zod.object({
+  lessonId: zod.coerce.string(),
+});
+
+export const ListLessonDiscussionsResponse = zod.object({
+  discussions: zod.array(
+    zod.object({
+      id: zod.string(),
+      lessonId: zod.string(),
+      authorId: zod.string(),
+      authorName: zod.string(),
+      body: zod.string(),
+      parentId: zod.string().nullish(),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Post a question/comment or reply
+ */
+export const CreateLessonDiscussionParams = zod.object({
+  lessonId: zod.coerce.string(),
+});
+
+export const CreateLessonDiscussionBody = zod.object({
+  body: zod.string(),
+  parentId: zod.string().optional(),
+});
+
+/**
+ * @summary Edit own discussion
+ */
+export const UpdateLessonDiscussionParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateLessonDiscussionBody = zod.object({
+  body: zod.string(),
+});
+
+export const UpdateLessonDiscussionResponse = zod.object({
+  id: zod.string(),
+  lessonId: zod.string(),
+  authorId: zod.string(),
+  authorName: zod.string(),
+  body: zod.string(),
+  parentId: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Delete own discussion (soft)
+ */
+export const DeleteLessonDiscussionParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteLessonDiscussionResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Teaching dashboard data
+ */
+export const GetTeachingDashboardResponse = zod.object({
+  activeCourses: zod.number(),
+  totalEnrollments: zod.number(),
+  avgAttendance: zod.number(),
+  upcomingLessons: zod.array(
+    zod.object({
+      lessonId: zod.string().optional(),
+      lessonTitle: zod.string().optional(),
+      lessonDate: zod.string().optional(),
+      courseId: zod.string().optional(),
+      courseTitle: zod.string().optional(),
+      teacherName: zod.string().nullish(),
+      timeSlot: zod.string().nullish(),
+      location: zod.string().nullish(),
+    }),
+  ),
+  lowAttendanceStudents: zod.array(
+    zod.object({
+      memberName: zod.string().optional(),
+      courseName: zod.string().optional(),
+      percentage: zod.number().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary List media links (filtered by entity)
+ */
+export const listMediaQueryPageDefault = 1;
+export const listMediaQueryLimitDefault = 50;
+
+export const ListMediaQueryParams = zod.object({
+  entityType: zod
+    .enum(["course_lesson", "course", "ministry", "event", "asset", "content"])
+    .optional(),
+  entityId: zod.coerce.string().optional(),
+  page: zod.coerce.number().default(listMediaQueryPageDefault),
+  limit: zod.coerce.number().default(listMediaQueryLimitDefault),
+});
+
+export const ListMediaResponse = zod.object({
+  media: zod.array(
+    zod.object({
+      id: zod.string(),
+      url: zod.string(),
+      title: zod.string().nullish(),
+      type: zod.enum(["youtube", "vimeo", "drive", "link", "outro"]),
+      entityType: zod.enum([
+        "course_lesson",
+        "course",
+        "ministry",
+        "event",
+        "asset",
+        "content",
+      ]),
+      entityId: zod.string(),
+      createdByUserId: zod.string(),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    }),
+  ),
+  total: zod.number(),
+  page: zod.number().optional(),
+  limit: zod.number().optional(),
+});
+
+/**
+ * @summary Create a media link
+ */
+export const CreateMediaBody = zod.object({
+  url: zod.string(),
+  title: zod.string().optional(),
+  entityType: zod.enum([
+    "course_lesson",
+    "course",
+    "ministry",
+    "event",
+    "asset",
+    "content",
+  ]),
+  entityId: zod.string(),
+});
+
+/**
+ * @summary Update a media link
+ */
+export const UpdateMediaParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateMediaBody = zod.object({
+  url: zod.string().optional(),
+  title: zod.string().optional(),
+});
+
+export const UpdateMediaResponse = zod.object({
+  id: zod.string(),
+  url: zod.string(),
+  title: zod.string().nullish(),
+  type: zod.enum(["youtube", "vimeo", "drive", "link", "outro"]),
+  entityType: zod.enum([
+    "course_lesson",
+    "course",
+    "ministry",
+    "event",
+    "asset",
+    "content",
+  ]),
+  entityId: zod.string(),
+  createdByUserId: zod.string(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Delete a media link (soft delete)
+ */
+export const DeleteMediaParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteMediaResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary List ministries
+ */
+export const listMinistriesQueryPageDefault = 1;
+export const listMinistriesQueryLimitDefault = 20;
+
+export const ListMinistriesQueryParams = zod.object({
+  page: zod.coerce.number().default(listMinistriesQueryPageDefault),
+  limit: zod.coerce.number().default(listMinistriesQueryLimitDefault),
+  status: zod.enum(["ativo", "inativo"]).optional(),
+});
+
+export const ListMinistriesResponse = zod.object({
+  ministries: zod.array(
+    zod.object({
+      id: zod.string(),
+      name: zod.string(),
+      description: zod.string().nullish(),
+      meetingDay: zod.string().nullish(),
+      meetingTime: zod.string().nullish(),
+      meetingLocation: zod.string().nullish(),
+      status: zod.string().optional(),
+      memberCount: zod.number(),
+      leaders: zod
+        .array(
+          zod.object({
+            memberId: zod.string().optional(),
+            memberName: zod.string().nullish(),
+          }),
+        )
+        .optional(),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    }),
+  ),
+  total: zod.number(),
+  page: zod.number().optional(),
+  limit: zod.number().optional(),
+});
+
+/**
+ * @summary Create a ministry
+ */
+export const CreateMinistryBody = zod.object({
+  name: zod.string(),
+  description: zod.string().optional(),
+  meetingDay: zod.string().optional(),
+  meetingTime: zod.string().optional(),
+  meetingLocation: zod.string().optional(),
+  status: zod.enum(["ativo", "inativo"]).optional(),
+});
+
+/**
+ * @summary Get ministry detail with active members
+ */
+export const GetMinistryDetailParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetMinistryDetailResponse = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  category: zod.string().optional(),
+  meetingDay: zod.string().nullish(),
+  meetingTime: zod.string().nullish(),
+  meetingLocation: zod.string().nullish(),
+  status: zod.string().optional(),
+  members: zod.array(
+    zod.object({
+      id: zod.string(),
+      ministryId: zod.string(),
+      memberId: zod.string(),
+      memberName: zod.string().nullish(),
+      role: zod.enum(["lider", "vice_lider", "membro", "voluntario"]),
+      joinedAt: zod.string().optional(),
+      leftAt: zod.string().nullish(),
+      updatedAt: zod.string().optional(),
+    }),
+  ),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Update a ministry
+ */
+export const UpdateMinistryParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateMinistryBody = zod.object({
+  name: zod.string().optional(),
+  description: zod.string().optional(),
+  meetingDay: zod.string().optional(),
+  meetingTime: zod.string().optional(),
+  meetingLocation: zod.string().optional(),
+  status: zod.enum(["ativo", "inativo"]).optional(),
+});
+
+export const UpdateMinistryResponse = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  meetingDay: zod.string().nullish(),
+  meetingTime: zod.string().nullish(),
+  meetingLocation: zod.string().nullish(),
+  status: zod.enum(["ativo", "inativo"]),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Delete a ministry (soft delete)
+ */
+export const DeleteMinistryParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteMinistryResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Add a member to a ministry
+ */
+export const AddMinistryMemberParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const AddMinistryMemberBody = zod.object({
+  memberId: zod.string(),
+  role: zod.enum(["lider", "vice_lider", "membro", "voluntario"]).optional(),
+});
+
+/**
+ * @summary Change a member's role in a ministry
+ */
+export const UpdateMinistryMemberRoleParams = zod.object({
+  id: zod.coerce.string(),
+  memberId: zod.coerce.string(),
+});
+
+export const UpdateMinistryMemberRoleBody = zod.object({
+  role: zod.enum(["lider", "vice_lider", "membro", "voluntario"]),
+});
+
+export const UpdateMinistryMemberRoleResponse = zod.object({
+  id: zod.string(),
+  ministryId: zod.string(),
+  memberId: zod.string(),
+  memberName: zod.string().nullish(),
+  role: zod.enum(["lider", "vice_lider", "membro", "voluntario"]),
+  joinedAt: zod.string().optional(),
+  leftAt: zod.string().nullish(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Remove a member from a ministry (soft delete)
+ */
+export const RemoveMinistryMemberParams = zod.object({
+  id: zod.coerce.string(),
+  memberId: zod.coerce.string(),
+});
+
+export const RemoveMinistryMemberResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary List ministries for a member
+ */
+export const GetMemberMinistriesParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetMemberMinistriesResponse = zod.object({
+  ministries: zod.array(
+    zod.object({
+      id: zod.string().optional(),
+      ministryId: zod.string().optional(),
+      ministryName: zod.string().optional(),
+      ministryStatus: zod.string().optional(),
+      role: zod.string().optional(),
+      joinedAt: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary List goals for a ministry
+ */
+export const ListMinistryGoalsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ListMinistryGoalsResponse = zod.object({
+  goals: zod.array(
+    zod.object({
+      id: zod.string(),
+      ministryId: zod.string(),
+      title: zod.string(),
+      description: zod.string().nullish(),
+      targetValue: zod.string(),
+      currentValue: zod.string(),
+      unit: zod.string().nullish(),
+      deadline: zod.string().nullish(),
+      initiativeId: zod.string().nullish(),
+      status: zod.enum(["em_andamento", "concluida", "cancelada"]),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Create a goal for a ministry
+ */
+export const CreateMinistryGoalParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const CreateMinistryGoalBody = zod.object({
+  title: zod.string(),
+  description: zod.string().optional(),
+  targetValue: zod.number(),
+  unit: zod.string().optional(),
+  deadline: zod.string().optional(),
+  initiativeId: zod.string().optional(),
+});
+
+/**
+ * @summary Update a ministry goal
+ */
+export const UpdateMinistryGoalParams = zod.object({
+  id: zod.coerce.string(),
+  goalId: zod.coerce.string(),
+});
+
+export const UpdateMinistryGoalBody = zod.object({
+  title: zod.string().optional(),
+  description: zod.string().optional(),
+  targetValue: zod.number().optional(),
+  currentValue: zod.number().optional(),
+  unit: zod.string().optional(),
+  deadline: zod.string().optional(),
+  initiativeId: zod.string().optional(),
+  status: zod.enum(["em_andamento", "concluida", "cancelada"]).optional(),
+});
+
+export const UpdateMinistryGoalResponse = zod.object({
+  id: zod.string(),
+  ministryId: zod.string(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  targetValue: zod.string(),
+  currentValue: zod.string(),
+  unit: zod.string().nullish(),
+  deadline: zod.string().nullish(),
+  initiativeId: zod.string().nullish(),
+  status: zod.enum(["em_andamento", "concluida", "cancelada"]),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Soft delete a ministry goal
+ */
+export const DeleteMinistryGoalParams = zod.object({
+  id: zod.coerce.string(),
+  goalId: zod.coerce.string(),
+});
+
+export const DeleteMinistryGoalResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary List assets
+ */
+export const listAssetsQueryPageDefault = 1;
+export const listAssetsQueryLimitDefault = 20;
+
+export const ListAssetsQueryParams = zod.object({
+  page: zod.coerce.number().default(listAssetsQueryPageDefault),
+  limit: zod.coerce.number().default(listAssetsQueryLimitDefault),
+  category: zod
+    .enum([
+      "instrumento",
+      "som_iluminacao",
+      "mobiliario",
+      "informatica",
+      "veiculo",
+      "imovel",
+      "outro",
+    ])
+    .optional(),
+  status: zod.enum(["ativo", "manutencao", "baixa", "emprestado"]).optional(),
+  location: zod.coerce.string().optional(),
+  search: zod.coerce.string().optional(),
+});
+
+export const ListAssetsResponse = zod.object({
+  assets: zod.array(
+    zod.object({
+      id: zod.string(),
+      name: zod.string(),
+      description: zod.string().nullish(),
+      category: zod.enum([
+        "instrumento",
+        "som_iluminacao",
+        "mobiliario",
+        "informatica",
+        "veiculo",
+        "imovel",
+        "outro",
+      ]),
+      acquisitionDate: zod.string().nullish(),
+      acquisitionValue: zod.string().nullish(),
+      currentValue: zod.string().nullish(),
+      serialNumber: zod.string().nullish(),
+      location: zod.string(),
+      responsibleId: zod.string().nullish(),
+      responsibleName: zod.string().nullish(),
+      status: zod.enum(["ativo", "manutencao", "baixa", "emprestado"]),
+      notes: zod.string().nullish(),
+      photoPath: zod.string().nullish(),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    }),
+  ),
+  total: zod.number(),
+  page: zod.number().optional(),
+  limit: zod.number().optional(),
+});
+
+/**
+ * @summary Create an asset
+ */
+export const CreateAssetBody = zod.object({
+  name: zod.string(),
+  description: zod.string().optional(),
+  category: zod
+    .enum([
+      "instrumento",
+      "som_iluminacao",
+      "mobiliario",
+      "informatica",
+      "veiculo",
+      "imovel",
+      "outro",
+    ])
+    .optional(),
+  acquisitionDate: zod.string().optional(),
+  acquisitionValue: zod.string().optional(),
+  currentValue: zod.string().optional(),
+  serialNumber: zod.string().optional(),
+  location: zod.string(),
+  responsibleId: zod.string().optional(),
+  status: zod.enum(["ativo", "manutencao", "baixa", "emprestado"]).optional(),
+  notes: zod.string().optional(),
+  photoPath: zod.string().optional(),
+});
+
+/**
+ * @summary Assets summary (total, value, by category)
+ */
+export const GetAssetsSummaryResponse = zod.object({
+  totalAssets: zod.number(),
+  totalValue: zod.string(),
+  byCategory: zod.object({}).passthrough().optional(),
+});
+
+/**
+ * @summary Get asset detail
+ */
+export const GetAssetDetailParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetAssetDetailResponse = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  category: zod.enum([
+    "instrumento",
+    "som_iluminacao",
+    "mobiliario",
+    "informatica",
+    "veiculo",
+    "imovel",
+    "outro",
+  ]),
+  acquisitionDate: zod.string().nullish(),
+  acquisitionValue: zod.string().nullish(),
+  currentValue: zod.string().nullish(),
+  serialNumber: zod.string().nullish(),
+  location: zod.string(),
+  responsibleId: zod.string().nullish(),
+  responsibleName: zod.string().nullish(),
+  status: zod.enum(["ativo", "manutencao", "baixa", "emprestado"]),
+  notes: zod.string().nullish(),
+  photoPath: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Update an asset
+ */
+export const UpdateAssetParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateAssetBody = zod.object({
+  name: zod.string().optional(),
+  description: zod.string().optional(),
+  category: zod
+    .enum([
+      "instrumento",
+      "som_iluminacao",
+      "mobiliario",
+      "informatica",
+      "veiculo",
+      "imovel",
+      "outro",
+    ])
+    .optional(),
+  acquisitionDate: zod.string().optional(),
+  acquisitionValue: zod.string().optional(),
+  currentValue: zod.string().optional(),
+  serialNumber: zod.string().optional(),
+  location: zod.string().optional(),
+  responsibleId: zod.string().optional(),
+  status: zod.enum(["ativo", "manutencao", "baixa", "emprestado"]).optional(),
+  notes: zod.string().optional(),
+  photoPath: zod.string().optional(),
+});
+
+export const UpdateAssetResponse = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  category: zod.enum([
+    "instrumento",
+    "som_iluminacao",
+    "mobiliario",
+    "informatica",
+    "veiculo",
+    "imovel",
+    "outro",
+  ]),
+  acquisitionDate: zod.string().nullish(),
+  acquisitionValue: zod.string().nullish(),
+  currentValue: zod.string().nullish(),
+  serialNumber: zod.string().nullish(),
+  location: zod.string(),
+  responsibleId: zod.string().nullish(),
+  responsibleName: zod.string().nullish(),
+  status: zod.enum(["ativo", "manutencao", "baixa", "emprestado"]),
+  notes: zod.string().nullish(),
+  photoPath: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Delete an asset (soft delete)
+ */
+export const DeleteAssetParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteAssetResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary List service roles
+ */
+export const ListServiceRolesResponse = zod.object({
+  roles: zod.array(
+    zod.object({
+      id: zod.string(),
+      name: zod.string(),
+      description: zod.string().nullish(),
+      ministryId: zod.string().nullish(),
+      ministryName: zod.string().nullish(),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Create a service role
+ */
+export const CreateServiceRoleBody = zod.object({
+  name: zod.string(),
+  description: zod.string().optional(),
+  ministryId: zod.string().optional(),
+});
+
+/**
+ * @summary Update a service role
+ */
+export const UpdateServiceRoleParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateServiceRoleBody = zod.object({
+  name: zod.string().optional(),
+  description: zod.string().optional(),
+  ministryId: zod.string().optional(),
+});
+
+export const UpdateServiceRoleResponse = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  ministryId: zod.string().nullish(),
+  ministryName: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Delete a service role (soft delete)
+ */
+export const DeleteServiceRoleParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteServiceRoleResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Get volunteer schedule for an event
+ */
+export const GetEventScheduleParams = zod.object({
+  eventId: zod.coerce.string(),
+});
+
+export const GetEventScheduleResponse = zod.object({
+  schedule: zod.array(
+    zod.object({
+      id: zod.string(),
+      eventId: zod.string(),
+      serviceRoleId: zod.string(),
+      serviceRoleName: zod.string().nullish(),
+      memberId: zod.string(),
+      memberName: zod.string().nullish(),
+      status: zod.enum(["escalado", "confirmado", "ausente", "substituido"]),
+      notes: zod.string().nullish(),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Add volunteer to event schedule
+ */
+export const AddToEventScheduleParams = zod.object({
+  eventId: zod.coerce.string(),
+});
+
+export const AddToEventScheduleBody = zod.object({
+  serviceRoleId: zod.string(),
+  memberId: zod.string(),
+  notes: zod.string().optional(),
+});
+
+/**
+ * @summary Update schedule status
+ */
+export const UpdateScheduleStatusParams = zod.object({
+  eventId: zod.coerce.string(),
+  id: zod.coerce.string(),
+});
+
+export const UpdateScheduleStatusBody = zod.object({
+  status: zod
+    .enum(["escalado", "confirmado", "ausente", "substituido"])
+    .optional(),
+  notes: zod.string().optional(),
+});
+
+export const UpdateScheduleStatusResponse = zod.object({
+  id: zod.string(),
+  eventId: zod.string(),
+  serviceRoleId: zod.string(),
+  serviceRoleName: zod.string().nullish(),
+  memberId: zod.string(),
+  memberName: zod.string().nullish(),
+  status: zod.enum(["escalado", "confirmado", "ausente", "substituido"]),
+  notes: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Remove volunteer from event schedule
+ */
+export const RemoveFromEventScheduleParams = zod.object({
+  eventId: zod.coerce.string(),
+  id: zod.coerce.string(),
+});
+
+export const RemoveFromEventScheduleResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Planning dashboard summary
+ */
+export const GetPlanningSummaryResponse = zod.object({
+  totalInitiatives: zod.number(),
+  activeInitiatives: zod.number(),
+  overdueInitiatives: zod.number(),
+  byStatus: zod.object({}).passthrough().optional(),
+  totalPlannedBudget: zod.string().optional(),
+  totalRealizedCost: zod.string().optional(),
+});
+
+/**
+ * @summary List strategic directives
+ */
+export const ListDirectivesResponse = zod.object({
+  directives: zod.array(
+    zod.object({
+      id: zod.string(),
+      title: zod.string(),
+      description: zod.string().nullish(),
+      startYear: zod.string(),
+      endYear: zod.string(),
+      status: zod.enum(["ativa", "concluida", "cancelada"]),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Create a directive
+ */
+export const CreateDirectiveBody = zod.object({
+  title: zod.string(),
+  description: zod.string().optional(),
+  startYear: zod.string(),
+  endYear: zod.string(),
+});
+
+/**
+ * @summary Directive detail with objectives and initiatives
+ */
+export const GetDirectiveDetailParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetDirectiveDetailResponse = zod.object({
+  id: zod.string(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  startYear: zod.string().optional(),
+  endYear: zod.string().optional(),
+  status: zod.string().optional(),
+  objectives: zod.array(zod.object({}).passthrough()),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Update a directive
+ */
+export const UpdateDirectiveParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateDirectiveBody = zod.object({
+  title: zod.string().optional(),
+  description: zod.string().optional(),
+  startYear: zod.string().optional(),
+  endYear: zod.string().optional(),
+  status: zod.enum(["ativa", "concluida", "cancelada"]).optional(),
+});
+
+export const UpdateDirectiveResponse = zod.object({
+  id: zod.string(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  startYear: zod.string(),
+  endYear: zod.string(),
+  status: zod.enum(["ativa", "concluida", "cancelada"]),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Soft delete a directive
+ */
+export const DeleteDirectiveParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteDirectiveResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Create an objective for a directive
+ */
+export const CreateObjectiveParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const CreateObjectiveBody = zod.object({
+  title: zod.string(),
+  description: zod.string().optional(),
+  targetValue: zod.number().optional(),
+  unit: zod.string().optional(),
+  deadline: zod.string().optional(),
+});
+
+/**
+ * @summary Update an objective
+ */
+export const UpdateObjectiveParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateObjectiveBody = zod.object({
+  title: zod.string().optional(),
+  description: zod.string().optional(),
+  targetValue: zod.number().optional(),
+  currentValue: zod.number().optional(),
+  unit: zod.string().optional(),
+  deadline: zod.string().optional(),
+  status: zod.enum(["em_andamento", "concluido", "cancelado"]).optional(),
+});
+
+export const UpdateObjectiveResponse = zod.object({
+  id: zod.string(),
+  directiveId: zod.string(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  targetValue: zod.string().nullish(),
+  currentValue: zod.string().nullish(),
+  unit: zod.string().nullish(),
+  deadline: zod.string().nullish(),
+  status: zod.enum(["em_andamento", "concluido", "cancelado"]),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Soft delete an objective
+ */
+export const DeleteObjectiveParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteObjectiveResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary List all initiatives
+ */
+export const ListInitiativesQueryParams = zod.object({
+  status: zod.coerce.string().optional(),
+  type: zod.coerce.string().optional(),
+  ministryId: zod.coerce.string().optional(),
+  priority: zod.coerce.string().optional(),
+});
+
+export const ListInitiativesResponse = zod.object({
+  initiatives: zod.array(
+    zod.object({
+      id: zod.string(),
+      objectiveId: zod.string().nullish(),
+      ministryId: zod.string().nullish(),
+      title: zod.string(),
+      description: zod.string().nullish(),
+      type: zod.string(),
+      priority: zod.string(),
+      status: zod.string(),
+      responsibleId: zod.string().nullish(),
+      responsibleName: zod.string().nullish(),
+      plannedBudget: zod.string().nullish(),
+      startDate: zod.string().nullish(),
+      endDate: zod.string().nullish(),
+      completedAt: zod.string().nullish(),
+      notes: zod.string().nullish(),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Create an initiative
+ */
+export const CreateInitiativeBody = zod.object({
+  title: zod.string(),
+  description: zod.string().optional(),
+  type: zod.enum([
+    "aquisicao",
+    "reforma",
+    "campanha",
+    "evento_especial",
+    "capacitacao",
+    "missoes",
+    "administrativo",
+    "outro",
+  ]),
+  priority: zod.enum(["alta", "media", "baixa"]).optional(),
+  objectiveId: zod.string().optional(),
+  ministryId: zod.string().optional(),
+  responsibleId: zod.string().optional(),
+  plannedBudget: zod.string().optional(),
+  startDate: zod.string().optional(),
+  endDate: zod.string().optional(),
+  notes: zod.string().optional(),
+});
+
+/**
+ * @summary Initiative detail with steps and realized cost
+ */
+export const GetInitiativeDetailParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetInitiativeDetailResponse = zod.object({
+  id: zod.string(),
+  objectiveId: zod.string().nullish(),
+  ministryId: zod.string().nullish(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  type: zod.string().optional(),
+  priority: zod.string().optional(),
+  status: zod.string().optional(),
+  responsibleId: zod.string().nullish(),
+  responsibleName: zod.string().nullish(),
+  plannedBudget: zod.string().nullish(),
+  startDate: zod.string().nullish(),
+  endDate: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  steps: zod.array(
+    zod.object({
+      id: zod.string(),
+      initiativeId: zod.string(),
+      title: zod.string(),
+      completed: zod.boolean(),
+      completedAt: zod.string().nullish(),
+      sortOrder: zod.number(),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    }),
+  ),
+  realizedCost: zod.string(),
+  progress: zod.number(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Update an initiative
+ */
+export const UpdateInitiativeParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateInitiativeBody = zod.object({
+  title: zod.string().optional(),
+  description: zod.string().optional(),
+  type: zod.string().optional(),
+  priority: zod.string().optional(),
+  status: zod.string().optional(),
+  objectiveId: zod.string().optional(),
+  ministryId: zod.string().optional(),
+  responsibleId: zod.string().optional(),
+  plannedBudget: zod.string().optional(),
+  startDate: zod.string().optional(),
+  endDate: zod.string().optional(),
+  notes: zod.string().optional(),
+});
+
+export const UpdateInitiativeResponse = zod.object({
+  id: zod.string(),
+  objectiveId: zod.string().nullish(),
+  ministryId: zod.string().nullish(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  type: zod.string(),
+  priority: zod.string(),
+  status: zod.string(),
+  responsibleId: zod.string().nullish(),
+  responsibleName: zod.string().nullish(),
+  plannedBudget: zod.string().nullish(),
+  startDate: zod.string().nullish(),
+  endDate: zod.string().nullish(),
+  completedAt: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Soft delete an initiative
+ */
+export const DeleteInitiativeParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteInitiativeResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Add a step to an initiative
+ */
+export const AddInitiativeStepParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const AddInitiativeStepBody = zod.object({
+  title: zod.string(),
+  sortOrder: zod.number().optional(),
+});
+
+/**
+ * @summary Update a step
+ */
+export const UpdateInitiativeStepParams = zod.object({
+  initiativeId: zod.coerce.string(),
+  stepId: zod.coerce.string(),
+});
+
+export const UpdateInitiativeStepBody = zod.object({
+  title: zod.string().optional(),
+  completed: zod.boolean().optional(),
+  sortOrder: zod.number().optional(),
+});
+
+export const UpdateInitiativeStepResponse = zod.object({
+  id: zod.string(),
+  initiativeId: zod.string(),
+  title: zod.string(),
+  completed: zod.boolean(),
+  completedAt: zod.string().nullish(),
+  sortOrder: zod.number(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Soft delete a step
+ */
+export const DeleteInitiativeStepParams = zod.object({
+  initiativeId: zod.coerce.string(),
+  stepId: zod.coerce.string(),
+});
+
+export const DeleteInitiativeStepResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary List teaching contents
+ */
+export const listContentsQueryPageDefault = 1;
+export const listContentsQueryLimitDefault = 20;
+
+export const ListContentsQueryParams = zod.object({
+  page: zod.coerce.number().default(listContentsQueryPageDefault),
+  limit: zod.coerce.number().default(listContentsQueryLimitDefault),
+  category: zod
+    .enum([
+      "pequenos_grupos",
+      "devocionais",
+      "escola_biblica",
+      "esboco_sermao",
+      "estudo_biblico",
+    ])
+    .optional(),
+});
+
+export const ListContentsResponse = zod.object({
+  contents: zod.array(
+    zod.object({
+      id: zod.string(),
+      title: zod.string(),
+      description: zod.string().nullish(),
+      category: zod.enum([
+        "pequenos_grupos",
+        "devocionais",
+        "escola_biblica",
+        "esboco_sermao",
+        "estudo_biblico",
+      ]),
+      authorName: zod.string().nullish(),
+      mediaCount: zod.number().optional(),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    }),
+  ),
+  total: zod.number(),
+  page: zod.number().optional(),
+  limit: zod.number().optional(),
+});
+
+/**
+ * @summary Create a content
+ */
+export const CreateContentBody = zod.object({
+  title: zod.string(),
+  description: zod.string().optional(),
+  category: zod.enum([
+    "pequenos_grupos",
+    "devocionais",
+    "escola_biblica",
+    "esboco_sermao",
+    "estudo_biblico",
+  ]),
+  authorName: zod.string().optional(),
+});
+
+/**
+ * @summary Get content detail
+ */
+export const GetContentDetailParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetContentDetailResponse = zod.object({
+  id: zod.string(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  category: zod.enum([
+    "pequenos_grupos",
+    "devocionais",
+    "escola_biblica",
+    "esboco_sermao",
+    "estudo_biblico",
+  ]),
+  authorName: zod.string().nullish(),
+  mediaCount: zod.number().optional(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Update a content
+ */
+export const UpdateContentParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateContentBody = zod.object({
+  title: zod.string().optional(),
+  description: zod.string().optional(),
+  category: zod
+    .enum([
+      "pequenos_grupos",
+      "devocionais",
+      "escola_biblica",
+      "esboco_sermao",
+      "estudo_biblico",
+    ])
+    .optional(),
+  authorName: zod.string().optional(),
+});
+
+export const UpdateContentResponse = zod.object({
+  id: zod.string(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  category: zod.enum([
+    "pequenos_grupos",
+    "devocionais",
+    "escola_biblica",
+    "esboco_sermao",
+    "estudo_biblico",
+  ]),
+  authorName: zod.string().nullish(),
+  mediaCount: zod.number().optional(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Delete a content (soft delete)
+ */
+export const DeleteContentParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteContentResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Counseling KPIs
+ */
+export const GetCounselingSummaryResponse = zod.object({
+  openCases: zod.number(),
+  inProgressCases: zod.number(),
+  closedCases: zod.number(),
+  totalSessions: zod.number(),
+});
+
+/**
+ * @summary List counseling cases
+ */
+export const ListCounselingCasesQueryParams = zod.object({
+  status: zod.coerce.string().optional(),
+  page: zod.coerce.number().optional(),
+  limit: zod.coerce.number().optional(),
+});
+
+export const ListCounselingCasesResponse = zod.object({
+  cases: zod.array(
+    zod.object({
+      id: zod.string(),
+      memberId: zod.string(),
+      memberName: zod.string(),
+      counselorId: zod.string(),
+      counselorName: zod.string(),
+      topic: zod.string(),
+      status: zod.enum(["aberto", "em_andamento", "encerrado"]),
+      startDate: zod.string(),
+      endDate: zod.string().nullish(),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    }),
+  ),
+  total: zod.number(),
+  page: zod.number().optional(),
+  limit: zod.number().optional(),
+});
+
+/**
+ * @summary Create a counseling case (admin only)
+ */
+export const CreateCounselingCaseBody = zod.object({
+  memberId: zod.string(),
+  counselorId: zod.string(),
+  topic: zod.string(),
+  startDate: zod.string(),
+});
+
+/**
+ * @summary Case detail with sessions
+ */
+export const GetCounselingCaseDetailParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetCounselingCaseDetailResponse = zod
+  .object({
+    id: zod.string(),
+    memberId: zod.string(),
+    memberName: zod.string(),
+    counselorId: zod.string(),
+    counselorName: zod.string(),
+    topic: zod.string(),
+    status: zod.enum(["aberto", "em_andamento", "encerrado"]),
+    startDate: zod.string(),
+    endDate: zod.string().nullish(),
+    createdAt: zod.string().optional(),
+    updatedAt: zod.string().optional(),
+  })
+  .and(
+    zod.object({
+      sessions: zod
+        .array(
+          zod.object({
+            id: zod.string(),
+            caseId: zod.string(),
+            date: zod.string(),
+            notes: zod.string().nullish(),
+            durationMinutes: zod.number().nullish(),
+            createdAt: zod.string().optional(),
+          }),
+        )
+        .optional(),
+    }),
+  );
+
+/**
+ * @summary Update a counseling case
+ */
+export const UpdateCounselingCaseParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateCounselingCaseBody = zod.object({
+  topic: zod.string().optional(),
+  status: zod.enum(["aberto", "em_andamento", "encerrado"]).optional(),
+});
+
+export const UpdateCounselingCaseResponse = zod.object({
+  id: zod.string(),
+  memberId: zod.string(),
+  memberName: zod.string(),
+  counselorId: zod.string(),
+  counselorName: zod.string(),
+  topic: zod.string(),
+  status: zod.enum(["aberto", "em_andamento", "encerrado"]),
+  startDate: zod.string(),
+  endDate: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Soft delete a counseling case
+ */
+export const DeleteCounselingCaseParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteCounselingCaseResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary List sessions for a case
+ */
+export const ListCounselingSessionsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ListCounselingSessionsResponse = zod.object({
+  sessions: zod.array(
+    zod.object({
+      id: zod.string(),
+      caseId: zod.string(),
+      date: zod.string(),
+      notes: zod.string().nullish(),
+      durationMinutes: zod.number().nullish(),
+      createdAt: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Add a session to a case
+ */
+export const CreateCounselingSessionParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const CreateCounselingSessionBody = zod.object({
+  date: zod.string(),
+  notes: zod.string().optional(),
+  durationMinutes: zod.number().optional(),
+});
+
+/**
+ * @summary Pastoral care KPIs
+ */
+export const GetPastoralSummaryResponse = zod.object({
+  pending: zod.number(),
+  doneThisMonth: zod.number(),
+  overdueFollowUps: zod.number(),
+  totalVisits: zod.number(),
+});
+
+/**
+ * @summary List pastoral visits
+ */
+export const ListPastoralVisitsQueryParams = zod.object({
+  memberId: zod.coerce.string().optional(),
+  pastorId: zod.coerce.string().optional(),
+  status: zod.coerce.string().optional(),
+  dateFrom: zod.coerce.string().optional(),
+  dateTo: zod.coerce.string().optional(),
+  page: zod.coerce.number().optional(),
+  limit: zod.coerce.number().optional(),
+});
+
+export const ListPastoralVisitsResponse = zod.object({
+  visits: zod.array(
+    zod.object({
+      id: zod.string(),
+      memberId: zod.string(),
+      memberName: zod.string(),
+      pastorId: zod.string(),
+      pastorName: zod.string(),
+      type: zod.enum(["visita", "ligacao", "reuniao", "oracao"]),
+      date: zod.string(),
+      notes: zod.string().nullish(),
+      status: zod.enum(["pendente", "realizado", "cancelado"]),
+      followUpDate: zod.string().nullish(),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    }),
+  ),
+  total: zod.number(),
+  page: zod.number().optional(),
+  limit: zod.number().optional(),
+});
+
+/**
+ * @summary Create a pastoral visit
+ */
+export const CreatePastoralVisitBody = zod.object({
+  memberId: zod.string(),
+  pastorId: zod.string(),
+  type: zod.enum(["visita", "ligacao", "reuniao", "oracao"]),
+  date: zod.string(),
+  notes: zod.string().optional(),
+  followUpDate: zod.string().optional(),
+});
+
+/**
+ * @summary Pastoral history for a member
+ */
+export const GetPastoralMemberHistoryParams = zod.object({
+  memberId: zod.coerce.string(),
+});
+
+export const GetPastoralMemberHistoryResponse = zod.object({
+  visits: zod.array(
+    zod.object({
+      id: zod.string(),
+      memberId: zod.string(),
+      memberName: zod.string(),
+      pastorId: zod.string(),
+      pastorName: zod.string(),
+      type: zod.enum(["visita", "ligacao", "reuniao", "oracao"]),
+      date: zod.string(),
+      notes: zod.string().nullish(),
+      status: zod.enum(["pendente", "realizado", "cancelado"]),
+      followUpDate: zod.string().nullish(),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Update a pastoral visit
+ */
+export const UpdatePastoralVisitParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdatePastoralVisitBody = zod.object({
+  type: zod.enum(["visita", "ligacao", "reuniao", "oracao"]).optional(),
+  date: zod.string().optional(),
+  notes: zod.string().optional(),
+  status: zod.enum(["pendente", "realizado", "cancelado"]).optional(),
+  followUpDate: zod.string().optional(),
+});
+
+export const UpdatePastoralVisitResponse = zod.object({
+  id: zod.string(),
+  memberId: zod.string(),
+  memberName: zod.string(),
+  pastorId: zod.string(),
+  pastorName: zod.string(),
+  type: zod.enum(["visita", "ligacao", "reuniao", "oracao"]),
+  date: zod.string(),
+  notes: zod.string().nullish(),
+  status: zod.enum(["pendente", "realizado", "cancelado"]),
+  followUpDate: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Soft delete a pastoral visit
+ */
+export const DeletePastoralVisitParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeletePastoralVisitResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary List songs
+ */
+export const ListSongsQueryParams = zod.object({
+  search: zod.coerce.string().optional(),
+  category: zod.coerce.string().optional(),
+  page: zod.coerce.number().optional(),
+  limit: zod.coerce.number().optional(),
+});
+
+export const ListSongsResponse = zod.object({
+  songs: zod.array(
+    zod.object({
+      id: zod.string(),
+      title: zod.string(),
+      author: zod.string().nullish(),
+      songKey: zod.string().nullish(),
+      tempo: zod.string().nullish(),
+      lyrics: zod.string().nullish(),
+      chordChart: zod.string().nullish(),
+      category: zod.enum(["louvor", "adoracao", "hino", "especial"]),
+      youtubeUrl: zod.string().nullish(),
+      createdAt: zod.string(),
+      updatedAt: zod.string(),
+    }),
+  ),
+  total: zod.number(),
+  page: zod.number().optional(),
+  limit: zod.number().optional(),
+});
+
+/**
+ * @summary Create a song
+ */
+export const CreateSongBody = zod.object({
+  title: zod.string(),
+  youtubeUrl: zod.string(),
+});
+
+/**
+ * @summary List song suggestions
+ */
+export const ListSongSuggestionsResponse = zod.object({
+  suggestions: zod.array(
+    zod.object({
+      id: zod.string(),
+      songId: zod.string().nullish(),
+      title: zod.string(),
+      url: zod.string(),
+      reason: zod.string().nullish(),
+      status: zod.enum(["pendente", "aprovada", "rejeitada"]),
+      reviewNote: zod.string().nullish(),
+      createdAt: zod.string(),
+    }),
+  ),
+  total: zod.number(),
+});
+
+/**
+ * @summary Create a song suggestion
+ */
+export const CreateSongSuggestionBody = zod.object({
+  title: zod.string(),
+  url: zod.string(),
+  reason: zod.string(),
+});
+
+/**
+ * @summary Get song detail
+ */
+export const GetSongDetailParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetSongDetailResponse = zod.object({
+  id: zod.string(),
+  title: zod.string(),
+  author: zod.string().nullish(),
+  songKey: zod.string().nullish(),
+  tempo: zod.string().nullish(),
+  lyrics: zod.string().nullish(),
+  chordChart: zod.string().nullish(),
+  category: zod.enum(["louvor", "adoracao", "hino", "especial"]),
+  youtubeUrl: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Update a song
+ */
+export const UpdateSongParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateSongBody = zod.object({
+  title: zod.string().optional(),
+  youtubeUrl: zod.string().optional(),
+});
+
+export const UpdateSongResponse = zod.object({
+  id: zod.string(),
+  title: zod.string(),
+  author: zod.string().nullish(),
+  songKey: zod.string().nullish(),
+  tempo: zod.string().nullish(),
+  lyrics: zod.string().nullish(),
+  chordChart: zod.string().nullish(),
+  category: zod.enum(["louvor", "adoracao", "hino", "especial"]),
+  youtubeUrl: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Delete a song
+ */
+export const DeleteSongParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteSongResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Review a song suggestion
+ */
+export const ReviewSongSuggestionParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ReviewSongSuggestionBody = zod.object({
+  status: zod.enum(["aprovada", "rejeitada"]),
+  reviewNote: zod.string().optional(),
+});
+
+export const ReviewSongSuggestionResponse = zod.object({
+  id: zod.string(),
+  songId: zod.string().nullish(),
+  title: zod.string(),
+  url: zod.string(),
+  reason: zod.string().nullish(),
+  status: zod.enum(["pendente", "aprovada", "rejeitada"]),
+  reviewNote: zod.string().nullish(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary List liturgies
+ */
+export const ListLiturgiesQueryParams = zod.object({
+  type: zod.coerce.string().optional(),
+  status: zod.coerce.string().optional(),
+  date: zod.coerce.string().optional(),
+  page: zod.coerce.number().optional(),
+  limit: zod.coerce.number().optional(),
+});
+
+export const ListLiturgiesResponse = zod.object({
+  liturgies: zod.array(
+    zod.object({
+      id: zod.string(),
+      title: zod.string(),
+      date: zod.string(),
+      type: zod.enum([
+        "culto_dominical",
+        "culto_especial",
+        "santa_ceia",
+        "culto_oracao",
+      ]),
+      eventId: zod.string().nullish(),
+      status: zod.enum(["rascunho", "aprovada"]),
+      notes: zod.string().nullish(),
+      createdAt: zod.string(),
+      updatedAt: zod.string(),
+    }),
+  ),
+  total: zod.number(),
+  page: zod.number().optional(),
+  limit: zod.number().optional(),
+});
+
+/**
+ * @summary Create a liturgy
+ */
+export const CreateLiturgyBody = zod.object({
+  title: zod.string(),
+  date: zod.string(),
+  type: zod.enum([
+    "culto_dominical",
+    "culto_especial",
+    "santa_ceia",
+    "culto_oracao",
+  ]),
+  eventId: zod.string().optional(),
+  notes: zod.string().optional(),
+});
+
+/**
+ * @summary Get liturgy detail with items
+ */
+export const GetLiturgyDetailParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetLiturgyDetailResponse = zod
+  .object({
+    id: zod.string(),
+    title: zod.string(),
+    date: zod.string(),
+    type: zod.enum([
+      "culto_dominical",
+      "culto_especial",
+      "santa_ceia",
+      "culto_oracao",
+    ]),
+    eventId: zod.string().nullish(),
+    status: zod.enum(["rascunho", "aprovada"]),
+    notes: zod.string().nullish(),
+    createdAt: zod.string(),
+    updatedAt: zod.string(),
+  })
+  .and(
+    zod.object({
+      items: zod.array(
+        zod.object({
+          id: zod.string(),
+          liturgyId: zod.string(),
+          order: zod.number(),
+          type: zod.enum([
+            "louvor",
+            "oracao",
+            "leitura",
+            "pregacao",
+            "ofertorio",
+            "avisos",
+            "santa_ceia",
+            "outro",
+          ]),
+          title: zod.string(),
+          description: zod.string().nullish(),
+          responsibleName: zod.string().nullish(),
+          durationMinutes: zod.number().nullish(),
+          songId: zod.string().nullish(),
+          createdAt: zod.string(),
+        }),
+      ),
+    }),
+  );
+
+/**
+ * @summary Update a liturgy
+ */
+export const UpdateLiturgyParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateLiturgyBody = zod.object({
+  title: zod.string().optional(),
+  date: zod.string().optional(),
+  type: zod
+    .enum(["culto_dominical", "culto_especial", "santa_ceia", "culto_oracao"])
+    .optional(),
+  eventId: zod.string().optional(),
+  status: zod.enum(["rascunho", "aprovada"]).optional(),
+  notes: zod.string().optional(),
+});
+
+export const UpdateLiturgyResponse = zod.object({
+  id: zod.string(),
+  title: zod.string(),
+  date: zod.string(),
+  type: zod.enum([
+    "culto_dominical",
+    "culto_especial",
+    "santa_ceia",
+    "culto_oracao",
+  ]),
+  eventId: zod.string().nullish(),
+  status: zod.enum(["rascunho", "aprovada"]),
+  notes: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Delete a liturgy
+ */
+export const DeleteLiturgyParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteLiturgyResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Add item to liturgy
+ */
+export const AddLiturgyItemParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const AddLiturgyItemBody = zod.object({
+  type: zod.enum([
+    "louvor",
+    "oracao",
+    "leitura",
+    "pregacao",
+    "ofertorio",
+    "avisos",
+    "santa_ceia",
+    "outro",
+  ]),
+  title: zod.string(),
+  description: zod.string().optional(),
+  responsibleMemberId: zod.string().optional(),
+  durationMinutes: zod.number().optional(),
+  songId: zod.string().optional(),
+});
+
+/**
+ * @summary Update a liturgy item
+ */
+export const UpdateLiturgyItemParams = zod.object({
+  id: zod.coerce.string(),
+  itemId: zod.coerce.string(),
+});
+
+export const UpdateLiturgyItemBody = zod.object({
+  type: zod
+    .enum([
+      "louvor",
+      "oracao",
+      "leitura",
+      "pregacao",
+      "ofertorio",
+      "avisos",
+      "santa_ceia",
+      "outro",
+    ])
+    .optional(),
+  title: zod.string().optional(),
+  description: zod.string().optional(),
+  responsibleMemberId: zod.string().optional(),
+  durationMinutes: zod.number().optional(),
+  songId: zod.string().optional(),
+});
+
+export const UpdateLiturgyItemResponse = zod.object({
+  id: zod.string(),
+  liturgyId: zod.string(),
+  order: zod.number(),
+  type: zod.enum([
+    "louvor",
+    "oracao",
+    "leitura",
+    "pregacao",
+    "ofertorio",
+    "avisos",
+    "santa_ceia",
+    "outro",
+  ]),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  responsibleName: zod.string().nullish(),
+  durationMinutes: zod.number().nullish(),
+  songId: zod.string().nullish(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Delete a liturgy item
+ */
+export const DeleteLiturgyItemParams = zod.object({
+  id: zod.coerce.string(),
+  itemId: zod.coerce.string(),
+});
+
+export const DeleteLiturgyItemResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Reorder liturgy items
+ */
+export const ReorderLiturgyItemsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ReorderLiturgyItemsBody = zod.object({
+  itemIds: zod.array(zod.string()),
+});
+
+export const ReorderLiturgyItemsResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary List articles
+ */
+export const ListArticlesQueryParams = zod.object({
+  status: zod.coerce.string().optional(),
+  category: zod.coerce.string().optional(),
+  page: zod.coerce.number().optional(),
+  limit: zod.coerce.number().optional(),
+});
+
+export const ListArticlesResponse = zod.object({
+  articles: zod.array(
+    zod.object({
+      id: zod.string(),
+      title: zod.string(),
+      slug: zod.string(),
+      body: zod.string(),
+      excerpt: zod.string().nullish(),
+      authorName: zod.string(),
+      category: zod.enum(["artigo", "devocional"]),
+      status: zod.enum([
+        "rascunho",
+        "em_revisao",
+        "aprovado",
+        "publicado",
+        "rejeitado",
+      ]),
+      reviewNote: zod.string().nullish(),
+      publishedAt: zod.string().nullish(),
+      coverImageUrl: zod.string().nullish(),
+      createdAt: zod.string(),
+      updatedAt: zod.string(),
+    }),
+  ),
+  total: zod.number(),
+  page: zod.number().optional(),
+  limit: zod.number().optional(),
+});
+
+/**
+ * @summary Create an article
+ */
+export const CreateArticleBody = zod.object({
+  title: zod.string(),
+  body: zod.string(),
+  excerpt: zod.string().optional(),
+  category: zod.enum(["artigo", "devocional"]),
+  coverImageUrl: zod.string().optional(),
+});
+
+/**
+ * @summary Get article detail
+ */
+export const GetArticleDetailParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetArticleDetailResponse = zod.object({
+  id: zod.string(),
+  title: zod.string(),
+  slug: zod.string(),
+  body: zod.string(),
+  excerpt: zod.string().nullish(),
+  authorName: zod.string(),
+  category: zod.enum(["artigo", "devocional"]),
+  status: zod.enum([
+    "rascunho",
+    "em_revisao",
+    "aprovado",
+    "publicado",
+    "rejeitado",
+  ]),
+  reviewNote: zod.string().nullish(),
+  publishedAt: zod.string().nullish(),
+  coverImageUrl: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Update an article
+ */
+export const UpdateArticleParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateArticleBody = zod.object({
+  title: zod.string().optional(),
+  body: zod.string().optional(),
+  excerpt: zod.string().optional(),
+  category: zod.enum(["artigo", "devocional"]).optional(),
+  coverImageUrl: zod.string().optional(),
+});
+
+export const UpdateArticleResponse = zod.object({
+  id: zod.string(),
+  title: zod.string(),
+  slug: zod.string(),
+  body: zod.string(),
+  excerpt: zod.string().nullish(),
+  authorName: zod.string(),
+  category: zod.enum(["artigo", "devocional"]),
+  status: zod.enum([
+    "rascunho",
+    "em_revisao",
+    "aprovado",
+    "publicado",
+    "rejeitado",
+  ]),
+  reviewNote: zod.string().nullish(),
+  publishedAt: zod.string().nullish(),
+  coverImageUrl: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Delete an article
+ */
+export const DeleteArticleParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteArticleResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Submit article for review
+ */
+export const SubmitArticleParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const SubmitArticleResponse = zod.object({
+  id: zod.string(),
+  title: zod.string(),
+  slug: zod.string(),
+  body: zod.string(),
+  excerpt: zod.string().nullish(),
+  authorName: zod.string(),
+  category: zod.enum(["artigo", "devocional"]),
+  status: zod.enum([
+    "rascunho",
+    "em_revisao",
+    "aprovado",
+    "publicado",
+    "rejeitado",
+  ]),
+  reviewNote: zod.string().nullish(),
+  publishedAt: zod.string().nullish(),
+  coverImageUrl: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Review an article
+ */
+export const ReviewArticleParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ReviewArticleBody = zod.object({
+  action: zod.enum(["approve", "reject"]),
+  note: zod.string().optional(),
+});
+
+export const ReviewArticleResponse = zod.object({
+  id: zod.string(),
+  title: zod.string(),
+  slug: zod.string(),
+  body: zod.string(),
+  excerpt: zod.string().nullish(),
+  authorName: zod.string(),
+  category: zod.enum(["artigo", "devocional"]),
+  status: zod.enum([
+    "rascunho",
+    "em_revisao",
+    "aprovado",
+    "publicado",
+    "rejeitado",
+  ]),
+  reviewNote: zod.string().nullish(),
+  publishedAt: zod.string().nullish(),
+  coverImageUrl: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Publish an article
+ */
+export const PublishArticleParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const PublishArticleResponse = zod.object({
+  id: zod.string(),
+  title: zod.string(),
+  slug: zod.string(),
+  body: zod.string(),
+  excerpt: zod.string().nullish(),
+  authorName: zod.string(),
+  category: zod.enum(["artigo", "devocional"]),
+  status: zod.enum([
+    "rascunho",
+    "em_revisao",
+    "aprovado",
+    "publicado",
+    "rejeitado",
+  ]),
+  reviewNote: zod.string().nullish(),
+  publishedAt: zod.string().nullish(),
+  coverImageUrl: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary List forum topics
+ */
+export const ListForumTopicsQueryParams = zod.object({
+  category: zod.coerce.string().optional(),
+  search: zod.coerce.string().optional(),
+  page: zod.coerce.number().optional(),
+  limit: zod.coerce.number().optional(),
+});
+
+export const ListForumTopicsResponse = zod.object({
+  topics: zod.array(
+    zod.object({
+      id: zod.string(),
+      title: zod.string(),
+      body: zod.string(),
+      authorName: zod.string(),
+      category: zod.enum(["geral", "oracao", "estudo", "testemunho", "duvida"]),
+      isPinned: zod.boolean(),
+      isLocked: zod.boolean(),
+      replyCount: zod.number(),
+      lastReplyAt: zod.string().nullish(),
+      createdAt: zod.string(),
+      updatedAt: zod.string(),
+    }),
+  ),
+  total: zod.number(),
+  page: zod.number().optional(),
+  limit: zod.number().optional(),
+});
+
+/**
+ * @summary Create a forum topic
+ */
+export const CreateForumTopicBody = zod.object({
+  title: zod.string(),
+  body: zod.string(),
+  category: zod.enum(["geral", "oracao", "estudo", "testemunho", "duvida"]),
+});
+
+/**
+ * @summary Get forum summary
+ */
+export const GetForumSummaryResponse = zod.object({
+  totalTopics: zod.number(),
+  activeThisWeek: zod.number(),
+});
+
+/**
+ * @summary Get forum topic detail with replies
+ */
+export const GetForumTopicDetailParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetForumTopicDetailResponse = zod
+  .object({
+    id: zod.string(),
+    title: zod.string(),
+    body: zod.string(),
+    authorName: zod.string(),
+    category: zod.enum(["geral", "oracao", "estudo", "testemunho", "duvida"]),
+    isPinned: zod.boolean(),
+    isLocked: zod.boolean(),
+    replyCount: zod.number(),
+    lastReplyAt: zod.string().nullish(),
+    createdAt: zod.string(),
+    updatedAt: zod.string(),
+  })
+  .and(
+    zod.object({
+      replies: zod.array(
+        zod.object({
+          id: zod.string(),
+          topicId: zod.string(),
+          body: zod.string(),
+          authorName: zod.string(),
+          createdAt: zod.string(),
+          updatedAt: zod.string(),
+        }),
+      ),
+    }),
+  );
+
+/**
+ * @summary Update a forum topic
+ */
+export const UpdateForumTopicParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateForumTopicBody = zod.object({
+  title: zod.string().optional(),
+  body: zod.string().optional(),
+});
+
+export const UpdateForumTopicResponse = zod.object({
+  id: zod.string(),
+  title: zod.string(),
+  body: zod.string(),
+  authorName: zod.string(),
+  category: zod.enum(["geral", "oracao", "estudo", "testemunho", "duvida"]),
+  isPinned: zod.boolean(),
+  isLocked: zod.boolean(),
+  replyCount: zod.number(),
+  lastReplyAt: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Delete a forum topic
+ */
+export const DeleteForumTopicParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteForumTopicResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Toggle pin on a forum topic
+ */
+export const ToggleForumTopicPinParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ToggleForumTopicPinResponse = zod.object({
+  id: zod.string(),
+  title: zod.string(),
+  body: zod.string(),
+  authorName: zod.string(),
+  category: zod.enum(["geral", "oracao", "estudo", "testemunho", "duvida"]),
+  isPinned: zod.boolean(),
+  isLocked: zod.boolean(),
+  replyCount: zod.number(),
+  lastReplyAt: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Toggle lock on a forum topic
+ */
+export const ToggleForumTopicLockParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ToggleForumTopicLockResponse = zod.object({
+  id: zod.string(),
+  title: zod.string(),
+  body: zod.string(),
+  authorName: zod.string(),
+  category: zod.enum(["geral", "oracao", "estudo", "testemunho", "duvida"]),
+  isPinned: zod.boolean(),
+  isLocked: zod.boolean(),
+  replyCount: zod.number(),
+  lastReplyAt: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Create a reply to a forum topic
+ */
+export const CreateForumReplyParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const CreateForumReplyBody = zod.object({
+  body: zod.string(),
+});
+
+/**
+ * @summary Update a forum reply
+ */
+export const UpdateForumReplyParams = zod.object({
+  id: zod.coerce.string(),
+  replyId: zod.coerce.string(),
+});
+
+export const UpdateForumReplyBody = zod.object({
+  body: zod.string(),
+});
+
+export const UpdateForumReplyResponse = zod.object({
+  id: zod.string(),
+  topicId: zod.string(),
+  body: zod.string(),
+  authorName: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Delete a forum reply
+ */
+export const DeleteForumReplyParams = zod.object({
+  id: zod.coerce.string(),
+  replyId: zod.coerce.string(),
+});
+
+export const DeleteForumReplyResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary List published institutional pages
+ */
+export const ListPublicPagesResponse = zod.object({
+  pages: zod.array(
+    zod.object({
+      id: zod.string(),
+      title: zod.string(),
+      slug: zod.string(),
+      body: zod.string(),
+      section: zod.enum([
+        "sobre",
+        "valores",
+        "horarios",
+        "contato",
+        "pastoral",
+        "historia",
+      ]),
+      isPublished: zod.boolean(),
+      sortOrder: zod.number(),
+      coverImageUrl: zod.string().nullish(),
+      createdAt: zod.string(),
+      updatedAt: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get a public page by slug
+ */
+export const GetPublicPageParams = zod.object({
+  slug: zod.coerce.string(),
+});
+
+export const GetPublicPageResponse = zod.object({
+  id: zod.string(),
+  title: zod.string(),
+  slug: zod.string(),
+  body: zod.string(),
+  section: zod.enum([
+    "sobre",
+    "valores",
+    "horarios",
+    "contato",
+    "pastoral",
+    "historia",
+  ]),
+  isPublished: zod.boolean(),
+  sortOrder: zod.number(),
+  coverImageUrl: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary List all institutional pages
+ */
+export const ListPagesResponse = zod.object({
+  pages: zod.array(
+    zod.object({
+      id: zod.string(),
+      title: zod.string(),
+      slug: zod.string(),
+      body: zod.string(),
+      section: zod.enum([
+        "sobre",
+        "valores",
+        "horarios",
+        "contato",
+        "pastoral",
+        "historia",
+      ]),
+      isPublished: zod.boolean(),
+      sortOrder: zod.number(),
+      coverImageUrl: zod.string().nullish(),
+      createdAt: zod.string(),
+      updatedAt: zod.string(),
+    }),
+  ),
+  total: zod.number(),
+});
+
+/**
+ * @summary Create an institutional page
+ */
+export const CreatePageBody = zod.object({
+  title: zod.string(),
+  body: zod.string(),
+  section: zod.enum([
+    "sobre",
+    "valores",
+    "horarios",
+    "contato",
+    "pastoral",
+    "historia",
+  ]),
+  isPublished: zod.boolean().optional(),
+  sortOrder: zod.number().optional(),
+  coverImageUrl: zod.string().optional(),
+});
+
+/**
+ * @summary Update an institutional page
+ */
+export const UpdatePageParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdatePageBody = zod.object({
+  title: zod.string().optional(),
+  body: zod.string().optional(),
+  section: zod
+    .enum(["sobre", "valores", "horarios", "contato", "pastoral", "historia"])
+    .optional(),
+  isPublished: zod.boolean().optional(),
+  sortOrder: zod.number().optional(),
+  coverImageUrl: zod.string().optional(),
+});
+
+export const UpdatePageResponse = zod.object({
+  id: zod.string(),
+  title: zod.string(),
+  slug: zod.string(),
+  body: zod.string(),
+  section: zod.enum([
+    "sobre",
+    "valores",
+    "horarios",
+    "contato",
+    "pastoral",
+    "historia",
+  ]),
+  isPublished: zod.boolean(),
+  sortOrder: zod.number(),
+  coverImageUrl: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Delete an institutional page
+ */
+export const DeletePageParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeletePageResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Get PIX configuration
+ */
+export const GetPixConfigResponse = zod.object({
+  id: zod.string(),
+  pixKey: zod.string(),
+  pixKeyType: zod.string(),
+  recipientName: zod.string(),
+  city: zod.string(),
+  isActive: zod.boolean(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Create PIX configuration
+ */
+export const CreatePixConfigBody = zod.object({
+  pixKey: zod.string(),
+  pixKeyType: zod.string(),
+  recipientName: zod.string(),
+  city: zod.string(),
+});
+
+/**
+ * @summary Update PIX configuration
+ */
+export const UpdatePixConfigParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdatePixConfigBody = zod.object({
+  pixKey: zod.string().optional(),
+  pixKeyType: zod.string().optional(),
+  recipientName: zod.string().optional(),
+  city: zod.string().optional(),
+});
+
+export const UpdatePixConfigResponse = zod.object({
+  id: zod.string(),
+  pixKey: zod.string(),
+  pixKeyType: zod.string(),
+  recipientName: zod.string(),
+  city: zod.string(),
+  isActive: zod.boolean(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Get public PIX donation info
+ */
+export const GetPixDonateInfoResponse = zod.object({
+  pixKey: zod.string(),
+  recipientName: zod.string(),
+  city: zod.string(),
+});
+
+/**
+ * @summary Create a PIX donation
+ */
+export const CreatePixDonationBody = zod.object({
+  amount: zod.number(),
+  donorName: zod.string().optional(),
+  donorEmail: zod.string().optional(),
+});
+
+/**
+ * @summary List PIX donations
+ */
+export const ListPixDonationsQueryParams = zod.object({
+  status: zod.coerce.string().optional(),
+  page: zod.coerce.number().optional(),
+  limit: zod.coerce.number().optional(),
+});
+
+export const ListPixDonationsResponse = zod.object({
+  donations: zod.array(
+    zod.object({
+      id: zod.string(),
+      amount: zod.number(),
+      donorName: zod.string().nullish(),
+      donorEmail: zod.string().nullish(),
+      txId: zod.string(),
+      status: zod.enum(["pendente", "confirmado", "expirado", "cancelado"]),
+      confirmedAt: zod.string().nullish(),
+      createdAt: zod.string(),
+    }),
+  ),
+  total: zod.number(),
+  page: zod.number().optional(),
+  limit: zod.number().optional(),
+});
+
+/**
+ * @summary Confirm a PIX donation
+ */
+export const ConfirmPixDonationParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ConfirmPixDonationResponse = zod.object({
+  id: zod.string(),
+  amount: zod.number(),
+  donorName: zod.string().nullish(),
+  donorEmail: zod.string().nullish(),
+  txId: zod.string(),
+  status: zod.enum(["pendente", "confirmado", "expirado", "cancelado"]),
+  confirmedAt: zod.string().nullish(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Cancel a PIX donation
+ */
+export const CancelPixDonationParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const CancelPixDonationResponse = zod.object({
+  id: zod.string(),
+  amount: zod.number(),
+  donorName: zod.string().nullish(),
+  donorEmail: zod.string().nullish(),
+  txId: zod.string(),
+  status: zod.enum(["pendente", "confirmado", "expirado", "cancelado"]),
+  confirmedAt: zod.string().nullish(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary List own notifications (unread first)
+ */
+export const ListNotificationsQueryParams = zod.object({
+  limit: zod.coerce.number().optional(),
+});
+
+export const ListNotificationsResponse = zod.object({
+  notifications: zod.array(
+    zod.object({
+      id: zod.string(),
+      type: zod.string(),
+      title: zod.string(),
+      message: zod.string(),
+      link: zod.string().nullish(),
+      entityType: zod.string().nullish(),
+      entityId: zod.string().nullish(),
+      readAt: zod.string().nullish(),
+      createdAt: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Count of unread notifications (for badge)
+ */
+export const GetUnreadNotificationsCountResponse = zod.object({
+  count: zod.number(),
+});
+
+/**
+ * @summary Mark all notifications as read
+ */
+export const MarkAllNotificationsReadResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Delete all read notifications
+ */
+export const ClearReadNotificationsResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Mark a single notification as read
+ */
+export const MarkNotificationReadParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const MarkNotificationReadResponse = zod.object({
+  id: zod.string(),
+  type: zod.string(),
+  title: zod.string(),
+  message: zod.string(),
+  link: zod.string().nullish(),
+  entityType: zod.string().nullish(),
+  entityId: zod.string().nullish(),
+  readAt: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+});
+
+/**
+ * @summary Delete a single notification
+ */
+export const DeleteNotificationParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteNotificationResponse = zod.object({
   message: zod.string(),
 });

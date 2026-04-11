@@ -7,6 +7,8 @@ servers:
   - url: /api
     description: Base API path
 tags:
+  - name: dashboard
+    description: Dashboard KPIs and statistics
   - name: health
     description: Health operations
   - name: auth
@@ -19,6 +21,42 @@ tags:
     description: File storage operations
   - name: finance
     description: Financial management operations
+  - name: teaching
+    description: Teaching module (courses, lessons, attendance)
+  - name: events
+    description: Events and calendar management
+  - name: lgpd
+    description: LGPD data subject rights portal
+  - name: media
+    description: Media links (videos, external resources)
+  - name: ministries
+    description: Ministry and department management
+  - name: assets
+    description: Asset and property management
+  - name: schedules
+    description: Service roles and volunteer scheduling
+  - name: contents
+    description: Teaching contents (devotionals, studies, sermon outlines)
+  - name: planning
+    description: Strategic planning (directives, objectives, initiatives)
+  - name: pastoral
+    description: Pastoral care and follow-up visits
+  - name: counseling
+    description: Confidential pastoral counseling cases and sessions
+  - name: songs
+    description: Song library and suggestions
+  - name: liturgy
+    description: Worship service planning
+  - name: articles
+    description: Articles with approval workflow
+  - name: forum
+    description: Community forum
+  - name: institutional
+    description: Institutional pages (CMS)
+  - name: pix
+    description: PIX donations
+  - name: notifications
+    description: In-app notifications
   - name: utils
     description: Utility endpoints
 paths:
@@ -34,6 +72,51 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [dashboard]
+      summary: Dashboard KPIs and statistics (admin, leader)
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /dashboard/leader-widgets:
+    get:
+      operationId: getLeaderWidgets
+      tags: [dashboard]
+      summary: Personal leader widgets (pastoral, counseling, articles)
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaderWidgets"
+
+  /dashboard/member-stats:
+    get:
+      operationId: getMemberStats
+      tags: [dashboard]
+      summary: Personal dashboard data for members
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberStats"
 
   /auth/register:
     post:
@@ -334,7 +417,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [ativo, inativo, transferido, falecido]
+            enum: [visitante, ativo, inativo, falecido]
         - name: familyId
           in: query
           schema:
@@ -389,6 +472,104 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+
+  /members/pipeline/summary:
+    get:
+      operationId: getPipelineSummary
+      tags: [members]
+      summary: Pipeline funnel summary
+      security: [{ cookieAuth: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PipelineSummary"
+
+  /members/pipeline/stagnant:
+    get:
+      operationId: getStagnantMembers
+      tags: [members]
+      summary: Members stagnant in pipeline
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: query, name: days, schema: { type: integer, default: 90 } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StagnantMembersResponse"
+
+  /members/{id}/pipeline:
+    get:
+      operationId: getMemberPipelineHistory
+      tags: [members]
+      summary: Member pipeline history
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberPipelineResponse"
+    put:
+      operationId: moveMemberPipeline
+      tags: [members]
+      summary: Move member to new pipeline stage
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MovePipelineRequest"
+      responses:
+        "200":
+          description: Moved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MovePipelineResponse"
+
+  /members/me:
+    get:
+      operationId: getOwnProfile
+      tags: [members]
+      summary: Get own member profile
+      security: [{ cookieAuth: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberDetail"
+    put:
+      operationId: updateOwnProfile
+      tags: [members]
+      summary: Update own profile (email cannot change)
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOwnProfileRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberDetail"
 
   /members/{id}:
     get:
@@ -1076,6 +1257,3630 @@ paths:
               schema:
                 $ref: "#/components/schemas/MessageResponse"
 
+  # ─── BUDGETS ────────────────────────────────────────────────────────────────
+
+  /finance/budgets:
+    get:
+      operationId: listBudgets
+      tags: [finance]
+      summary: List budgets
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: year
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BudgetsListResponse"
+    post:
+      operationId: createBudget
+      tags: [finance]
+      summary: Create a budget
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBudgetRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Budget"
+        "409":
+          description: Duplicate year
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /finance/budgets/{id}:
+    get:
+      operationId: getBudgetDetail
+      tags: [finance]
+      summary: Get budget with items
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BudgetDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateBudget
+      tags: [finance]
+      summary: Update budget status/notes
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBudgetRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Budget"
+    delete:
+      operationId: deleteBudget
+      tags: [finance]
+      summary: Delete a draft budget
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "409":
+          description: Not a draft
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /finance/budgets/{id}/items:
+    post:
+      operationId: addBudgetItems
+      tags: [finance]
+      summary: Add items to budget (batch)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchBudgetItemsRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BudgetItem"
+        "409":
+          description: Duplicate item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /finance/budgets/{budgetId}/items/{itemId}:
+    put:
+      operationId: updateBudgetItem
+      tags: [finance]
+      summary: Update a budget item
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: budgetId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: itemId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                plannedAmount:
+                  type: string
+                notes:
+                  type: string
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BudgetItem"
+    delete:
+      operationId: deleteBudgetItem
+      tags: [finance]
+      summary: Delete a budget item
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: budgetId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: itemId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /finance/budgets/{id}/comparison:
+    get:
+      operationId: getBudgetComparison
+      tags: [finance]
+      summary: Budget vs actual comparison
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BudgetComparison"
+
+  # ─── LGPD ───────────────────────────────────────────────────────────────────
+
+  /lgpd/my-data:
+    get:
+      operationId: getMyData
+      tags: [lgpd]
+      summary: Get own personal data
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyDataResponse"
+
+  /lgpd/my-data/export:
+    get:
+      operationId: exportMyData
+      tags: [lgpd]
+      summary: Export personal data as JSON (portability)
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: JSON export file
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /lgpd/my-consents:
+    get:
+      operationId: getMyConsents
+      tags: [lgpd]
+      summary: List my consent records
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsentsListResponse"
+
+  /lgpd/requests:
+    get:
+      operationId: listLgpdRequests
+      tags: [lgpd]
+      summary: List all LGPD requests (Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: status
+          schema:
+            type: string
+        - in: query
+          name: type
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LgpdRequestsListResponse"
+    post:
+      operationId: createLgpdRequest
+      tags: [lgpd]
+      summary: Create LGPD request (any member)
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLgpdRequestBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LgpdRequest"
+
+  /lgpd/requests/mine:
+    get:
+      operationId: getMyLgpdRequests
+      tags: [lgpd]
+      summary: List my own LGPD requests
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LgpdRequestsListResponse"
+
+  /lgpd/requests/{id}:
+    put:
+      operationId: processLgpdRequest
+      tags: [lgpd]
+      summary: Process LGPD request (Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProcessLgpdRequestBody"
+      responses:
+        "200":
+          description: Processed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LgpdRequest"
+
+  # ─── EVENTS ─────────────────────────────────────────────────────────────────
+
+  /events:
+    get:
+      operationId: listEvents
+      tags: [events]
+      summary: List events
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: type
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+        - in: query
+          name: dateFrom
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: dateTo
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventsListResponse"
+    post:
+      operationId: createEvent
+      tags: [events]
+      summary: Create event (Admin/Leader)
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEventRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+
+  /events/upcoming:
+    get:
+      operationId: getUpcomingEvents
+      tags: [events]
+      summary: Get upcoming events (next 7 days)
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpcomingEventsResponse"
+
+  /events/calendar:
+    get:
+      operationId: getEventsCalendar
+      tags: [events]
+      summary: Events grouped by month for a year
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: query, name: year, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalendarYearResponse"
+
+  /events/{id}:
+    get:
+      operationId: getEventDetail
+      tags: [events]
+      summary: Get event detail with registrations
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventDetail"
+    put:
+      operationId: updateEvent
+      tags: [events]
+      summary: Update event
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEventRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+    delete:
+      operationId: deleteEvent
+      tags: [events]
+      summary: Delete event (soft delete, Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /events/{id}/register:
+    post:
+      operationId: registerForEvent
+      tags: [events]
+      summary: Register for event
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                memberId:
+                  type: string
+      responses:
+        "201":
+          description: Registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventRegistration"
+
+  /events/{id}/register/{memberId}:
+    delete:
+      operationId: unregisterFromEvent
+      tags: [events]
+      summary: Cancel event registration
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: memberId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Unregistered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /events/{id}/registrations:
+    get:
+      operationId: listEventRegistrations
+      tags: [events]
+      summary: List event registrations
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventRegistrationsListResponse"
+
+  /events/{id}/attendance:
+    get:
+      operationId: getEventAttendance
+      tags: [events]
+      summary: Get event attendance
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventAttendanceListResponse"
+    post:
+      operationId: recordEventAttendance
+      tags: [events]
+      summary: Record event attendance (batch)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordEventAttendanceRequest"
+      responses:
+        "200":
+          description: Recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # ─── TEACHING ───────────────────────────────────────────────────────────────
+
+  /teaching/courses:
+    get:
+      operationId: listTeachingCourses
+      tags: [teaching]
+      summary: List courses
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: status
+          schema:
+            type: string
+        - in: query
+          name: category
+          schema:
+            type: string
+        - in: query
+          name: mine
+          description: If true, returns only courses the current user is enrolled in
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoursesListResponse"
+    post:
+      operationId: createCourse
+      tags: [teaching]
+      summary: Create course (Admin only)
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCourseRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Course"
+
+  /teaching/courses/{id}:
+    get:
+      operationId: getCourseDetail
+      tags: [teaching]
+      summary: Get course with lessons and enrollments
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourseDetail"
+    put:
+      operationId: updateCourse
+      tags: [teaching]
+      summary: Update course
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCourseRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Course"
+    delete:
+      operationId: deleteCourse
+      tags: [teaching]
+      summary: Delete course (soft delete, Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /teaching/courses/{courseId}/lessons:
+    get:
+      operationId: listCourseLessons
+      tags: [teaching]
+      summary: List lessons for a course
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: courseId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LessonsListResponse"
+    post:
+      operationId: createLesson
+      tags: [teaching]
+      summary: Create lesson
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: courseId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLessonRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourseLesson"
+
+  /teaching/lessons/{id}:
+    put:
+      operationId: updateLesson
+      tags: [teaching]
+      summary: Update lesson
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLessonRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourseLesson"
+    delete:
+      operationId: deleteLesson
+      tags: [teaching]
+      summary: Delete lesson
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /teaching/courses/{courseId}/enrollments:
+    get:
+      operationId: listCourseEnrollments
+      tags: [teaching]
+      summary: List enrollments for a course
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: courseId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnrollmentsListResponse"
+
+  /teaching/courses/{courseId}/enroll:
+    post:
+      operationId: enrollInCourse
+      tags: [teaching]
+      summary: Enroll member in course
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: courseId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                memberId:
+                  type: string
+      responses:
+        "201":
+          description: Enrolled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourseEnrollment"
+
+  /teaching/courses/{courseId}/enroll/{memberId}:
+    delete:
+      operationId: unenrollFromCourse
+      tags: [teaching]
+      summary: Cancel enrollment (Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: courseId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: memberId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Unenrolled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /teaching/lessons/{lessonId}/attendance:
+    get:
+      operationId: getLessonAttendance
+      tags: [teaching]
+      summary: Get attendance for a lesson
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: lessonId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceListResponse"
+    post:
+      operationId: recordLessonAttendance
+      tags: [teaching]
+      summary: Record attendance (batch)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: lessonId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordAttendanceRequest"
+      responses:
+        "200":
+          description: Recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /teaching/courses/{courseId}/progress/{memberId}:
+    get:
+      operationId: getStudentProgress
+      tags: [teaching]
+      summary: Get student progress in a course
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: courseId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: memberId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudentProgress"
+
+  /teaching/courses/{courseId}/certificate/{memberId}:
+    get:
+      operationId: getCertificateData
+      tags: [teaching]
+      summary: Get certificate data for PDF generation
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: courseId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: memberId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Certificate data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CertificateData"
+        "400":
+          description: Insufficient attendance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /teaching/lessons/{lessonId}/discussions:
+    get:
+      operationId: listLessonDiscussions
+      tags: [teaching]
+      summary: List discussions/questions for a lesson
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: lessonId, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LessonDiscussionsListResponse"
+    post:
+      operationId: createLessonDiscussion
+      tags: [teaching]
+      summary: Post a question/comment or reply
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: lessonId, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLessonDiscussionRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LessonDiscussion"
+
+  /teaching/discussions/{id}:
+    put:
+      operationId: updateLessonDiscussion
+      tags: [teaching]
+      summary: Edit own discussion
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLessonDiscussionRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LessonDiscussion"
+    delete:
+      operationId: deleteLessonDiscussion
+      tags: [teaching]
+      summary: Delete own discussion (soft)
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /teaching/dashboard:
+    get:
+      operationId: getTeachingDashboard
+      tags: [teaching]
+      summary: Teaching dashboard data
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeachingDashboard"
+
+  # ─── MEDIA ──────────────────────────────────────────────────────────────────
+
+  /media:
+    get:
+      operationId: listMedia
+      tags: [media]
+      summary: List media links (filtered by entity)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: entityType
+          schema:
+            type: string
+            enum: [course_lesson, course, ministry, event, asset, content]
+        - in: query
+          name: entityId
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaListResponse"
+    post:
+      operationId: createMedia
+      tags: [media]
+      summary: Create a media link
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMediaRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaLink"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /media/{id}:
+    put:
+      operationId: updateMedia
+      tags: [media]
+      summary: Update a media link
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMediaRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaLink"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteMedia
+      tags: [media]
+      summary: Delete a media link (soft delete)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── MINISTRIES ─────────────────────────────────────────────────────────────
+
+  /ministries:
+    get:
+      operationId: listMinistries
+      tags: [ministries]
+      summary: List ministries
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [ativo, inativo]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MinistriesListResponse"
+    post:
+      operationId: createMinistry
+      tags: [ministries]
+      summary: Create a ministry
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMinistryRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ministry"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /ministries/{id}:
+    get:
+      operationId: getMinistryDetail
+      tags: [ministries]
+      summary: Get ministry detail with active members
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MinistryDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateMinistry
+      tags: [ministries]
+      summary: Update a ministry
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMinistryRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ministry"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteMinistry
+      tags: [ministries]
+      summary: Delete a ministry (soft delete)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /ministries/{id}/members:
+    post:
+      operationId: addMinistryMember
+      tags: [ministries]
+      summary: Add a member to a ministry
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddMinistryMemberRequest"
+      responses:
+        "201":
+          description: Added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MinistryMember"
+        "409":
+          description: Already a member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /ministries/{id}/members/{memberId}:
+    put:
+      operationId: updateMinistryMemberRole
+      tags: [ministries]
+      summary: Change a member's role in a ministry
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: memberId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  type: string
+                  enum: [lider, vice_lider, membro, voluntario]
+              required:
+                - role
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MinistryMember"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: removeMinistryMember
+      tags: [ministries]
+      summary: Remove a member from a ministry (soft delete)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: memberId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /members/{id}/ministries:
+    get:
+      operationId: getMemberMinistries
+      tags: [ministries]
+      summary: List ministries for a member
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberMinistriesResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── MINISTRY GOALS ─────────────────────────────────────────────────────────
+
+  /ministries/{id}/goals:
+    get:
+      operationId: listMinistryGoals
+      tags: [ministries]
+      summary: List goals for a ministry
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MinistryGoalsListResponse"
+    post:
+      operationId: createMinistryGoal
+      tags: [ministries]
+      summary: Create a goal for a ministry
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMinistryGoalRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MinistryGoal"
+
+  /ministries/{id}/goals/{goalId}:
+    put:
+      operationId: updateMinistryGoal
+      tags: [ministries]
+      summary: Update a ministry goal
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+        - { in: path, name: goalId, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMinistryGoalRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MinistryGoal"
+    delete:
+      operationId: deleteMinistryGoal
+      tags: [ministries]
+      summary: Soft delete a ministry goal
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+        - { in: path, name: goalId, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # ─── ASSETS ─────────────────────────────────────────────────────────────────
+
+  /assets:
+    get:
+      operationId: listAssets
+      tags: [assets]
+      summary: List assets
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: category
+          schema:
+            type: string
+            enum: [instrumento, som_iluminacao, mobiliario, informatica, veiculo, imovel, outro]
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [ativo, manutencao, baixa, emprestado]
+        - in: query
+          name: location
+          schema:
+            type: string
+        - in: query
+          name: search
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssetsListResponse"
+    post:
+      operationId: createAsset
+      tags: [assets]
+      summary: Create an asset
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAssetRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /assets/summary:
+    get:
+      operationId: getAssetsSummary
+      tags: [assets]
+      summary: Assets summary (total, value, by category)
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssetsSummary"
+
+  /assets/{id}:
+    get:
+      operationId: getAssetDetail
+      tags: [assets]
+      summary: Get asset detail
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateAsset
+      tags: [assets]
+      summary: Update an asset
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAssetRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAsset
+      tags: [assets]
+      summary: Delete an asset (soft delete)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── SCHEDULES (SERVICE ROLES) ──────────────────────────────────────────────
+
+  /schedules/roles:
+    get:
+      operationId: listServiceRoles
+      tags: [schedules]
+      summary: List service roles
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServiceRolesListResponse"
+    post:
+      operationId: createServiceRole
+      tags: [schedules]
+      summary: Create a service role
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateServiceRoleRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServiceRole"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /schedules/roles/{id}:
+    put:
+      operationId: updateServiceRole
+      tags: [schedules]
+      summary: Update a service role
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateServiceRoleRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServiceRole"
+    delete:
+      operationId: deleteServiceRole
+      tags: [schedules]
+      summary: Delete a service role (soft delete)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # ─── EVENT SCHEDULES ────────────────────────────────────────────────────────
+
+  /events/{eventId}/schedule:
+    get:
+      operationId: getEventSchedule
+      tags: [schedules]
+      summary: Get volunteer schedule for an event
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: eventId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventScheduleListResponse"
+    post:
+      operationId: addToEventSchedule
+      tags: [schedules]
+      summary: Add volunteer to event schedule
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: eventId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddToScheduleRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventScheduleEntry"
+        "409":
+          description: Already scheduled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /events/{eventId}/schedule/{id}:
+    put:
+      operationId: updateScheduleStatus
+      tags: [schedules]
+      summary: Update schedule status
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: eventId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [escalado, confirmado, ausente, substituido]
+                notes:
+                  type: string
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventScheduleEntry"
+    delete:
+      operationId: removeFromEventSchedule
+      tags: [schedules]
+      summary: Remove volunteer from event schedule
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: eventId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # ─── PLANNING ───────────────────────────────────────────────────────────────
+
+  /planning/summary:
+    get:
+      operationId: getPlanningSummary
+      tags: [planning]
+      summary: Planning dashboard summary
+      security: [{ cookieAuth: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanningSummary"
+
+  /planning/directives:
+    get:
+      operationId: listDirectives
+      tags: [planning]
+      summary: List strategic directives
+      security: [{ cookieAuth: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DirectivesListResponse"
+    post:
+      operationId: createDirective
+      tags: [planning]
+      summary: Create a directive
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDirectiveRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Directive"
+
+  /planning/directives/{id}:
+    get:
+      operationId: getDirectiveDetail
+      tags: [planning]
+      summary: Directive detail with objectives and initiatives
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DirectiveDetail"
+    put:
+      operationId: updateDirective
+      tags: [planning]
+      summary: Update a directive
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDirectiveRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Directive"
+    delete:
+      operationId: deleteDirective
+      tags: [planning]
+      summary: Soft delete a directive
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /planning/directives/{id}/objectives:
+    post:
+      operationId: createObjective
+      tags: [planning]
+      summary: Create an objective for a directive
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateObjectiveRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Objective"
+
+  /planning/objectives/{id}:
+    put:
+      operationId: updateObjective
+      tags: [planning]
+      summary: Update an objective
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateObjectiveRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Objective"
+    delete:
+      operationId: deleteObjective
+      tags: [planning]
+      summary: Soft delete an objective
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /planning/initiatives:
+    get:
+      operationId: listInitiatives
+      tags: [planning]
+      summary: List all initiatives
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: query, name: status, schema: { type: string } }
+        - { in: query, name: type, schema: { type: string } }
+        - { in: query, name: ministryId, schema: { type: string } }
+        - { in: query, name: priority, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InitiativesListResponse"
+    post:
+      operationId: createInitiative
+      tags: [planning]
+      summary: Create an initiative
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInitiativeRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Initiative"
+
+  /planning/initiatives/{id}:
+    get:
+      operationId: getInitiativeDetail
+      tags: [planning]
+      summary: Initiative detail with steps and realized cost
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InitiativeDetail"
+    put:
+      operationId: updateInitiative
+      tags: [planning]
+      summary: Update an initiative
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateInitiativeRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Initiative"
+    delete:
+      operationId: deleteInitiative
+      tags: [planning]
+      summary: Soft delete an initiative
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /planning/initiatives/{id}/steps:
+    post:
+      operationId: addInitiativeStep
+      tags: [planning]
+      summary: Add a step to an initiative
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                sortOrder: { type: integer }
+              required: [title]
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InitiativeStep"
+
+  /planning/initiatives/{initiativeId}/steps/{stepId}:
+    put:
+      operationId: updateInitiativeStep
+      tags: [planning]
+      summary: Update a step
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: initiativeId, required: true, schema: { type: string } }
+        - { in: path, name: stepId, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                completed: { type: boolean }
+                sortOrder: { type: integer }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InitiativeStep"
+    delete:
+      operationId: deleteInitiativeStep
+      tags: [planning]
+      summary: Soft delete a step
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: initiativeId, required: true, schema: { type: string } }
+        - { in: path, name: stepId, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # ─── CONTENTS ───────────────────────────────────────────────────────────────
+
+  /contents:
+    get:
+      operationId: listContents
+      tags: [contents]
+      summary: List teaching contents
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: limit, schema: { type: integer, default: 20 } }
+        - in: query
+          name: category
+          schema:
+            type: string
+            enum: [pequenos_grupos, devocionais, escola_biblica, esboco_sermao, estudo_biblico]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentsListResponse"
+    post:
+      operationId: createContent
+      tags: [contents]
+      summary: Create a content
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateContentRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentItem"
+
+  /contents/{id}:
+    get:
+      operationId: getContentDetail
+      tags: [contents]
+      summary: Get content detail
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentItem"
+    put:
+      operationId: updateContent
+      tags: [contents]
+      summary: Update a content
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateContentRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentItem"
+    delete:
+      operationId: deleteContent
+      tags: [contents]
+      summary: Delete a content (soft delete)
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # ─── COUNSELING ────────────────────────────────────────────────────────────
+  /counseling/summary:
+    get:
+      operationId: getCounselingSummary
+      tags: [counseling]
+      summary: Counseling KPIs
+      security: [{ cookieAuth: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CounselingSummary"
+
+  /counseling/cases:
+    get:
+      operationId: listCounselingCases
+      tags: [counseling]
+      summary: List counseling cases
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: query, name: status, schema: { type: string } }
+        - { in: query, name: page, schema: { type: integer } }
+        - { in: query, name: limit, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CounselingCasesListResponse"
+    post:
+      operationId: createCounselingCase
+      tags: [counseling]
+      summary: Create a counseling case (admin only)
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCounselingCaseRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CounselingCase"
+
+  /counseling/cases/{id}:
+    get:
+      operationId: getCounselingCaseDetail
+      tags: [counseling]
+      summary: Case detail with sessions
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CounselingCaseDetail"
+    put:
+      operationId: updateCounselingCase
+      tags: [counseling]
+      summary: Update a counseling case
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCounselingCaseRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CounselingCase"
+    delete:
+      operationId: deleteCounselingCase
+      tags: [counseling]
+      summary: Soft delete a counseling case
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /counseling/cases/{id}/sessions:
+    get:
+      operationId: listCounselingSessions
+      tags: [counseling]
+      summary: List sessions for a case
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CounselingSessionsListResponse"
+    post:
+      operationId: createCounselingSession
+      tags: [counseling]
+      summary: Add a session to a case
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCounselingSessionRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CounselingSession"
+
+  # ─── PASTORAL ──────────────────────────────────────────────────────────────
+  /pastoral/summary:
+    get:
+      operationId: getPastoralSummary
+      tags: [pastoral]
+      summary: Pastoral care KPIs
+      security: [{ cookieAuth: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PastoralSummary"
+
+  /pastoral:
+    get:
+      operationId: listPastoralVisits
+      tags: [pastoral]
+      summary: List pastoral visits
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: query, name: memberId, schema: { type: string } }
+        - { in: query, name: pastorId, schema: { type: string } }
+        - { in: query, name: status, schema: { type: string } }
+        - { in: query, name: dateFrom, schema: { type: string } }
+        - { in: query, name: dateTo, schema: { type: string } }
+        - { in: query, name: page, schema: { type: integer } }
+        - { in: query, name: limit, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PastoralVisitsListResponse"
+    post:
+      operationId: createPastoralVisit
+      tags: [pastoral]
+      summary: Create a pastoral visit
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePastoralVisitRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PastoralVisit"
+
+  /pastoral/member/{memberId}:
+    get:
+      operationId: getPastoralMemberHistory
+      tags: [pastoral]
+      summary: Pastoral history for a member
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: memberId, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PastoralVisitsHistoryResponse"
+
+  /pastoral/{id}:
+    put:
+      operationId: updatePastoralVisit
+      tags: [pastoral]
+      summary: Update a pastoral visit
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePastoralVisitRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PastoralVisit"
+    delete:
+      operationId: deletePastoralVisit
+      tags: [pastoral]
+      summary: Soft delete a pastoral visit
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # ─── SONGS ──────────────────────────────────────────────────────────────
+
+  /songs:
+    get:
+      operationId: listSongs
+      tags: [songs]
+      summary: List songs
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: query, name: search, schema: { type: string } }
+        - { in: query, name: category, schema: { type: string } }
+        - { in: query, name: page, schema: { type: integer } }
+        - { in: query, name: limit, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SongsListResponse"
+    post:
+      operationId: createSong
+      tags: [songs]
+      summary: Create a song
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSongRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Song"
+
+  /songs/suggestions:
+    get:
+      operationId: listSongSuggestions
+      tags: [songs]
+      summary: List song suggestions
+      security: [{ cookieAuth: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SongSuggestionsListResponse"
+    post:
+      operationId: createSongSuggestion
+      tags: [songs]
+      summary: Create a song suggestion
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSongSuggestionRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SongSuggestion"
+
+  /songs/{id}:
+    get:
+      operationId: getSongDetail
+      tags: [songs]
+      summary: Get song detail
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Song"
+    put:
+      operationId: updateSong
+      tags: [songs]
+      summary: Update a song
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSongRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Song"
+    delete:
+      operationId: deleteSong
+      tags: [songs]
+      summary: Delete a song
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /songs/suggestions/{id}:
+    put:
+      operationId: reviewSongSuggestion
+      tags: [songs]
+      summary: Review a song suggestion
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewSongSuggestionRequest"
+      responses:
+        "200":
+          description: Reviewed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SongSuggestion"
+
+  # ─── LITURGY ────────────────────────────────────────────────────────────
+
+  /liturgy:
+    get:
+      operationId: listLiturgies
+      tags: [liturgy]
+      summary: List liturgies
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: query, name: type, schema: { type: string } }
+        - { in: query, name: status, schema: { type: string } }
+        - { in: query, name: date, schema: { type: string } }
+        - { in: query, name: page, schema: { type: integer } }
+        - { in: query, name: limit, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiturgiesListResponse"
+    post:
+      operationId: createLiturgy
+      tags: [liturgy]
+      summary: Create a liturgy
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLiturgyRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Liturgy"
+
+  /liturgy/{id}:
+    get:
+      operationId: getLiturgyDetail
+      tags: [liturgy]
+      summary: Get liturgy detail with items
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiturgyDetail"
+    put:
+      operationId: updateLiturgy
+      tags: [liturgy]
+      summary: Update a liturgy
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLiturgyRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Liturgy"
+    delete:
+      operationId: deleteLiturgy
+      tags: [liturgy]
+      summary: Delete a liturgy
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /liturgy/{id}/items:
+    post:
+      operationId: addLiturgyItem
+      tags: [liturgy]
+      summary: Add item to liturgy
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddLiturgyItemRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiturgyItem"
+
+  /liturgy/{id}/items/{itemId}:
+    put:
+      operationId: updateLiturgyItem
+      tags: [liturgy]
+      summary: Update a liturgy item
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+        - { in: path, name: itemId, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLiturgyItemRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiturgyItem"
+    delete:
+      operationId: deleteLiturgyItem
+      tags: [liturgy]
+      summary: Delete a liturgy item
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+        - { in: path, name: itemId, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /liturgy/{id}/items/reorder:
+    put:
+      operationId: reorderLiturgyItems
+      tags: [liturgy]
+      summary: Reorder liturgy items
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReorderLiturgyItemsRequest"
+      responses:
+        "200":
+          description: Reordered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # ─── ARTICLES ───────────────────────────────────────────────────────────
+
+  /articles:
+    get:
+      operationId: listArticles
+      tags: [articles]
+      summary: List articles
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: query, name: status, schema: { type: string } }
+        - { in: query, name: category, schema: { type: string } }
+        - { in: query, name: page, schema: { type: integer } }
+        - { in: query, name: limit, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArticlesListResponse"
+    post:
+      operationId: createArticle
+      tags: [articles]
+      summary: Create an article
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateArticleRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Article"
+
+  /articles/{id}:
+    get:
+      operationId: getArticleDetail
+      tags: [articles]
+      summary: Get article detail
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Article"
+    put:
+      operationId: updateArticle
+      tags: [articles]
+      summary: Update an article
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateArticleRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Article"
+    delete:
+      operationId: deleteArticle
+      tags: [articles]
+      summary: Delete an article
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /articles/submit/{id}:
+    put:
+      operationId: submitArticle
+      tags: [articles]
+      summary: Submit article for review
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Article"
+
+  /articles/review/{id}:
+    put:
+      operationId: reviewArticle
+      tags: [articles]
+      summary: Review an article
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewArticleRequest"
+      responses:
+        "200":
+          description: Reviewed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Article"
+
+  /articles/publish/{id}:
+    put:
+      operationId: publishArticle
+      tags: [articles]
+      summary: Publish an article
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Published
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Article"
+
+  # ─── FORUM ─────────────────────────────────────────────────────────────
+
+  /forum/topics:
+    get:
+      operationId: listForumTopics
+      tags: [forum]
+      summary: List forum topics
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: query, name: category, schema: { type: string } }
+        - { in: query, name: search, schema: { type: string } }
+        - { in: query, name: page, schema: { type: integer } }
+        - { in: query, name: limit, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForumTopicsListResponse"
+    post:
+      operationId: createForumTopic
+      tags: [forum]
+      summary: Create a forum topic
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateForumTopicRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForumTopic"
+
+  /forum/summary:
+    get:
+      operationId: getForumSummary
+      tags: [forum]
+      summary: Get forum summary
+      security: [{ cookieAuth: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForumSummary"
+
+  /forum/topics/{id}:
+    get:
+      operationId: getForumTopicDetail
+      tags: [forum]
+      summary: Get forum topic detail with replies
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForumTopicDetail"
+    put:
+      operationId: updateForumTopic
+      tags: [forum]
+      summary: Update a forum topic
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateForumTopicRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForumTopic"
+    delete:
+      operationId: deleteForumTopic
+      tags: [forum]
+      summary: Delete a forum topic
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /forum/topics/pin/{id}:
+    put:
+      operationId: toggleForumTopicPin
+      tags: [forum]
+      summary: Toggle pin on a forum topic
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Toggled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForumTopic"
+
+  /forum/topics/lock/{id}:
+    put:
+      operationId: toggleForumTopicLock
+      tags: [forum]
+      summary: Toggle lock on a forum topic
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Toggled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForumTopic"
+
+  /forum/topics/{id}/replies:
+    post:
+      operationId: createForumReply
+      tags: [forum]
+      summary: Create a reply to a forum topic
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateForumReplyRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForumReply"
+
+  /forum/topics/{id}/replies/{replyId}:
+    put:
+      operationId: updateForumReply
+      tags: [forum]
+      summary: Update a forum reply
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+        - { in: path, name: replyId, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateForumReplyRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForumReply"
+    delete:
+      operationId: deleteForumReply
+      tags: [forum]
+      summary: Delete a forum reply
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+        - { in: path, name: replyId, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # ─── INSTITUTIONAL ─────────────────────────────────────────────────────
+
+  /pages/public:
+    get:
+      operationId: listPublicPages
+      tags: [institutional]
+      summary: List published institutional pages
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicPagesListResponse"
+
+  /pages/public/{slug}:
+    get:
+      operationId: getPublicPage
+      tags: [institutional]
+      summary: Get a public page by slug
+      parameters:
+        - { in: path, name: slug, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstitutionalPage"
+
+  /pages:
+    get:
+      operationId: listPages
+      tags: [institutional]
+      summary: List all institutional pages
+      security: [{ cookieAuth: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagesListResponse"
+    post:
+      operationId: createPage
+      tags: [institutional]
+      summary: Create an institutional page
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePageRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstitutionalPage"
+
+  /pages/{id}:
+    put:
+      operationId: updatePage
+      tags: [institutional]
+      summary: Update an institutional page
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePageRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstitutionalPage"
+    delete:
+      operationId: deletePage
+      tags: [institutional]
+      summary: Delete an institutional page
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # ─── PIX ───────────────────────────────────────────────────────────────
+
+  /pix/config:
+    get:
+      operationId: getPixConfig
+      tags: [pix]
+      summary: Get PIX configuration
+      security: [{ cookieAuth: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PixConfig"
+    post:
+      operationId: createPixConfig
+      tags: [pix]
+      summary: Create PIX configuration
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePixConfigRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PixConfig"
+
+  /pix/config/{id}:
+    put:
+      operationId: updatePixConfig
+      tags: [pix]
+      summary: Update PIX configuration
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePixConfigRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PixConfig"
+
+  /pix/donate:
+    get:
+      operationId: getPixDonateInfo
+      tags: [pix]
+      summary: Get public PIX donation info
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PixDonateInfo"
+    post:
+      operationId: createPixDonation
+      tags: [pix]
+      summary: Create a PIX donation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePixDonationRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PixDonationResponse"
+
+  /pix/donations:
+    get:
+      operationId: listPixDonations
+      tags: [pix]
+      summary: List PIX donations
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: query, name: status, schema: { type: string } }
+        - { in: query, name: page, schema: { type: integer } }
+        - { in: query, name: limit, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PixDonationsListResponse"
+
+  /pix/donations/confirm/{id}:
+    put:
+      operationId: confirmPixDonation
+      tags: [pix]
+      summary: Confirm a PIX donation
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Confirmed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PixDonation"
+
+  /pix/donations/cancel/{id}:
+    put:
+      operationId: cancelPixDonation
+      tags: [pix]
+      summary: Cancel a PIX donation
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PixDonation"
+
+  # ─── NOTIFICATIONS ─────────────────────────────────────────────────────────
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags: [notifications]
+      summary: List own notifications (unread first)
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: query, name: limit, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationsListResponse"
+
+  /notifications/unread-count:
+    get:
+      operationId: getUnreadNotificationsCount
+      tags: [notifications]
+      summary: Count of unread notifications (for badge)
+      security: [{ cookieAuth: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnreadCountResponse"
+
+  /notifications/read-all:
+    put:
+      operationId: markAllNotificationsRead
+      tags: [notifications]
+      summary: Mark all notifications as read
+      security: [{ cookieAuth: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /notifications/clear-read:
+    delete:
+      operationId: clearReadNotifications
+      tags: [notifications]
+      summary: Delete all read notifications
+      security: [{ cookieAuth: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /notifications/{id}/read:
+    put:
+      operationId: markNotificationRead
+      tags: [notifications]
+      summary: Mark a single notification as read
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+
+  /notifications/{id}:
+    delete:
+      operationId: deleteNotification
+      tags: [notifications]
+      summary: Delete a single notification
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
 components:
   securitySchemes:
     cookieAuth:
@@ -1295,7 +5100,7 @@ components:
 
     MemberStatus:
       type: string
-      enum: [ativo, inativo, transferido, falecido]
+      enum: [visitante, ativo, inativo, falecido]
 
     MemberSummary:
       type: object
@@ -1310,6 +5115,9 @@ components:
           type: string
         status:
           $ref: "#/components/schemas/MemberStatus"
+        pipelineStage:
+          type: string
+          enum: [culto, pequeno_grupo, ministerio]
         photoPath:
           type: string
         familyId:
@@ -1362,8 +5170,15 @@ components:
           type: string
         baptismDate:
           type: string
+        enrollmentType:
+          type: string
+          nullable: true
+          enum: [batismo, profissao_de_fe, transferencia, jurisdicao, restauracao]
         status:
           $ref: "#/components/schemas/MemberStatus"
+        pipelineStage:
+          type: string
+          enum: [culto, pequeno_grupo, ministerio]
         photoPath:
           type: string
         familyId:
@@ -1494,6 +5309,25 @@ components:
           type: string
         familyName:
           type: string
+
+    UpdateOwnProfileRequest:
+      type: object
+      properties:
+        fullName: { type: string }
+        cpf: { type: string }
+        dateOfBirth: { type: string }
+        sex: { type: string, enum: [masculino, feminino] }
+        phone: { type: string }
+        addressZip: { type: string }
+        addressStreet: { type: string }
+        addressNumber: { type: string }
+        addressComplement: { type: string }
+        addressNeighborhood: { type: string }
+        addressCity: { type: string }
+        addressState: { type: string }
+        conversionDate: { type: string }
+        baptismDate: { type: string }
+        photoPath: { type: string }
 
     RevealCpfResponse:
       type: object
@@ -1794,6 +5628,9 @@ components:
         monthClosingId:
           type: string
           nullable: true
+        initiativeId:
+          type: string
+          nullable: true
         createdAt:
           type: string
           format: date-time
@@ -2072,3 +5909,2773 @@ components:
         - balance
         - entries
         - expenses
+
+    # ─── BUDGET SCHEMAS ──────────────────────────────────────────────────────
+
+    Budget:
+      type: object
+      properties:
+        id:
+          type: string
+        year:
+          type: string
+        status:
+          type: string
+          enum: [rascunho, aprovado, encerrado]
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - year
+        - status
+
+    BudgetItem:
+      type: object
+      properties:
+        id:
+          type: string
+        budgetId:
+          type: string
+        type:
+          type: string
+          enum: [receita, despesa]
+        category:
+          type: string
+        month:
+          type: string
+        plannedAmount:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - budgetId
+        - type
+        - category
+        - month
+        - plannedAmount
+
+    BudgetsListResponse:
+      type: object
+      properties:
+        budgets:
+          type: array
+          items:
+            $ref: "#/components/schemas/Budget"
+      required:
+        - budgets
+
+    BudgetDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        year:
+          type: string
+        status:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/BudgetItem"
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - year
+        - status
+        - items
+
+    CreateBudgetRequest:
+      type: object
+      properties:
+        year:
+          type: string
+        notes:
+          type: string
+      required:
+        - year
+
+    UpdateBudgetRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [rascunho, aprovado, encerrado]
+        notes:
+          type: string
+
+    BatchBudgetItemsRequest:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum: [receita, despesa]
+              category:
+                type: string
+              month:
+                type: string
+              plannedAmount:
+                type: string
+              notes:
+                type: string
+            required:
+              - type
+              - category
+              - month
+              - plannedAmount
+      required:
+        - items
+
+    BudgetComparisonItem:
+      type: object
+      properties:
+        type:
+          type: string
+        category:
+          type: string
+        month:
+          type: string
+        planned:
+          type: string
+        actual:
+          type: string
+        variance:
+          type: string
+        variancePercent:
+          type: number
+
+    BudgetComparison:
+      type: object
+      properties:
+        budgetId:
+          type: string
+        year:
+          type: string
+        status:
+          type: string
+        comparison:
+          type: array
+          items:
+            $ref: "#/components/schemas/BudgetComparisonItem"
+      required:
+        - budgetId
+        - year
+        - comparison
+
+    # ─── TEACHING SCHEMAS ─────────────────────────────────────────────────────
+
+    Course:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        syllabus:
+          type: string
+          nullable: true
+        introVideoUrl:
+          type: string
+          nullable: true
+        teacherId:
+          type: string
+        teacherName:
+          type: string
+          nullable: true
+        category:
+          type: string
+          enum: [ebd, discipulado, seminario, curso_livre, escola_de_lideres]
+        status:
+          type: string
+          enum: [aberto, em_andamento, encerrado]
+        startDate:
+          type: string
+          nullable: true
+        endDate:
+          type: string
+          nullable: true
+        dayOfWeek:
+          type: string
+          nullable: true
+        timeSlot:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        lessonDurationMinutes:
+          type: integer
+          nullable: true
+        totalWeeks:
+          type: integer
+          nullable: true
+        maxSlots:
+          type: integer
+          nullable: true
+        enrolledCount:
+          type: integer
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - title
+        - teacherId
+        - category
+        - status
+
+    CreateCourseRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        syllabus:
+          type: string
+        introVideoUrl:
+          type: string
+        teacherId:
+          type: string
+        category:
+          type: string
+          enum: [ebd, discipulado, seminario, curso_livre, escola_de_lideres]
+        status:
+          type: string
+          enum: [aberto, em_andamento, encerrado]
+        startDate:
+          type: string
+        endDate:
+          type: string
+        dayOfWeek:
+          type: string
+        timeSlot:
+          type: string
+        location:
+          type: string
+        lessonDurationMinutes:
+          type: integer
+        totalWeeks:
+          type: integer
+        maxSlots:
+          type: integer
+      required:
+        - title
+        - teacherId
+        - category
+
+    CoursesListResponse:
+      type: object
+      properties:
+        courses:
+          type: array
+          items:
+            $ref: "#/components/schemas/Course"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - courses
+        - total
+        - page
+        - limit
+
+    CourseLesson:
+      type: object
+      properties:
+        id:
+          type: string
+        courseId:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        content:
+          type: string
+          nullable: true
+        videoUrl:
+          type: string
+          nullable: true
+        lessonDate:
+          type: string
+          nullable: true
+        lessonOrder:
+          type: integer
+        materialPath:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required:
+        - id
+        - courseId
+        - title
+        - lessonOrder
+
+    CreateLessonRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        content:
+          type: string
+        videoUrl:
+          type: string
+        lessonDate:
+          type: string
+        lessonOrder:
+          type: integer
+        materialPath:
+          type: string
+      required:
+        - title
+        - lessonOrder
+
+    LessonsListResponse:
+      type: object
+      properties:
+        lessons:
+          type: array
+          items:
+            $ref: "#/components/schemas/CourseLesson"
+      required:
+        - lessons
+
+    CourseEnrollment:
+      type: object
+      properties:
+        id:
+          type: string
+        courseId:
+          type: string
+        memberId:
+          type: string
+        memberName:
+          type: string
+          nullable: true
+        enrolledAt:
+          type: string
+        completedAt:
+          type: string
+          nullable: true
+        certificatePath:
+          type: string
+          nullable: true
+      required:
+        - id
+        - courseId
+        - memberId
+
+    EnrollmentsListResponse:
+      type: object
+      properties:
+        enrollments:
+          type: array
+          items:
+            $ref: "#/components/schemas/CourseEnrollment"
+      required:
+        - enrollments
+
+    LessonDiscussion:
+      type: object
+      properties:
+        id: { type: string }
+        lessonId: { type: string }
+        authorId: { type: string }
+        authorName: { type: string }
+        body: { type: string }
+        parentId: { type: string, nullable: true }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+      required: [id, lessonId, authorId, authorName, body]
+
+    LessonDiscussionsListResponse:
+      type: object
+      properties:
+        discussions:
+          type: array
+          items:
+            $ref: "#/components/schemas/LessonDiscussion"
+      required: [discussions]
+
+    CreateLessonDiscussionRequest:
+      type: object
+      properties:
+        body: { type: string }
+        parentId: { type: string }
+      required: [body]
+
+    UpdateLessonDiscussionRequest:
+      type: object
+      properties:
+        body: { type: string }
+      required: [body]
+
+    CourseDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        syllabus:
+          type: string
+          nullable: true
+        introVideoUrl:
+          type: string
+          nullable: true
+        teacherId:
+          type: string
+        teacherName:
+          type: string
+          nullable: true
+        category:
+          type: string
+        status:
+          type: string
+        startDate:
+          type: string
+          nullable: true
+        endDate:
+          type: string
+          nullable: true
+        dayOfWeek:
+          type: string
+          nullable: true
+        timeSlot:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        lessonDurationMinutes:
+          type: integer
+          nullable: true
+        totalWeeks:
+          type: integer
+          nullable: true
+        maxSlots:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        lessons:
+          type: array
+          items:
+            $ref: "#/components/schemas/CourseLesson"
+        enrollments:
+          type: array
+          items:
+            $ref: "#/components/schemas/CourseEnrollment"
+      required:
+        - id
+        - title
+        - teacherId
+        - category
+        - status
+        - lessons
+        - enrollments
+
+    AttendanceRecord:
+      type: object
+      properties:
+        id:
+          type: string
+        lessonId:
+          type: string
+        memberId:
+          type: string
+        present:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+        - id
+        - lessonId
+        - memberId
+        - present
+
+    AttendanceListResponse:
+      type: object
+      properties:
+        attendance:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttendanceRecord"
+      required:
+        - attendance
+
+    RecordAttendanceRequest:
+      type: object
+      properties:
+        records:
+          type: array
+          items:
+            type: object
+            properties:
+              memberId:
+                type: string
+              present:
+                type: boolean
+            required:
+              - memberId
+              - present
+      required:
+        - records
+
+    StudentProgress:
+      type: object
+      properties:
+        totalLessons:
+          type: integer
+        attendedLessons:
+          type: integer
+        percentage:
+          type: integer
+      required:
+        - totalLessons
+        - attendedLessons
+        - percentage
+
+    CertificateData:
+      type: object
+      properties:
+        studentName:
+          type: string
+        courseName:
+          type: string
+        courseCategory:
+          type: string
+        teacherName:
+          type: string
+          nullable: true
+        startDate:
+          type: string
+          nullable: true
+        endDate:
+          type: string
+          nullable: true
+        completionDate:
+          type: string
+        totalLessons:
+          type: integer
+        attendedLessons:
+          type: integer
+        percentage:
+          type: integer
+      required:
+        - studentName
+        - courseName
+        - courseCategory
+        - completionDate
+        - totalLessons
+        - attendedLessons
+        - percentage
+
+    TeachingDashboard:
+      type: object
+      properties:
+        activeCourses:
+          type: integer
+        totalEnrollments:
+          type: integer
+        avgAttendance:
+          type: integer
+        upcomingLessons:
+          type: array
+          items:
+            type: object
+            properties:
+              lessonId:
+                type: string
+              lessonTitle:
+                type: string
+              lessonDate:
+                type: string
+              courseId:
+                type: string
+              courseTitle:
+                type: string
+              teacherName:
+                type: string
+                nullable: true
+              timeSlot:
+                type: string
+                nullable: true
+              location:
+                type: string
+                nullable: true
+        lowAttendanceStudents:
+          type: array
+          items:
+            type: object
+            properties:
+              memberName:
+                type: string
+              courseName:
+                type: string
+              percentage:
+                type: integer
+      required:
+        - activeCourses
+        - totalEnrollments
+        - avgAttendance
+        - upcomingLessons
+        - lowAttendanceStudents
+
+    # ─── EVENTS SCHEMAS ───────────────────────────────────────────────────────
+
+    Event:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        startDate:
+          type: string
+        endDate:
+          type: string
+        location:
+          type: string
+          nullable: true
+        responsibleId:
+          type: string
+          nullable: true
+        responsibleName:
+          type: string
+          nullable: true
+        recurrence:
+          type: string
+          enum: [unico, semanal, quinzenal, mensal]
+        type:
+          type: string
+          enum: [culto, reuniao, conferencia, social, outro]
+        maxSlots:
+          type: integer
+          nullable: true
+        status:
+          type: string
+          enum: [agendado, em_andamento, encerrado, cancelado]
+        registeredCount:
+          type: integer
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - title
+        - startDate
+        - endDate
+        - type
+        - status
+
+    CreateEventRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        startDate:
+          type: string
+        endDate:
+          type: string
+        location:
+          type: string
+        responsibleId:
+          type: string
+        recurrence:
+          type: string
+          enum: [unico, semanal, quinzenal, mensal]
+        type:
+          type: string
+          enum: [culto, reuniao, conferencia, social, outro]
+        maxSlots:
+          type: integer
+        status:
+          type: string
+          enum: [agendado, em_andamento, encerrado, cancelado]
+      required:
+        - title
+        - startDate
+        - endDate
+        - type
+
+    EventsListResponse:
+      type: object
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - events
+        - total
+        - page
+        - limit
+
+    UpcomingEventsResponse:
+      type: object
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+      required:
+        - events
+
+    EventRegistration:
+      type: object
+      properties:
+        id:
+          type: string
+        eventId:
+          type: string
+        memberId:
+          type: string
+        memberName:
+          type: string
+          nullable: true
+        registeredAt:
+          type: string
+      required:
+        - id
+        - eventId
+        - memberId
+
+    EventRegistrationsListResponse:
+      type: object
+      properties:
+        registrations:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventRegistration"
+      required:
+        - registrations
+
+    EventDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        startDate:
+          type: string
+        endDate:
+          type: string
+        location:
+          type: string
+          nullable: true
+        responsibleId:
+          type: string
+          nullable: true
+        responsibleName:
+          type: string
+          nullable: true
+        recurrence:
+          type: string
+        type:
+          type: string
+        maxSlots:
+          type: integer
+          nullable: true
+        status:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        registrations:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventRegistration"
+      required:
+        - id
+        - title
+        - startDate
+        - endDate
+        - type
+        - status
+        - registrations
+
+    EventAttendanceRecord:
+      type: object
+      properties:
+        id:
+          type: string
+        eventId:
+          type: string
+        memberId:
+          type: string
+        present:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+        - id
+        - eventId
+        - memberId
+        - present
+
+    EventAttendanceListResponse:
+      type: object
+      properties:
+        attendance:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventAttendanceRecord"
+      required:
+        - attendance
+
+    RecordEventAttendanceRequest:
+      type: object
+      properties:
+        records:
+          type: array
+          items:
+            type: object
+            properties:
+              memberId:
+                type: string
+              present:
+                type: boolean
+            required:
+              - memberId
+              - present
+      required:
+        - records
+
+    # ─── LGPD SCHEMAS ─────────────────────────────────────────────────────────
+
+    MyDataResponse:
+      type: object
+      properties:
+        member:
+          type: object
+        consents:
+          type: array
+          items:
+            type: object
+        requests:
+          type: array
+          items:
+            $ref: "#/components/schemas/LgpdRequest"
+      required:
+        - member
+        - consents
+        - requests
+
+    ConsentsListResponse:
+      type: object
+      properties:
+        consents:
+          type: array
+          items:
+            type: object
+      required:
+        - consents
+
+    LgpdRequest:
+      type: object
+      properties:
+        id:
+          type: string
+        memberId:
+          type: string
+        memberName:
+          type: string
+          nullable: true
+        userId:
+          type: string
+        requestType:
+          type: string
+          enum: [correcao, exclusao, exportacao, revogacao_consentimento]
+        status:
+          type: string
+          enum: [pendente, em_analise, concluido, rejeitado]
+        description:
+          type: string
+          nullable: true
+        adminNotes:
+          type: string
+          nullable: true
+        processedAt:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - memberId
+        - userId
+        - requestType
+        - status
+
+    LgpdRequestsListResponse:
+      type: object
+      properties:
+        requests:
+          type: array
+          items:
+            $ref: "#/components/schemas/LgpdRequest"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - requests
+
+    CreateLgpdRequestBody:
+      type: object
+      properties:
+        requestType:
+          type: string
+          enum: [correcao, exclusao, exportacao, revogacao_consentimento]
+        description:
+          type: string
+      required:
+        - requestType
+
+    ProcessLgpdRequestBody:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [concluido, rejeitado]
+        adminNotes:
+          type: string
+      required:
+        - status
+
+    # ─── MEDIA SCHEMAS ─────────────────────────────────────────────────────────
+
+    MediaLink:
+      type: object
+      properties:
+        id:
+          type: string
+        url:
+          type: string
+        title:
+          type: string
+          nullable: true
+        type:
+          type: string
+          enum: [youtube, vimeo, drive, link, outro]
+        entityType:
+          type: string
+          enum: [course_lesson, course, ministry, event, asset, content]
+        entityId:
+          type: string
+        createdByUserId:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - url
+        - type
+        - entityType
+        - entityId
+        - createdByUserId
+
+    MediaListResponse:
+      type: object
+      properties:
+        media:
+          type: array
+          items:
+            $ref: "#/components/schemas/MediaLink"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - media
+        - total
+
+    CreateMediaRequest:
+      type: object
+      properties:
+        url:
+          type: string
+        title:
+          type: string
+        entityType:
+          type: string
+          enum: [course_lesson, course, ministry, event, asset, content]
+        entityId:
+          type: string
+      required:
+        - url
+        - entityType
+        - entityId
+
+    UpdateMediaRequest:
+      type: object
+      properties:
+        url:
+          type: string
+        title:
+          type: string
+
+    # ─── MINISTRY SCHEMAS ──────────────────────────────────────────────────────
+
+    Ministry:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        meetingDay:
+          type: string
+          nullable: true
+        meetingTime:
+          type: string
+          nullable: true
+        meetingLocation:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [ativo, inativo]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - status
+
+    MinistryWithCounts:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        meetingDay:
+          type: string
+          nullable: true
+        meetingTime:
+          type: string
+          nullable: true
+        meetingLocation:
+          type: string
+          nullable: true
+        status:
+          type: string
+        memberCount:
+          type: integer
+        leaders:
+          type: array
+          items:
+            type: object
+            properties:
+              memberId:
+                type: string
+              memberName:
+                type: string
+                nullable: true
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - memberCount
+
+    MinistriesListResponse:
+      type: object
+      properties:
+        ministries:
+          type: array
+          items:
+            $ref: "#/components/schemas/MinistryWithCounts"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - ministries
+        - total
+
+    MinistryMember:
+      type: object
+      properties:
+        id:
+          type: string
+        ministryId:
+          type: string
+        memberId:
+          type: string
+        memberName:
+          type: string
+          nullable: true
+        role:
+          type: string
+          enum: [lider, vice_lider, membro, voluntario]
+        joinedAt:
+          type: string
+        leftAt:
+          type: string
+          nullable: true
+        updatedAt:
+          type: string
+      required:
+        - id
+        - ministryId
+        - memberId
+        - role
+
+    MinistryDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        category:
+          type: string
+        meetingDay:
+          type: string
+          nullable: true
+        meetingTime:
+          type: string
+          nullable: true
+        meetingLocation:
+          type: string
+          nullable: true
+        status:
+          type: string
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/MinistryMember"
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - members
+
+    CreateMinistryRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        meetingDay:
+          type: string
+        meetingTime:
+          type: string
+        meetingLocation:
+          type: string
+        status:
+          type: string
+          enum: [ativo, inativo]
+      required:
+        - name
+
+    UpdateMinistryRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        meetingDay:
+          type: string
+        meetingTime:
+          type: string
+        meetingLocation:
+          type: string
+        status:
+          type: string
+          enum: [ativo, inativo]
+
+    AddMinistryMemberRequest:
+      type: object
+      properties:
+        memberId:
+          type: string
+        role:
+          type: string
+          enum: [lider, vice_lider, membro, voluntario]
+      required:
+        - memberId
+
+    MemberMinistriesResponse:
+      type: object
+      properties:
+        ministries:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              ministryId:
+                type: string
+              ministryName:
+                type: string
+              ministryStatus:
+                type: string
+              role:
+                type: string
+              joinedAt:
+                type: string
+      required:
+        - ministries
+
+    # ─── ASSET SCHEMAS ─────────────────────────────────────────────────────────
+
+    Asset:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        category:
+          type: string
+          enum: [instrumento, som_iluminacao, mobiliario, informatica, veiculo, imovel, outro]
+        acquisitionDate:
+          type: string
+          nullable: true
+        acquisitionValue:
+          type: string
+          nullable: true
+        currentValue:
+          type: string
+          nullable: true
+        serialNumber:
+          type: string
+          nullable: true
+        location:
+          type: string
+        responsibleId:
+          type: string
+          nullable: true
+        responsibleName:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [ativo, manutencao, baixa, emprestado]
+        notes:
+          type: string
+          nullable: true
+        photoPath:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - category
+        - location
+        - status
+
+    AssetsListResponse:
+      type: object
+      properties:
+        assets:
+          type: array
+          items:
+            $ref: "#/components/schemas/Asset"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - assets
+        - total
+
+    AssetsSummary:
+      type: object
+      properties:
+        totalAssets:
+          type: integer
+        totalValue:
+          type: string
+        byCategory:
+          type: object
+      required:
+        - totalAssets
+        - totalValue
+
+    CreateAssetRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [instrumento, som_iluminacao, mobiliario, informatica, veiculo, imovel, outro]
+        acquisitionDate:
+          type: string
+        acquisitionValue:
+          type: string
+        currentValue:
+          type: string
+        serialNumber:
+          type: string
+        location:
+          type: string
+        responsibleId:
+          type: string
+        status:
+          type: string
+          enum: [ativo, manutencao, baixa, emprestado]
+        notes:
+          type: string
+        photoPath:
+          type: string
+      required:
+        - name
+        - location
+
+    UpdateAssetRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [instrumento, som_iluminacao, mobiliario, informatica, veiculo, imovel, outro]
+        acquisitionDate:
+          type: string
+        acquisitionValue:
+          type: string
+        currentValue:
+          type: string
+        serialNumber:
+          type: string
+        location:
+          type: string
+        responsibleId:
+          type: string
+        status:
+          type: string
+          enum: [ativo, manutencao, baixa, emprestado]
+        notes:
+          type: string
+        photoPath:
+          type: string
+
+    # ─── SCHEDULE SCHEMAS ──────────────────────────────────────────────────────
+
+    ServiceRole:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        ministryId:
+          type: string
+          nullable: true
+        ministryName:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+
+    ServiceRolesListResponse:
+      type: object
+      properties:
+        roles:
+          type: array
+          items:
+            $ref: "#/components/schemas/ServiceRole"
+      required:
+        - roles
+
+    CreateServiceRoleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        ministryId:
+          type: string
+      required:
+        - name
+
+    UpdateServiceRoleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        ministryId:
+          type: string
+
+    EventScheduleEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        eventId:
+          type: string
+        serviceRoleId:
+          type: string
+        serviceRoleName:
+          type: string
+          nullable: true
+        memberId:
+          type: string
+        memberName:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [escalado, confirmado, ausente, substituido]
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - eventId
+        - serviceRoleId
+        - memberId
+        - status
+
+    EventScheduleListResponse:
+      type: object
+      properties:
+        schedule:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventScheduleEntry"
+      required:
+        - schedule
+
+    AddToScheduleRequest:
+      type: object
+      properties:
+        serviceRoleId:
+          type: string
+        memberId:
+          type: string
+        notes:
+          type: string
+      required:
+        - serviceRoleId
+        - memberId
+
+    # ─── DASHBOARD SCHEMAS ─────────────────────────────────────────────────
+
+    DashboardStats:
+      type: object
+      properties:
+        members:
+          type: object
+          properties:
+            total:
+              type: integer
+            newThisMonth:
+              type: integer
+            byStatus:
+              type: object
+              properties:
+                ativo:
+                  type: integer
+                inativo:
+                  type: integer
+                transferido:
+                  type: integer
+                falecido:
+                  type: integer
+        finance:
+          type: object
+          nullable: true
+          properties:
+            currentMonth:
+              type: object
+              properties:
+                totalEntries:
+                  type: string
+                totalExpenses:
+                  type: string
+                balance:
+                  type: string
+            previousMonth:
+              type: object
+              properties:
+                totalEntries:
+                  type: string
+                totalExpenses:
+                  type: string
+            entriesGrowth:
+              type: number
+        events:
+          type: object
+          properties:
+            upcomingCount:
+              type: integer
+            upcoming:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  title:
+                    type: string
+                  startDate:
+                    type: string
+                  type:
+                    type: string
+                  location:
+                    type: string
+                    nullable: true
+        teaching:
+          type: object
+          properties:
+            activeCourses:
+              type: integer
+            totalEnrollments:
+              type: integer
+        ministries:
+          type: object
+          properties:
+            total:
+              type: integer
+            totalMembers:
+              type: integer
+        planning:
+          type: object
+          properties:
+            activeInitiatives:
+              type: integer
+            overdueInitiatives:
+              type: integer
+      required:
+        - members
+        - events
+        - teaching
+        - ministries
+
+    LeaderWidgets:
+      type: object
+      properties:
+        pastoral:
+          type: object
+          properties:
+            pending: { type: integer }
+            overdueFollowUps: { type: integer }
+        counseling:
+          type: object
+          properties:
+            openCases: { type: integer }
+        articles:
+          type: object
+          properties:
+            inReview: { type: integer }
+            drafts: { type: integer }
+
+    MemberStats:
+      type: object
+      properties:
+        profile:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string }
+            fullName: { type: string }
+            status: { type: string }
+            pipelineStage: { type: string, nullable: true }
+            baptismDate: { type: string, nullable: true }
+            conversionDate: { type: string, nullable: true }
+        enrolledCourses: { type: integer }
+        upcomingRegisteredEvents:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              title: { type: string }
+              startDate: { type: string }
+              type: { type: string }
+              location: { type: string, nullable: true }
+        nextEvent:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string }
+            title: { type: string }
+            startDate: { type: string }
+            type: { type: string }
+            location: { type: string, nullable: true }
+        myMinistries:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              name: { type: string }
+              role: { type: string }
+        recentArticles:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              title: { type: string }
+              excerpt: { type: string, nullable: true }
+              authorName: { type: string }
+              publishedAt: { type: string, nullable: true }
+              category: { type: string }
+
+    # ─── PLANNING SCHEMAS ──────────────────────────────────────────────────────
+
+    Directive:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        startYear: { type: string }
+        endYear: { type: string }
+        status: { type: string, enum: [ativa, concluida, cancelada] }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+      required: [id, title, startYear, endYear, status]
+
+    DirectivesListResponse:
+      type: object
+      properties:
+        directives:
+          type: array
+          items:
+            $ref: "#/components/schemas/Directive"
+      required: [directives]
+
+    DirectiveDetail:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        startYear: { type: string }
+        endYear: { type: string }
+        status: { type: string }
+        objectives:
+          type: array
+          items:
+            type: object
+        createdAt: { type: string }
+        updatedAt: { type: string }
+      required: [id, title, objectives]
+
+    CreateDirectiveRequest:
+      type: object
+      properties:
+        title: { type: string }
+        description: { type: string }
+        startYear: { type: string }
+        endYear: { type: string }
+      required: [title, startYear, endYear]
+
+    UpdateDirectiveRequest:
+      type: object
+      properties:
+        title: { type: string }
+        description: { type: string }
+        startYear: { type: string }
+        endYear: { type: string }
+        status: { type: string, enum: [ativa, concluida, cancelada] }
+
+    Objective:
+      type: object
+      properties:
+        id: { type: string }
+        directiveId: { type: string }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        targetValue: { type: string, nullable: true }
+        currentValue: { type: string, nullable: true }
+        unit: { type: string, nullable: true }
+        deadline: { type: string, nullable: true }
+        status: { type: string, enum: [em_andamento, concluido, cancelado] }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+      required: [id, directiveId, title, status]
+
+    CreateObjectiveRequest:
+      type: object
+      properties:
+        title: { type: string }
+        description: { type: string }
+        targetValue: { type: number }
+        unit: { type: string }
+        deadline: { type: string }
+      required: [title]
+
+    UpdateObjectiveRequest:
+      type: object
+      properties:
+        title: { type: string }
+        description: { type: string }
+        targetValue: { type: number }
+        currentValue: { type: number }
+        unit: { type: string }
+        deadline: { type: string }
+        status: { type: string, enum: [em_andamento, concluido, cancelado] }
+
+    Initiative:
+      type: object
+      properties:
+        id: { type: string }
+        objectiveId: { type: string, nullable: true }
+        ministryId: { type: string, nullable: true }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        type: { type: string }
+        priority: { type: string }
+        status: { type: string }
+        responsibleId: { type: string, nullable: true }
+        responsibleName: { type: string, nullable: true }
+        plannedBudget: { type: string, nullable: true }
+        startDate: { type: string, nullable: true }
+        endDate: { type: string, nullable: true }
+        completedAt: { type: string, nullable: true }
+        notes: { type: string, nullable: true }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+      required: [id, title, type, priority, status]
+
+    InitiativesListResponse:
+      type: object
+      properties:
+        initiatives:
+          type: array
+          items:
+            $ref: "#/components/schemas/Initiative"
+      required: [initiatives]
+
+    InitiativeDetail:
+      type: object
+      properties:
+        id: { type: string }
+        objectiveId: { type: string, nullable: true }
+        ministryId: { type: string, nullable: true }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        type: { type: string }
+        priority: { type: string }
+        status: { type: string }
+        responsibleId: { type: string, nullable: true }
+        responsibleName: { type: string, nullable: true }
+        plannedBudget: { type: string, nullable: true }
+        startDate: { type: string, nullable: true }
+        endDate: { type: string, nullable: true }
+        notes: { type: string, nullable: true }
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/InitiativeStep"
+        realizedCost: { type: string }
+        progress: { type: integer }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+      required: [id, title, steps, realizedCost, progress]
+
+    CreateInitiativeRequest:
+      type: object
+      properties:
+        title: { type: string }
+        description: { type: string }
+        type: { type: string, enum: [aquisicao, reforma, campanha, evento_especial, capacitacao, missoes, administrativo, outro] }
+        priority: { type: string, enum: [alta, media, baixa] }
+        objectiveId: { type: string }
+        ministryId: { type: string }
+        responsibleId: { type: string }
+        plannedBudget: { type: string }
+        startDate: { type: string }
+        endDate: { type: string }
+        notes: { type: string }
+      required: [title, type]
+
+    UpdateInitiativeRequest:
+      type: object
+      properties:
+        title: { type: string }
+        description: { type: string }
+        type: { type: string }
+        priority: { type: string }
+        status: { type: string }
+        objectiveId: { type: string }
+        ministryId: { type: string }
+        responsibleId: { type: string }
+        plannedBudget: { type: string }
+        startDate: { type: string }
+        endDate: { type: string }
+        notes: { type: string }
+
+    InitiativeStep:
+      type: object
+      properties:
+        id: { type: string }
+        initiativeId: { type: string }
+        title: { type: string }
+        completed: { type: boolean }
+        completedAt: { type: string, nullable: true }
+        sortOrder: { type: integer }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+      required: [id, initiativeId, title, completed, sortOrder]
+
+    PlanningSummary:
+      type: object
+      properties:
+        totalInitiatives: { type: integer }
+        activeInitiatives: { type: integer }
+        overdueInitiatives: { type: integer }
+        byStatus: { type: object }
+        totalPlannedBudget: { type: string }
+        totalRealizedCost: { type: string }
+      required: [totalInitiatives, activeInitiatives, overdueInitiatives]
+
+    # ─── PIPELINE SCHEMAS ──────────────────────────────────────────────────
+
+    PipelineSummary:
+      type: object
+      properties:
+        summary:
+          type: object
+        total:
+          type: integer
+      required: [summary, total]
+
+    StagnantMembersResponse:
+      type: object
+      properties:
+        stagnant:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              fullName: { type: string }
+              pipelineStage: { type: string }
+              daysSinceChange: { type: integer }
+              lastChangeAt: { type: string }
+        total: { type: integer }
+        thresholdDays: { type: integer }
+      required: [stagnant, total]
+
+    MovePipelineRequest:
+      type: object
+      properties:
+        stage:
+          type: string
+          enum: [culto, pequeno_grupo, ministerio]
+        reason:
+          type: string
+      required: [stage]
+
+    MovePipelineResponse:
+      type: object
+      properties:
+        message: { type: string }
+        fromStage: { type: string }
+        toStage: { type: string }
+      required: [message, fromStage, toStage]
+
+    MemberPipelineResponse:
+      type: object
+      properties:
+        currentStage: { type: string }
+        history:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              fromStage: { type: string, nullable: true }
+              toStage: { type: string }
+              reason: { type: string, nullable: true }
+              createdAt: { type: string }
+      required: [currentStage, history]
+
+    # ─── MINISTRY GOAL SCHEMAS ─────────────────────────────────────────────
+
+    MinistryGoal:
+      type: object
+      properties:
+        id: { type: string }
+        ministryId: { type: string }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        targetValue: { type: string }
+        currentValue: { type: string }
+        unit: { type: string, nullable: true }
+        deadline: { type: string, nullable: true }
+        initiativeId: { type: string, nullable: true }
+        status: { type: string, enum: [em_andamento, concluida, cancelada] }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+      required: [id, ministryId, title, targetValue, currentValue, status]
+
+    MinistryGoalsListResponse:
+      type: object
+      properties:
+        goals:
+          type: array
+          items:
+            $ref: "#/components/schemas/MinistryGoal"
+      required: [goals]
+
+    CreateMinistryGoalRequest:
+      type: object
+      properties:
+        title: { type: string }
+        description: { type: string }
+        targetValue: { type: number }
+        unit: { type: string }
+        deadline: { type: string }
+        initiativeId: { type: string }
+      required: [title, targetValue]
+
+    UpdateMinistryGoalRequest:
+      type: object
+      properties:
+        title: { type: string }
+        description: { type: string }
+        targetValue: { type: number }
+        currentValue: { type: number }
+        unit: { type: string }
+        deadline: { type: string }
+        initiativeId: { type: string }
+        status: { type: string, enum: [em_andamento, concluida, cancelada] }
+
+    # ─── CALENDAR SCHEMAS ──────────────────────────────────────────────────
+
+    CalendarMonth:
+      type: object
+      properties:
+        month: { type: string }
+        label: { type: string }
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+      required: [month, label, events]
+
+    CalendarYearResponse:
+      type: object
+      properties:
+        year: { type: string }
+        months:
+          type: array
+          items:
+            $ref: "#/components/schemas/CalendarMonth"
+        totalEvents: { type: integer }
+      required: [year, months, totalEvents]
+
+    # ─── CONTENT SCHEMAS ───────────────────────────────────────────────────
+
+    ContentItem:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        category: { type: string, enum: [pequenos_grupos, devocionais, escola_biblica, esboco_sermao, estudo_biblico] }
+        authorName: { type: string, nullable: true }
+        mediaCount: { type: integer }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+      required: [id, title, category]
+
+    ContentsListResponse:
+      type: object
+      properties:
+        contents:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContentItem"
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+      required: [contents, total]
+
+    CreateContentRequest:
+      type: object
+      properties:
+        title: { type: string }
+        description: { type: string }
+        category: { type: string, enum: [pequenos_grupos, devocionais, escola_biblica, esboco_sermao, estudo_biblico] }
+        authorName: { type: string }
+      required: [title, category]
+
+    UpdateContentRequest:
+      type: object
+      properties:
+        title: { type: string }
+        description: { type: string }
+        category: { type: string, enum: [pequenos_grupos, devocionais, escola_biblica, esboco_sermao, estudo_biblico] }
+        authorName: { type: string }
+
+    # ─── COUNSELING ──────────────────────────────────────────────────────────
+
+    CounselingCase:
+      type: object
+      properties:
+        id: { type: string }
+        memberId: { type: string }
+        memberName: { type: string }
+        counselorId: { type: string }
+        counselorName: { type: string }
+        topic: { type: string }
+        status: { type: string, enum: [aberto, em_andamento, encerrado] }
+        startDate: { type: string }
+        endDate: { type: string, nullable: true }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+      required: [id, memberId, memberName, counselorId, counselorName, topic, status, startDate]
+
+    CounselingSession:
+      type: object
+      properties:
+        id: { type: string }
+        caseId: { type: string }
+        date: { type: string }
+        notes: { type: string, nullable: true }
+        durationMinutes: { type: integer, nullable: true }
+        createdAt: { type: string }
+      required: [id, caseId, date]
+
+    CounselingSummary:
+      type: object
+      properties:
+        openCases: { type: integer }
+        inProgressCases: { type: integer }
+        closedCases: { type: integer }
+        totalSessions: { type: integer }
+      required: [openCases, inProgressCases, closedCases, totalSessions]
+
+    CounselingCasesListResponse:
+      type: object
+      properties:
+        cases:
+          type: array
+          items:
+            $ref: "#/components/schemas/CounselingCase"
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+      required: [cases, total]
+
+    CounselingCaseDetail:
+      allOf:
+        - $ref: "#/components/schemas/CounselingCase"
+        - type: object
+          properties:
+            sessions:
+              type: array
+              items:
+                $ref: "#/components/schemas/CounselingSession"
+
+    CounselingSessionsListResponse:
+      type: object
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/CounselingSession"
+      required: [sessions]
+
+    CreateCounselingCaseRequest:
+      type: object
+      properties:
+        memberId: { type: string }
+        counselorId: { type: string }
+        topic: { type: string }
+        startDate: { type: string }
+      required: [memberId, counselorId, topic, startDate]
+
+    UpdateCounselingCaseRequest:
+      type: object
+      properties:
+        topic: { type: string }
+        status: { type: string, enum: [aberto, em_andamento, encerrado] }
+
+    CreateCounselingSessionRequest:
+      type: object
+      properties:
+        date: { type: string }
+        notes: { type: string }
+        durationMinutes: { type: integer }
+      required: [date]
+
+    # ─── PASTORAL ────────────────────────────────────────────────────────────
+
+    PastoralVisit:
+      type: object
+      properties:
+        id: { type: string }
+        memberId: { type: string }
+        memberName: { type: string }
+        pastorId: { type: string }
+        pastorName: { type: string }
+        type: { type: string, enum: [visita, ligacao, reuniao, oracao] }
+        date: { type: string }
+        notes: { type: string, nullable: true }
+        status: { type: string, enum: [pendente, realizado, cancelado] }
+        followUpDate: { type: string, nullable: true }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+      required: [id, memberId, memberName, pastorId, pastorName, type, date, status]
+
+    PastoralSummary:
+      type: object
+      properties:
+        pending: { type: integer }
+        doneThisMonth: { type: integer }
+        overdueFollowUps: { type: integer }
+        totalVisits: { type: integer }
+      required: [pending, doneThisMonth, overdueFollowUps, totalVisits]
+
+    PastoralVisitsListResponse:
+      type: object
+      properties:
+        visits:
+          type: array
+          items:
+            $ref: "#/components/schemas/PastoralVisit"
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+      required: [visits, total]
+
+    PastoralVisitsHistoryResponse:
+      type: object
+      properties:
+        visits:
+          type: array
+          items:
+            $ref: "#/components/schemas/PastoralVisit"
+      required: [visits]
+
+    CreatePastoralVisitRequest:
+      type: object
+      properties:
+        memberId: { type: string }
+        pastorId: { type: string }
+        type: { type: string, enum: [visita, ligacao, reuniao, oracao] }
+        date: { type: string }
+        notes: { type: string }
+        followUpDate: { type: string }
+      required: [memberId, pastorId, type, date]
+
+    UpdatePastoralVisitRequest:
+      type: object
+      properties:
+        type: { type: string, enum: [visita, ligacao, reuniao, oracao] }
+        date: { type: string }
+        notes: { type: string }
+        status: { type: string, enum: [pendente, realizado, cancelado] }
+        followUpDate: { type: string }
+
+    # ─── SONGS ──────────────────────────────────────────────────────────────
+
+    Song:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        author: { type: string, nullable: true }
+        songKey: { type: string, nullable: true }
+        tempo: { type: string, nullable: true }
+        lyrics: { type: string, nullable: true }
+        chordChart: { type: string, nullable: true }
+        category: { type: string, enum: [louvor, adoracao, hino, especial] }
+        youtubeUrl: { type: string, nullable: true }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+      required: [id, title, category, createdAt, updatedAt]
+
+    SongsListResponse:
+      type: object
+      properties:
+        songs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Song"
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+      required: [songs, total]
+
+    CreateSongRequest:
+      type: object
+      properties:
+        title: { type: string }
+        youtubeUrl: { type: string }
+      required: [title, youtubeUrl]
+
+    UpdateSongRequest:
+      type: object
+      properties:
+        title: { type: string }
+        youtubeUrl: { type: string }
+
+    SongSuggestion:
+      type: object
+      properties:
+        id: { type: string }
+        songId: { type: string, nullable: true }
+        title: { type: string }
+        url: { type: string }
+        reason: { type: string, nullable: true }
+        status: { type: string, enum: [pendente, aprovada, rejeitada] }
+        reviewNote: { type: string, nullable: true }
+        createdAt: { type: string }
+      required: [id, title, url, status, createdAt]
+
+    SongSuggestionsListResponse:
+      type: object
+      properties:
+        suggestions:
+          type: array
+          items:
+            $ref: "#/components/schemas/SongSuggestion"
+        total: { type: integer }
+      required: [suggestions, total]
+
+    CreateSongSuggestionRequest:
+      type: object
+      properties:
+        title: { type: string }
+        url: { type: string }
+        reason: { type: string }
+      required: [title, url, reason]
+
+    ReviewSongSuggestionRequest:
+      type: object
+      properties:
+        status: { type: string, enum: [aprovada, rejeitada] }
+        reviewNote: { type: string }
+      required: [status]
+
+    # ─── LITURGY ────────────────────────────────────────────────────────────
+
+    Liturgy:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        date: { type: string }
+        type: { type: string, enum: [culto_dominical, culto_especial, santa_ceia, culto_oracao] }
+        eventId: { type: string, nullable: true }
+        status: { type: string, enum: [rascunho, aprovada] }
+        notes: { type: string, nullable: true }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+      required: [id, title, date, type, status, createdAt, updatedAt]
+
+    LiturgyItem:
+      type: object
+      properties:
+        id: { type: string }
+        liturgyId: { type: string }
+        order: { type: integer }
+        type: { type: string, enum: [louvor, oracao, leitura, pregacao, ofertorio, avisos, santa_ceia, outro] }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        responsibleName: { type: string, nullable: true }
+        durationMinutes: { type: integer, nullable: true }
+        songId: { type: string, nullable: true }
+        createdAt: { type: string }
+      required: [id, liturgyId, order, type, title, createdAt]
+
+    LiturgyDetail:
+      allOf:
+        - $ref: "#/components/schemas/Liturgy"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/LiturgyItem"
+          required: [items]
+
+    LiturgiesListResponse:
+      type: object
+      properties:
+        liturgies:
+          type: array
+          items:
+            $ref: "#/components/schemas/Liturgy"
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+      required: [liturgies, total]
+
+    CreateLiturgyRequest:
+      type: object
+      properties:
+        title: { type: string }
+        date: { type: string }
+        type: { type: string, enum: [culto_dominical, culto_especial, santa_ceia, culto_oracao] }
+        eventId: { type: string }
+        notes: { type: string }
+      required: [title, date, type]
+
+    UpdateLiturgyRequest:
+      type: object
+      properties:
+        title: { type: string }
+        date: { type: string }
+        type: { type: string, enum: [culto_dominical, culto_especial, santa_ceia, culto_oracao] }
+        eventId: { type: string }
+        status: { type: string, enum: [rascunho, aprovada] }
+        notes: { type: string }
+
+    AddLiturgyItemRequest:
+      type: object
+      properties:
+        type: { type: string, enum: [louvor, oracao, leitura, pregacao, ofertorio, avisos, santa_ceia, outro] }
+        title: { type: string }
+        description: { type: string }
+        responsibleMemberId: { type: string }
+        durationMinutes: { type: integer }
+        songId: { type: string }
+      required: [type, title]
+
+    UpdateLiturgyItemRequest:
+      type: object
+      properties:
+        type: { type: string, enum: [louvor, oracao, leitura, pregacao, ofertorio, avisos, santa_ceia, outro] }
+        title: { type: string }
+        description: { type: string }
+        responsibleMemberId: { type: string }
+        durationMinutes: { type: integer }
+        songId: { type: string }
+
+    ReorderLiturgyItemsRequest:
+      type: object
+      properties:
+        itemIds:
+          type: array
+          items:
+            type: string
+      required: [itemIds]
+
+    # ─── ARTICLES ───────────────────────────────────────────────────────────
+
+    Article:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        slug: { type: string }
+        body: { type: string }
+        excerpt: { type: string, nullable: true }
+        authorName: { type: string }
+        category: { type: string, enum: [artigo, devocional] }
+        status: { type: string, enum: [rascunho, em_revisao, aprovado, publicado, rejeitado] }
+        reviewNote: { type: string, nullable: true }
+        publishedAt: { type: string, nullable: true }
+        coverImageUrl: { type: string, nullable: true }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+      required: [id, title, slug, body, authorName, category, status, createdAt, updatedAt]
+
+    ArticlesListResponse:
+      type: object
+      properties:
+        articles:
+          type: array
+          items:
+            $ref: "#/components/schemas/Article"
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+      required: [articles, total]
+
+    CreateArticleRequest:
+      type: object
+      properties:
+        title: { type: string }
+        body: { type: string }
+        excerpt: { type: string }
+        category: { type: string, enum: [artigo, devocional] }
+        coverImageUrl: { type: string }
+      required: [title, body, category]
+
+    UpdateArticleRequest:
+      type: object
+      properties:
+        title: { type: string }
+        body: { type: string }
+        excerpt: { type: string }
+        category: { type: string, enum: [artigo, devocional] }
+        coverImageUrl: { type: string }
+
+    ReviewArticleRequest:
+      type: object
+      properties:
+        action: { type: string, enum: [approve, reject] }
+        note: { type: string }
+      required: [action]
+
+    # ─── FORUM ─────────────────────────────────────────────────────────────
+
+    ForumTopic:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        body: { type: string }
+        authorName: { type: string }
+        category: { type: string, enum: [geral, oracao, estudo, testemunho, duvida] }
+        isPinned: { type: boolean }
+        isLocked: { type: boolean }
+        replyCount: { type: integer }
+        lastReplyAt: { type: string, nullable: true }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+      required: [id, title, body, authorName, category, isPinned, isLocked, replyCount, createdAt, updatedAt]
+
+    ForumReply:
+      type: object
+      properties:
+        id: { type: string }
+        topicId: { type: string }
+        body: { type: string }
+        authorName: { type: string }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+      required: [id, topicId, body, authorName, createdAt, updatedAt]
+
+    ForumTopicDetail:
+      allOf:
+        - $ref: "#/components/schemas/ForumTopic"
+        - type: object
+          properties:
+            replies:
+              type: array
+              items:
+                $ref: "#/components/schemas/ForumReply"
+          required: [replies]
+
+    ForumTopicsListResponse:
+      type: object
+      properties:
+        topics:
+          type: array
+          items:
+            $ref: "#/components/schemas/ForumTopic"
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+      required: [topics, total]
+
+    ForumSummary:
+      type: object
+      properties:
+        totalTopics: { type: integer }
+        activeThisWeek: { type: integer }
+      required: [totalTopics, activeThisWeek]
+
+    CreateForumTopicRequest:
+      type: object
+      properties:
+        title: { type: string }
+        body: { type: string }
+        category: { type: string, enum: [geral, oracao, estudo, testemunho, duvida] }
+      required: [title, body, category]
+
+    UpdateForumTopicRequest:
+      type: object
+      properties:
+        title: { type: string }
+        body: { type: string }
+
+    CreateForumReplyRequest:
+      type: object
+      properties:
+        body: { type: string }
+      required: [body]
+
+    UpdateForumReplyRequest:
+      type: object
+      properties:
+        body: { type: string }
+      required: [body]
+
+    # ─── INSTITUTIONAL ─────────────────────────────────────────────────────
+
+    InstitutionalPage:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        slug: { type: string }
+        body: { type: string }
+        section: { type: string, enum: [sobre, valores, horarios, contato, pastoral, historia] }
+        isPublished: { type: boolean }
+        sortOrder: { type: integer }
+        coverImageUrl: { type: string, nullable: true }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+      required: [id, title, slug, body, section, isPublished, sortOrder, createdAt, updatedAt]
+
+    PublicPagesListResponse:
+      type: object
+      properties:
+        pages:
+          type: array
+          items:
+            $ref: "#/components/schemas/InstitutionalPage"
+      required: [pages]
+
+    PagesListResponse:
+      type: object
+      properties:
+        pages:
+          type: array
+          items:
+            $ref: "#/components/schemas/InstitutionalPage"
+        total: { type: integer }
+      required: [pages, total]
+
+    CreatePageRequest:
+      type: object
+      properties:
+        title: { type: string }
+        body: { type: string }
+        section: { type: string, enum: [sobre, valores, horarios, contato, pastoral, historia] }
+        isPublished: { type: boolean }
+        sortOrder: { type: integer }
+        coverImageUrl: { type: string }
+      required: [title, body, section]
+
+    UpdatePageRequest:
+      type: object
+      properties:
+        title: { type: string }
+        body: { type: string }
+        section: { type: string, enum: [sobre, valores, horarios, contato, pastoral, historia] }
+        isPublished: { type: boolean }
+        sortOrder: { type: integer }
+        coverImageUrl: { type: string }
+
+    # ─── PIX ───────────────────────────────────────────────────────────────
+
+    PixConfig:
+      type: object
+      properties:
+        id: { type: string }
+        pixKey: { type: string }
+        pixKeyType: { type: string }
+        recipientName: { type: string }
+        city: { type: string }
+        isActive: { type: boolean }
+        createdAt: { type: string }
+      required: [id, pixKey, pixKeyType, recipientName, city, isActive, createdAt]
+
+    PixDonateInfo:
+      type: object
+      properties:
+        pixKey: { type: string }
+        recipientName: { type: string }
+        city: { type: string }
+      required: [pixKey, recipientName, city]
+
+    PixDonation:
+      type: object
+      properties:
+        id: { type: string }
+        amount: { type: number }
+        donorName: { type: string, nullable: true }
+        donorEmail: { type: string, nullable: true }
+        txId: { type: string }
+        status: { type: string, enum: [pendente, confirmado, expirado, cancelado] }
+        confirmedAt: { type: string, nullable: true }
+        createdAt: { type: string }
+      required: [id, amount, txId, status, createdAt]
+
+    PixDonationResponse:
+      type: object
+      properties:
+        id: { type: string }
+        txId: { type: string }
+        pixPayload: { type: string }
+      required: [id, txId, pixPayload]
+
+    PixDonationsListResponse:
+      type: object
+      properties:
+        donations:
+          type: array
+          items:
+            $ref: "#/components/schemas/PixDonation"
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+      required: [donations, total]
+
+    CreatePixConfigRequest:
+      type: object
+      properties:
+        pixKey: { type: string }
+        pixKeyType: { type: string }
+        recipientName: { type: string }
+        city: { type: string }
+      required: [pixKey, pixKeyType, recipientName, city]
+
+    UpdatePixConfigRequest:
+      type: object
+      properties:
+        pixKey: { type: string }
+        pixKeyType: { type: string }
+        recipientName: { type: string }
+        city: { type: string }
+
+    CreatePixDonationRequest:
+      type: object
+      properties:
+        amount: { type: number }
+        donorName: { type: string }
+        donorEmail: { type: string }
+      required: [amount]
+
+    # ─── NOTIFICATIONS ──────────────────────────────────────────────────────
+
+    Notification:
+      type: object
+      properties:
+        id: { type: string }
+        type: { type: string }
+        title: { type: string }
+        message: { type: string }
+        link: { type: string, nullable: true }
+        entityType: { type: string, nullable: true }
+        entityId: { type: string, nullable: true }
+        readAt: { type: string, nullable: true }
+        createdAt: { type: string }
+      required: [id, type, title, message]
+
+    NotificationsListResponse:
+      type: object
+      properties:
+        notifications:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notification"
+      required: [notifications]
+
+    UnreadCountResponse:
+      type: object
+      properties:
+        count: { type: integer }
+      required: [count]

@@ -2,7 +2,7 @@ import { Router, type IRouter, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import speakeasy from "speakeasy";
 import QRCode from "qrcode";
-import { db, usersTable, consentRecordsTable } from "@workspace/db";
+import { db, usersTable, consentRecordsTable, membersTable, memberHistoryTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { signToken } from "../lib/jwt.js";
 import { generateCsrfToken, validateCsrfToken } from "../lib/csrf.js";
@@ -70,6 +70,23 @@ router.post("/register", async (req: Request, res: Response) => {
     consentType: "terms_of_service",
     accepted: true,
     ipAddress: ip,
+  });
+
+  // Auto-create linked member record so the user can view/edit their profile
+  const [newMember] = await db.insert(membersTable).values({
+    fullName: name,
+    email: email.toLowerCase(),
+    status: "visitante" as const,
+    pipelineStage: "culto" as const,
+    createdByUserId: user.id,
+    updatedByUserId: user.id,
+  }).returning();
+
+  await db.insert(memberHistoryTable).values({
+    memberId: newMember.id,
+    changedByUserId: user.id,
+    changeType: "created",
+    fieldChanges: { fullName: name, email: email.toLowerCase(), autoCreated: true },
   });
 
   await createAuditLog({ userId: user.id, action: "USER_REGISTERED", resourceType: "user", resourceId: user.id, ipAddress: ip });

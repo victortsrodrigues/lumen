@@ -2,8 +2,14 @@ import { pgTable, text, timestamp, pgEnum, date } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const memberStatusEnum = pgEnum("member_status", ["ativo", "inativo", "transferido", "falecido"]);
-export const memberSexEnum = pgEnum("member_sex", ["masculino", "feminino", "outro"]);
+export const memberStatusEnum = pgEnum("member_status", ["visitante", "ativo", "inativo", "falecido"]);
+export const memberSexEnum = pgEnum("member_sex", ["masculino", "feminino"]);
+export const memberPipelineStageEnum = pgEnum("member_pipeline_stage", [
+  "culto", "pequeno_grupo", "ministerio",
+]);
+export const memberEnrollmentTypeEnum = pgEnum("member_enrollment_type", [
+  "batismo", "profissao_de_fe", "transferencia", "jurisdicao", "restauracao",
+]);
 
 export const membersTable = pgTable("members", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -32,8 +38,10 @@ export const membersTable = pgTable("members", {
 
   conversionDate: date("conversion_date"),
   baptismDate: date("baptism_date"),
+  enrollmentType: memberEnrollmentTypeEnum("enrollment_type"),
 
   status: memberStatusEnum("status").notNull().default("ativo"),
+  pipelineStage: memberPipelineStageEnum("pipeline_stage").notNull().default("culto"),
 
   // Object storage path for photo
   photoPath: text("photo_path"),
