@@ -1,3 +1,6 @@
+[variables]
+COREPACK_INTEGRITY_KEYS = "0"
+
 [phases.setup]
 nixPkgs = ["nodejs_20"]
 cmds = ["corepack enable", "corepack prepare pnpm@10.33.0 --activate"]
