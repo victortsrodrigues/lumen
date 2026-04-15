@@ -1,309 +1,385 @@
 # Deploy — Church Manager Core (LUMEN)
 
-Guia completo para configurar o ambiente de desenvolvimento em uma maquina nova, fazer deploy no Railway e manter o ciclo de desenvolvimento continuo.
+Guia passo a passo para publicar a aplicação no Railway. Escrito assumindo que **é a primeira vez que você faz deploy**. Nenhum conhecimento de DevOps necessário.
 
 ---
 
-## 1. Setup em maquina nova
+## O que você vai ter no final
 
-### Pre-requisitos
-
-Instalar antes de comecar:
-
-- **Node.js** 20+ — [nodejs.org](https://nodejs.org/)
-- **pnpm** 9+ — `npm install -g pnpm`
-- **Docker** — [docker.com](https://www.docker.com/)
-- **Git** — [git-scm.com](https://git-scm.com/)
-
-### Clonar e configurar
-
-```bash
-# 1. Clonar o repositorio
-git clone https://github.com/SEU_USUARIO/church-manager-core.git
-cd church-manager-core
-
-# 2. Instalar dependencias
-pnpm install
-
-# 3. Configurar variaveis de ambiente
-cp .env.example .env
-# Editar .env: trocar a porta do PostgreSQL para 5433 se necessario
-
-# 4. Subir o banco + aplicar schema
-docker compose up -d
-pnpm db:push
-
-# 5. Gerar hooks da API (codegen)
-pnpm --filter @workspace/api-spec run codegen
-
-# 6. Rodar
-pnpm dev
-```
-
-Acessar:
-- **Frontend:** http://localhost:5173
-- **Backend API:** http://localhost:3000
-- **Drizzle Studio:** `pnpm db:studio`
-
-### Criar usuario admin
-
-1. Registre-se pela tela de cadastro
-2. Promova para admin:
-```bash
-PGPASSWORD=church_erp psql -h localhost -p 5433 -U church_erp -d church_erp \
-  -c "UPDATE users SET role = 'admin' WHERE email = 'seu@email.com';"
-```
-
-### Popular com dados de demonstracao
-
-```bash
-pnpm db:seed
-```
-
-Logins de demo: `admin@igrejademo.com.br` / `Admin1234!`
+- App acessível numa URL pública (ex: `lumen-production.up.railway.app` ou domínio próprio)
+- Banco PostgreSQL gerenciado pelo Railway
+- HTTPS automático
+- Deploy automático toda vez que você der `git push`
+- Usuário admin pré-criado (`victadeu@gmail.com`) já na primeira subida
 
 ---
 
-## 2. Como funciona o deploy
+## Antes de começar — pré-requisitos
 
-```
-Desenvolve local → git push → Railway detecta → Build → Migrate DB → Start
-```
-
-### Arquitetura em producao
-
-Em producao, o Express serve tudo em uma unica porta:
-- `/api/*` → rotas da API (Express)
-- `/*` → frontend React (arquivos estaticos do Vite build)
-
-Nao precisa de Nginx. Um unico servico no Railway.
-
-### O que o Railway faz no deploy
-
-1. Detecta `nixpacks.toml` e instala Node + pnpm
-2. Roda `pnpm install`
-3. Roda codegen (gera hooks da API)
-4. Builda o frontend (`vite build`)
-5. Builda o backend (`esbuild`)
-6. No start: roda `pnpm db:push` (migra schema) + `node dist/index.cjs`
+- [x] Código já no GitHub → `git@github.com:victortsrodrigues/lumen.git` ✅
+- [x] Bootstrap admin implementado ✅
+- [ ] Conta no Railway (criamos no passo 1)
+- [ ] Cartão de crédito (internacional — o Railway cobra em USD. Nubank, Inter, C6 funcionam)
 
 ---
 
-## 3. Configurar o Railway (primeira vez)
+## Passo 1 — Criar conta no Railway
 
-### Passo 1 — Criar conta
+1. Abra https://railway.app/
+2. Clique em **Login** (canto superior direito)
+3. Escolha **Login with GitHub** — vai te redirecionar pro GitHub, autorize
+4. Depois de logar, você cai na tela **Dashboard** (vazia na primeira vez)
 
-1. Acesse [railway.app](https://railway.app/)
-2. Crie conta com GitHub
+### Passo 1.1 — Assinar o plano Hobby ($5/mês)
 
-### Passo 2 — Criar projeto
+Railway hoje exige um plano mesmo pra projetos pequenos. Para não ter surpresa:
 
-1. Clique em "New Project"
-2. Selecione "Deploy from GitHub repo"
-3. Conecte seu repositorio `church-manager-core`
-4. Railway detecta automaticamente o `nixpacks.toml`
+1. No canto superior direito, clique no seu **avatar** → **Account Settings**
+2. Menu esquerdo → **Plans**
+3. Clique em **Upgrade to Hobby** (card do meio, $5/mês)
+4. Informe o cartão de crédito
+5. Confirme
 
-### Passo 3 — Adicionar banco PostgreSQL
-
-1. No projeto, clique em "+ New" → "Database" → "PostgreSQL"
-2. Railway cria o banco e injeta a variavel `DATABASE_URL` automaticamente
-
-### Passo 4 — Configurar variaveis de ambiente
-
-No painel do servico, va em "Variables" e adicione:
-
-```
-NODE_ENV=production
-JWT_SECRET=<gerar com: openssl rand -hex 32>
-CSRF_SECRET=<gerar com: openssl rand -hex 32>
-FIELD_ENCRYPTION_KEY=<gerar com: openssl rand -hex 32>
-STORAGE_PROVIDER=local
-UPLOAD_DIR=/app/uploads
-```
-
-**IMPORTANTE:** `DATABASE_URL` e `PORT` sao injetados automaticamente pelo Railway. Nao adicione manualmente.
-
-**Como gerar as chaves:**
-```bash
-openssl rand -hex 32
-# Repita 3 vezes, uma para cada variavel
-```
-
-### Passo 5 — Deploy
-
-O deploy acontece automaticamente apos configurar as variaveis. Acompanhe os logs no painel.
-
-Se precisar forcar um re-deploy: "Settings" → "Redeploy"
-
-### Passo 6 — Dominio
-
-Railway gera uma URL automatica (ex: `church-manager-core-production.up.railway.app`).
-
-Para dominio customizado:
-1. Va em "Settings" → "Networking" → "Custom Domain"
-2. Adicione `erp.suaigreja.com.br`
-3. Configure o DNS do seu dominio com o CNAME que o Railway fornece
-4. Railway configura HTTPS automaticamente (Let's Encrypt)
+Pronto. Os $5 mensais vêm com $5 de créditos de uso inclusos. Volta pro Dashboard.
 
 ---
 
-## 4. Ciclo de desenvolvimento continuo
+## Passo 2 — Criar o projeto (conectar ao GitHub)
 
-### Fluxo diario
+1. No Dashboard, clique em **+ New Project** (botão roxo, canto superior)
+2. Aparece um menu, escolha **Deploy from GitHub repo**
+3. Se for a primeira vez, ele vai pedir pra **Configure GitHub App** — clique, abre o GitHub, autorize o Railway a acessar seus repos:
+   - Escolha **Only select repositories**
+   - Selecione **`victortsrodrigues/lumen`**
+   - Clique em **Install & Authorize**
+4. Volta pro Railway, agora aparece o repo `lumen` na lista — clique nele
+5. Pergunta "Do you want to deploy immediately?" — clique em **Deploy Now**
+
+> 🟡 **Importante:** o primeiro deploy **VAI FALHAR**. É esperado. O app precisa do banco e das env vars, que a gente ainda não configurou. Só ignore o erro e continue.
+
+---
+
+## Passo 3 — Adicionar o banco PostgreSQL
+
+Dentro do projeto recém-criado:
+
+1. Clique no botão **+ Create** (geralmente canto superior direito, dentro do projeto)
+2. Escolha **Database** → **Add PostgreSQL**
+3. Railway cria um serviço separado chamado **Postgres**. Já fica rodando, pronto pra uso.
+
+Agora você tem **2 serviços** no mesmo projeto:
+- **`lumen`** — seu backend+frontend
+- **`Postgres`** — o banco
+
+---
+
+## Passo 4 — Conectar o app ao banco
+
+O Railway **não conecta automaticamente**. Vamos apontar a `DATABASE_URL` do app pro Postgres:
+
+1. Clique no serviço **`lumen`** (o card do app)
+2. Aba **Variables** (no topo)
+3. Clique em **+ New Variable**
+4. **Name:** `DATABASE_URL`
+5. **Value:** clique no botão **Add Reference** (ícone de link) → selecione **`Postgres.DATABASE_URL`**
+   - Isso referencia dinamicamente a URL interna do banco (rede privada, de graça, sem sair pra internet)
+6. Clique em **Add**
+
+---
+
+## Passo 5 — Adicionar as demais variáveis de ambiente
+
+Ainda na aba **Variables** do serviço `lumen`, adicione estas variáveis (clique **+ New Variable** pra cada uma):
+
+### 5.1 — Gerar as chaves criptográficas
+
+No seu terminal local, rode:
 
 ```bash
-# 1. Desenvolve local
-pnpm dev
+openssl rand -hex 32    # cole isso como JWT_SECRET
+openssl rand -hex 32    # cole isso como CSRF_SECRET
+openssl rand -hex 32    # cole isso como FIELD_ENCRYPTION_KEY
+```
 
-# 2. Testa
-pnpm test:api          # 346 testes de API
-pnpm test:e2e          # 128 testes E2E (Playwright)
+Copie cada uma das 3 strings (64 caracteres hex) — você vai precisar delas.
 
-# 3. Commita e faz push
-git add .
-git commit -m "feat: descricao da mudanca"
+> ⚠️ **IMPORTANTE sobre `FIELD_ENCRYPTION_KEY`:** essa chave criptografa CPFs e telefones dos membros. **Se você trocar depois que tiver dados cadastrados, os dados ficam ilegíveis pra sempre.** Guarde essa chave num lugar seguro (ex: um gerenciador de senhas).
+
+### 5.2 — Cadastrar cada variável
+
+| Nome | Valor |
+|---|---|
+| `NODE_ENV` | `production` |
+| `JWT_SECRET` | (primeira chave gerada acima) |
+| `CSRF_SECRET` | (segunda chave gerada acima) |
+| `FIELD_ENCRYPTION_KEY` | (terceira chave gerada acima) |
+| `STORAGE_PROVIDER` | `local` |
+| `UPLOAD_DIR` | `/app/uploads` |
+| `BOOTSTRAP_ADMIN_EMAIL` | `victadeu@gmail.com` |
+| `BOOTSTRAP_ADMIN_PASSWORD` | `SenhaERP@` |
+| `BOOTSTRAP_ADMIN_NAME` | `Victor Tadeu` |
+
+> 🟢 `DATABASE_URL` e `PORT` são automáticos. Não mexer.
+
+### 5.3 — Salvar e redeployar
+
+Railway detecta que as variáveis mudaram e **redeploya sozinho**. Aguarde ~3 minutos. Acompanhe em:
+- Serviço `lumen` → aba **Deployments** → clique no deploy mais recente → **View Logs**
+
+No log, você vai ver:
+```
+Server listening  port: 3000
+Bootstrap: admin user created  email: victadeu@gmail.com
+```
+
+Se viu essa mensagem, o admin foi criado ✅
+
+---
+
+## Passo 6 — Expor o app pra internet (gerar URL pública)
+
+Por padrão, o serviço está rodando mas sem URL pública.
+
+1. No serviço `lumen`, aba **Settings**
+2. Seção **Networking**
+3. Clique em **Generate Domain**
+4. Aparece uma URL tipo `lumen-production-a1b2.up.railway.app` (pode demorar uns segundos pra ficar acessível)
+5. Clique na URL — deve abrir a tela de login do LUMEN
+
+### Teste o login
+
+- **E-mail:** `victadeu@gmail.com`
+- **Senha:** `SenhaERP@`
+
+Logou? 🎉 **Deploy concluído.**
+
+### 🔒 Segurança pós-primeiro-login
+
+Assim que entrar pela primeira vez:
+
+1. Troque a senha pelo menu do app (ou via `/profile`)
+2. **Remova `BOOTSTRAP_ADMIN_PASSWORD` do Railway** (aba Variables → ícone lixeira) — a senha já não é mais usada e deixar ela em env var é risco desnecessário
+3. Opcional: também pode remover `BOOTSTRAP_ADMIN_EMAIL` e `BOOTSTRAP_ADMIN_NAME`
+
+---
+
+## Passo 7 (opcional) — Domínio customizado
+
+Se você tem um domínio próprio (ex: `lumen.suaigreja.com.br`):
+
+1. Serviço `lumen` → **Settings** → **Networking** → **+ Custom Domain**
+2. Digite o domínio (ex: `lumen.suaigreja.com.br`)
+3. Railway mostra um registro **CNAME** que você precisa criar no seu provedor de DNS (Registro.br, GoDaddy, Cloudflare, etc)
+4. Crie o CNAME no painel do seu domínio, valor exatamente o que o Railway mostrou
+5. Aguarde propagar (5–30min). Railway emite HTTPS automaticamente via Let's Encrypt
+6. Quando aparecer verde ✅ no painel, já pode acessar pelo domínio custom
+
+---
+
+## Como funciona o deploy contínuo (dia a dia)
+
+Depois do primeiro deploy funcionar, o ciclo é:
+
+```bash
+# 1. Você edita código localmente
+# 2. Testa local com pnpm dev
+
+# 3. Commit + push
+git add -A
+git commit -m "descrição da mudança"
 git push
 
-# 4. Railway deploya automaticamente
-# Acompanhe em railway.app → Logs
+# 4. Railway detecta o push e deploya sozinho (~3min)
+# Acompanhe: Railway → seu projeto → lumen → Deployments
 ```
 
-### Adicionar nova funcionalidade
+Não precisa clicar em nada. `git push = deploy`.
 
-1. Criar schema em `lib/db/src/schema/`
-2. Exportar em `schema/index.ts`
-3. Criar rotas em `artifacts/api-server/src/routes/`
-4. Registrar em `routes/index.ts`
-5. Adicionar no OpenAPI (`lib/api-spec/openapi.yaml`)
-6. Rodar codegen: `pnpm --filter @workspace/api-spec run codegen`
-7. Criar paginas frontend em `artifacts/church-erp/src/pages/`
-8. Adicionar rotas no `App.tsx` + item no `Sidebar.tsx`
-9. Testar localmente
-10. `git push` → deploy automatico
+### Mudanças de schema do banco
 
-### Alterar schema do banco
+Toda vez que você altera algo em `lib/db/src/schema/*.ts`, no próximo deploy o comando `pnpm db:push` (dentro do start do Railway) aplica a mudança automaticamente.
 
-Mudancas no schema sao aplicadas automaticamente no deploy porque o start command roda `pnpm db:push` antes de iniciar o servidor.
-
-**CUIDADO:** Se remover uma coluna, os dados sao perdidos. Faca backup antes de mudancas destrutivas.
+**Cuidado com mudanças destrutivas** (drop column, rename, notNull sem default) — podem travar o deploy ou apagar dados. Em produção:
+- Sempre fazer backup antes
+- Adicionar colunas como nullable primeiro
+- Evitar renomear colunas (criar nova, migrar dados, dropar antiga)
 
 ---
 
-## 5. Variaveis de ambiente
+## Acessar o banco de dados
 
-| Variavel | Dev (local) | Producao (Railway) | Descricao |
-|---|---|---|---|
-| DATABASE_URL | `.env` local (porta 5433) | Injetado pelo Railway | Connection string PostgreSQL |
-| PORT | 3000 (fixo) | Injetado pelo Railway | Porta do servidor |
-| NODE_ENV | development | production | Modo de execucao |
-| JWT_SECRET | Valor de dev | `openssl rand -hex 32` | Chave para tokens JWT |
-| CSRF_SECRET | Valor de dev | `openssl rand -hex 32` | Chave para tokens CSRF |
-| FIELD_ENCRYPTION_KEY | Valor de dev | `openssl rand -hex 32` | Chave AES-256 para criptografia de PII |
-| STORAGE_PROVIDER | local | local | Tipo de storage |
-| UPLOAD_DIR | ./uploads | /app/uploads | Pasta de uploads |
+### Opção A — Painel visual do Railway
 
-**IMPORTANTE:** Se trocar `FIELD_ENCRYPTION_KEY` depois de ter dados cadastrados, CPFs e telefones ficam ilegiveis. Defina a chave **antes** de cadastrar dados reais.
+1. Projeto → serviço **Postgres** → aba **Data**
+2. Interface tipo TablePlus/pgAdmin, direto no browser
+3. Clica na tabela, vê/edita registros
 
----
+### Opção B — Cliente externo (TablePlus, DBeaver, pgAdmin)
 
-## 6. Backup
+1. Projeto → serviço **Postgres** → aba **Connect**
+2. Copie a **Public Network** connection string (formato `postgresql://...`)
+3. Cole no TablePlus/DBeaver → conecta direto
 
-### Banco de dados
-
-**Railway:** O PostgreSQL managed do Railway tem backups automaticos. Para backup manual:
+### Opção C — Drizzle Studio local (mesma UI do dev)
 
 ```bash
-# Exportar (substitua a URL pela do Railway)
-pg_dump "postgresql://USER:PASS@HOST:PORT/DB" > backup_$(date +%Y%m%d).sql
-
-# Importar
-psql "postgresql://USER:PASS@HOST:PORT/DB" < backup.sql
+DATABASE_URL="<connection-string-publica-do-railway>" pnpm db:studio
 ```
+Abre `localhost:4983` com a UI visual do Drizzle apontada pro banco de produção.
 
-A connection string esta nas variaveis do servico PostgreSQL no Railway.
+### Opção D — psql via linha de comando
 
-### Codigo
-
-O codigo esta no Git/GitHub. Qualquer maquina com Git pode clonar e continuar o desenvolvimento.
+```bash
+psql "<connection-string-publica>"
+```
 
 ---
 
-## 7. Rollback
+## Como fazer rollback (voltar pra versão anterior)
 
 Se um deploy quebrar:
 
-1. Va no Railway → Deployments
-2. Clique no deploy anterior (que funcionava)
-3. Clique em "Rollback"
+1. Serviço `lumen` → aba **Deployments**
+2. Encontre o último deploy que funcionou (ícone verde ✅)
+3. Clique nos 3 pontinhos → **Redeploy**
+4. Em ~1min ele reverte pra aquela versão
 
-O Railway reverte para a versao anterior imediatamente.
-
----
-
-## 8. Troubleshooting
-
-### Build falha no Railway
-
-**Erro:** `pnpm: command not found`
-**Solucao:** Verifique se `nixpacks.toml` tem `cmds = ["npm install -g pnpm@9"]` na fase setup.
-
-**Erro:** `Cannot find module`
-**Solucao:** Verifique se a dependencia esta no `allowlist` do `build.ts` ou nas `dependencies` do `package.json`.
-
-**Erro:** `ECONNREFUSED` no banco
-**Solucao:** Verifique se o PostgreSQL add-on esta ativo e se `DATABASE_URL` esta configurado nas variaveis.
-
-### Aplicacao nao carrega no browser
-
-**Erro:** Tela branca
-**Solucao:** Verifique se o frontend foi buildado (`artifacts/church-erp/dist/public/` existe). No Railway, veja os logs de build.
-
-**Erro:** 404 nas rotas do React
-**Solucao:** O SPA fallback em `app.ts` deve retornar `index.html` para todas as rotas nao-API. Verifique se `NODE_ENV=production` esta configurado.
-
-### Login nao funciona
-
-**Erro:** 500 no `/api/auth/login`
-**Solucao:** Verifique se `JWT_SECRET` e `CSRF_SECRET` estao configurados nas variaveis do Railway.
-
-### Dados criptografados ilegiveis
-
-**Causa:** `FIELD_ENCRYPTION_KEY` foi trocada apos cadastrar dados.
-**Solucao:** Nao ha solucao. Os dados antigos sao irrecuperaveis. Por isso, defina a chave antes de usar em producao e nunca troque.
+O banco **não é revertido** (dados persistem). Se a mudança que quebrou foi de schema, pode precisar de rollback manual via SQL.
 
 ---
 
-## 9. Comandos uteis
+## Backup do banco
+
+O Railway faz backups automáticos no plano Hobby. Para backup manual:
 
 ```bash
-# Desenvolvimento
-pnpm dev                    # Inicia backend + frontend
-pnpm dev:api                # Inicia apenas o backend
-pnpm dev:web                # Inicia apenas o frontend
-pnpm db:studio              # Interface visual do banco
-pnpm db:seed                # Popula com dados de demo
+# Exportar (use a URL pública da aba Connect do Postgres)
+pg_dump "<connection-string-publica>" > backup_$(date +%Y%m%d).sql
 
-# Build
-pnpm build                  # Builda tudo (typecheck + backend + frontend)
+# Restaurar (em outro ambiente)
+psql "<nova-url>" < backup_20260414.sql
+```
 
-# Testes
-pnpm test:api               # Testes de API (Vitest)
-pnpm test:e2e               # Testes E2E (Playwright)
-pnpm test:api:reset          # Limpa banco de testes
+Guarde os backups fora do Railway (Google Drive, Dropbox, S3).
 
-# Schema
-pnpm db:push                # Aplica mudancas no banco
-pnpm --filter @workspace/api-spec run codegen  # Regenera hooks da API
+---
+
+## Variáveis de ambiente — referência
+
+| Variável | Dev local | Produção Railway | Obrigatória? |
+|---|---|---|---|
+| `DATABASE_URL` | `.env` local | Referência ao Postgres do Railway | ✅ |
+| `PORT` | 3000 | Injetado pelo Railway | ✅ (automático) |
+| `NODE_ENV` | development | `production` | ✅ |
+| `JWT_SECRET` | dev value | 64 hex chars aleatórios | ✅ |
+| `CSRF_SECRET` | dev value | 64 hex chars aleatórios | ✅ |
+| `FIELD_ENCRYPTION_KEY` | dev value | 64 hex chars aleatórios (**imutável!**) | ✅ |
+| `STORAGE_PROVIDER` | local | `local` | ✅ |
+| `UPLOAD_DIR` | `./uploads` | `/app/uploads` | ✅ |
+| `BOOTSTRAP_ADMIN_EMAIL` | — | e-mail do admin inicial | Só 1º deploy |
+| `BOOTSTRAP_ADMIN_PASSWORD` | — | senha do admin inicial | Só 1º deploy |
+| `BOOTSTRAP_ADMIN_NAME` | — | nome do admin | Opcional |
+
+---
+
+## Troubleshooting comum
+
+### "Repository not found" ao conectar o GitHub
+Railway não tem acesso ao repo privado. Reinstale o Railway GitHub App e confirme acesso a `victortsrodrigues/lumen`.
+
+### Deploy build falha com "pnpm not found"
+Verifique se `nixpacks.toml` está na raiz com a linha `cmds = ["npm install -g pnpm@9"]` na fase setup.
+
+### Deploy build falha em "Cannot find module '@workspace/db'"
+Algum pacote do monorepo não está na allowlist do `artifacts/api-server/build.ts`. Rode `pnpm build` localmente, se passar, o Railway passa também.
+
+### App sobe mas retorna 500 em tudo
+Quase sempre é falta de env var. Confira `NODE_ENV=production`, `JWT_SECRET`, `CSRF_SECRET` setados. Veja os logs do deploy.
+
+### Tela branca / 404 em rotas
+O backend em produção serve o frontend estático. Se o build do frontend falhou, o `dist/public/` fica vazio. Veja os logs do passo "Build frontend" — procure erros do Vite.
+
+### Login retorna 500
+`JWT_SECRET` ou `CSRF_SECRET` não estão configurados ou mudaram. Redefine e faça redeploy.
+
+### "Invalid credentials" ao tentar logar como admin pela primeira vez
+Bootstrap não rodou. Verifique nos logs se apareceu `Bootstrap: admin user created`. Se não, confira se as 3 variáveis `BOOTSTRAP_ADMIN_*` estão setadas e faça um redeploy manual (Deployments → 3 pontinhos → Redeploy).
+
+### Dados criptografados ilegíveis depois de mudar `FIELD_ENCRYPTION_KEY`
+Sem solução. Nunca troque essa chave depois de cadastrar membros reais. Se trocou por engano, vai precisar zerar os campos criptografados (CPF, telefone) no banco e pedir pros membros cadastrarem de novo.
+
+---
+
+## Custo estimado por mês
+
+Para uma igreja de 50–300 membros, uso típico:
+
+| Item | Custo |
+|---|---|
+| Plano Hobby (commitment fixo) | $5.00 |
+| Uso extra (se passar dos $5 de crédito) | $0–5 |
+| **Total esperado** | **$5–10 USD/mês (~R$ 25–50)** |
+
+O Postgres fica ativo 24/7 (~$3), o app hiberna quando ocioso (~$1–2). Bem previsível.
+
+---
+
+## Setup local (para desenvolvimento futuro)
+
+Se você for trabalhar em outra máquina:
+
+```bash
+# Clonar
+git clone https://github.com/victortsrodrigues/lumen.git
+cd lumen
+
+# Pré-requisitos: Node 20+, pnpm 9+, Docker
+pnpm install
+
+# Banco local
+cp .env.example .env
+docker compose up -d
+pnpm db:push
+
+# Codegen + rodar
+pnpm --filter @workspace/api-spec run codegen
+pnpm dev
+```
+
+Acessos locais:
+- Frontend: http://localhost:5173
+- Backend: http://localhost:3000
+- Drizzle Studio: `pnpm db:studio` → http://localhost:4983
+
+### Criar admin local
+
+Defina `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD`, `BOOTSTRAP_ADMIN_NAME` no `.env` local (mesmo padrão do Railway). Reinicie o backend — admin é criado automaticamente.
+
+Ou popule com dados de demo:
+```bash
+pnpm db:seed
+# Login: admin@igrejademo.com.br / Admin1234!
 ```
 
 ---
 
-## 10. Custo estimado (Railway)
+## Comandos de referência rápida
 
-| Componente | Custo estimado |
-|---|---|
-| Servico (backend + frontend) | ~$5-7/mes |
-| PostgreSQL managed | ~$5-7/mes |
-| **Total** | **~$10-14/mes (~R$ 55-75)** |
+```bash
+# Dev
+pnpm dev                  # backend + frontend
+pnpm db:studio            # UI visual do banco
+pnpm db:push              # aplicar mudanças de schema
 
-O Railway cobra por uso (CPU + RAM + disco). Para uma igreja com 50-200 membros, o custo e minimo.
+# Build & test
+pnpm build                # build completo
+pnpm test:api             # testes de API (vitest)
+
+# Codegen (após mudar openapi.yaml)
+pnpm --filter @workspace/api-spec run codegen
+# ⚠️ remove manualmente a linha duplicada em lib/api-zod/src/index.ts
+
+# Git / deploy
+git add -A && git commit -m "..." && git push
+# ↑ Railway deploya automaticamente
+```
