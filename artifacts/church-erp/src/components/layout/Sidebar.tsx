@@ -64,7 +64,12 @@ const MENU_ITEMS = [
   },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  open?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ open = false, onClose }: SidebarProps = {}) {
   const [location] = useLocation();
   const { user, clearSession } = useAuth();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
@@ -97,7 +102,11 @@ export function Sidebar() {
   };
 
   return (
-    <div className="flex flex-col w-64 h-screen bg-[#0a0a0a] text-white transition-all duration-300 z-10">
+    <div className={cn(
+      "flex flex-col w-64 h-screen bg-[#0a0a0a] text-white transition-transform duration-300 z-40",
+      "fixed inset-y-0 left-0 md:static md:translate-x-0",
+      open ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+    )}>
       {/* Logo Area */}
       <div className="flex items-center h-16 px-6 border-b border-white/10">
         <img src="/lumen-symbol.svg" alt="LUMEN" className="w-7 h-7 mr-3" />

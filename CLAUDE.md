@@ -126,6 +126,7 @@ Componente `src/components/MemberSelect.tsx` — dropdown com busca por nome. Us
 - Query keys do Orval sao o path da API (`["/api/..."]`). Para invalidacao manual use `predicate: (q) => (q.queryKey[0] as string)?.startsWith?.("/api/...")`
 - **Hooks React** precisam vir antes de returns condicionais. Se precisar bloquear pagina por role, fazer a checagem apos todos os hooks: `if (isMember) return <Access denied />;`
 - Apos mudar OpenAPI: `pnpm --filter @workspace/api-spec run codegen`
+- Mobile-first: grids com 2+ colunas comecam em `grid-cols-1` e escalam em `sm:`/`md:`. Sidebar usa drawer em `<md` controlado pelo `AppLayout` (state `sidebarOpen`)
 - **Codegen sobrescreve `lib/api-zod/src/index.ts`** adicionando `export * from "./generated/types"` — remover essa linha toda vez (causa erros de export duplicado)
 
 ### Banco de dados

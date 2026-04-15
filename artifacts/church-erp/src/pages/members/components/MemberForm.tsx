@@ -221,7 +221,7 @@ export default function MemberForm({ initialData, isEditing = false }: MemberFor
                 {errors.fullName && <p className="text-xs text-destructive">{errors.fullName.message}</p>}
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">CPF</label>
                   <input
@@ -256,7 +256,7 @@ export default function MemberForm({ initialData, isEditing = false }: MemberFor
               <MapPin className="w-5 h-5 mr-2 text-primary" />
               <h3 className="font-semibold text-foreground">Contato e Endereço</h3>
             </div>
-            <div className="p-6 grid grid-cols-2 gap-4">
+            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">Telefone</label>
                 <input {...register('phone')} placeholder="(00) 00000-0000" className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
@@ -321,7 +321,7 @@ export default function MemberForm({ initialData, isEditing = false }: MemberFor
               <ShieldCheck className="w-5 h-5 mr-2 text-primary" />
               <h3 className="font-semibold text-foreground">Informações Eclesiásticas</h3>
             </div>
-            <div className="p-6 grid grid-cols-2 gap-4">
+            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">Status do Membro</label>
                 <select {...register('status')} className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all appearance-none font-medium">

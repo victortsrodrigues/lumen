@@ -491,7 +491,7 @@ export default function EventsPage() {
                 <label className="text-sm font-medium">Descrição</label>
                 <textarea {...form.register("description")} rows={3} className="w-full mt-1 px-3 py-2 border rounded-lg bg-background" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium">Tipo *</label>
                   <select {...form.register("type")} className="w-full mt-1 px-3 py-2 border rounded-lg bg-background">
@@ -505,7 +505,7 @@ export default function EventsPage() {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium">Início *</label>
                   <input type="datetime-local" {...form.register("startDate")} className="w-full mt-1 px-3 py-2 border rounded-lg bg-background" />
@@ -515,7 +515,7 @@ export default function EventsPage() {
                   <input type="datetime-local" {...form.register("endDate")} className="w-full mt-1 px-3 py-2 border rounded-lg bg-background" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium">Local</label>
                   <input {...form.register("location")} className="w-full mt-1 px-3 py-2 border rounded-lg bg-background" placeholder="Ex: Templo Principal" />
