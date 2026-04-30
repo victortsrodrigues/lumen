@@ -74,49 +74,137 @@ router.get("/summary", requireAuth, requireRole("admin", "leader"), async (_req:
     .where(isNull(planningInitiativesTable.deletedAt));
 
   const byStatus: Record<string, number> = {};
+  const byType: Record<string, number> = {};
+  const byPriority: Record<string, number> = {};
+  const byTypeBudget: Record<string, { planned: number; realized: number; count: number }> = {};
   let totalPlanned = 0;
   let overdueCount = 0;
+  let withoutResponsible = 0;
   const now = new Date();
+  const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+  type InitiativeRow = typeof initiatives[number];
+  const overdueList: InitiativeRow[] = [];
+  const upcomingList: InitiativeRow[] = [];
 
   for (const i of initiatives) {
     byStatus[i.status] = (byStatus[i.status] || 0) + 1;
+    byType[i.type] = (byType[i.type] || 0) + 1;
+    byPriority[i.priority] = (byPriority[i.priority] || 0) + 1;
+    if (!byTypeBudget[i.type]) byTypeBudget[i.type] = { planned: 0, realized: 0, count: 0 };
+    byTypeBudget[i.type].count++;
+    byTypeBudget[i.type].planned += parseFloat(i.plannedBudget || "0");
     totalPlanned += parseFloat(i.plannedBudget || "0");
-    if (i.endDate && new Date(i.endDate) < now && i.status !== "concluida" && i.status !== "cancelada") {
-      overdueCount++;
+
+    if (!i.responsibleId && i.status !== "concluida" && i.status !== "cancelada") withoutResponsible++;
+
+    if (i.endDate && i.status !== "concluida" && i.status !== "cancelada") {
+      const end = new Date(i.endDate);
+      if (end < now) {
+        overdueCount++;
+        overdueList.push(i);
+      } else if (end <= in30Days) {
+        upcomingList.push(i);
+      }
     }
   }
 
-  // Total realized cost
-  const [{ total: totalRealized }] = await db.select({ total: sum(financeExpensesTable.amount) })
-    .from(financeExpensesTable)
-    .where(and(
-      isNull(financeExpensesTable.deletedAt),
-      eq(financeExpensesTable.initiativeId, planningInitiativesTable.id),
-    )).catch(() => [{ total: null }]);
-
-  // Simpler approach: sum all expenses with non-null initiativeId
-  const expensesWithInitiative = await db.select({ total: sum(financeExpensesTable.amount) })
-    .from(financeExpensesTable)
-    .where(and(
-      isNull(financeExpensesTable.deletedAt),
-      // initiativeId IS NOT NULL
-    ));
-
-  // Get actual realized from expenses linked to initiatives
+  // Realized expenses linked to initiatives — single pass, by type
   let realizedTotal = 0;
   const allExpenses = await db.select().from(financeExpensesTable)
     .where(isNull(financeExpensesTable.deletedAt));
+  const initiativeTypeMap = new Map(initiatives.map(i => [i.id, i.type]));
   for (const e of allExpenses) {
-    if (e.initiativeId) realizedTotal += parseFloat(e.amount || "0");
+    if (!e.initiativeId) continue;
+    const amt = parseFloat(e.amount || "0");
+    realizedTotal += amt;
+    const t = initiativeTypeMap.get(e.initiativeId);
+    if (t && byTypeBudget[t]) byTypeBudget[t].realized += amt;
   }
 
+  // Monthly evolution (last 6 months: created vs completed)
+  const monthly: Array<{ month: string; created: number; completed: number }> = [];
+  for (let m = 5; m >= 0; m--) {
+    const ref = new Date(now.getFullYear(), now.getMonth() - m, 1);
+    const next = new Date(now.getFullYear(), now.getMonth() - m + 1, 1);
+    const monthKey = `${ref.getFullYear()}-${String(ref.getMonth() + 1).padStart(2, "0")}`;
+    let created = 0, completed = 0;
+    for (const i of initiatives) {
+      const cAt = i.createdAt ? new Date(i.createdAt) : null;
+      const compAt = i.completedAt ? new Date(i.completedAt) : null;
+      if (cAt && cAt >= ref && cAt < next) created++;
+      if (compAt && compAt >= ref && compAt < next) completed++;
+    }
+    monthly.push({ month: monthKey, created, completed });
+  }
+
+  // Directives progress
+  const directives = await db.select().from(strategicDirectivesTable)
+    .where(isNull(strategicDirectivesTable.deletedAt));
+  const objectives = await db.select().from(strategicObjectivesTable)
+    .where(isNull(strategicObjectivesTable.deletedAt));
+  const objectivesByDir = new Map<string, string[]>();
+  for (const o of objectives) {
+    const arr = objectivesByDir.get(o.directiveId) || [];
+    arr.push(o.id);
+    objectivesByDir.set(o.directiveId, arr);
+  }
+  const directivesProgress = directives.map(d => {
+    const objIds = new Set(objectivesByDir.get(d.id) || []);
+    const linked = initiatives.filter(i => i.objectiveId && objIds.has(i.objectiveId));
+    const total = linked.length;
+    const completed = linked.filter(i => i.status === "concluida").length;
+    return {
+      id: d.id,
+      title: d.title,
+      startYear: d.startYear,
+      endYear: d.endYear,
+      status: d.status,
+      totalInitiatives: total,
+      completedInitiatives: completed,
+      progress: total > 0 ? Math.round((completed / total) * 100) : 0,
+    };
+  });
+
   const activeCount = (byStatus.planejada || 0) + (byStatus.aprovada || 0) + (byStatus.em_andamento || 0);
+  const completedCount = byStatus.concluida || 0;
+  const completionRate = initiatives.length > 0 ? Math.round((completedCount / initiatives.length) * 100) : 0;
+
+  // Serialize lists (top 5 each, ordered)
+  const slimItem = (i: InitiativeRow) => ({
+    id: i.id,
+    title: i.title,
+    type: i.type,
+    priority: i.priority,
+    status: i.status,
+    endDate: i.endDate,
+    responsibleName: i.responsibleName,
+    plannedBudget: i.plannedBudget,
+  });
+  overdueList.sort((a, b) => new Date(a.endDate!).getTime() - new Date(b.endDate!).getTime());
+  upcomingList.sort((a, b) => new Date(a.endDate!).getTime() - new Date(b.endDate!).getTime());
 
   res.json({
     totalInitiatives: initiatives.length,
     activeInitiatives: activeCount,
+    completedInitiatives: completedCount,
+    completionRate,
     overdueInitiatives: overdueCount,
+    upcomingInitiatives: upcomingList.length,
+    withoutResponsible,
     byStatus,
+    byType,
+    byPriority,
+    byTypeBudget: Object.entries(byTypeBudget).map(([type, v]) => ({
+      type,
+      count: v.count,
+      planned: v.planned.toFixed(2),
+      realized: v.realized.toFixed(2),
+    })),
+    monthly,
+    overdueTop: overdueList.slice(0, 5).map(slimItem),
+    upcomingTop: upcomingList.slice(0, 5).map(slimItem),
+    directivesProgress,
     totalPlannedBudget: totalPlanned.toFixed(2),
     totalRealizedCost: realizedTotal.toFixed(2),
   });
