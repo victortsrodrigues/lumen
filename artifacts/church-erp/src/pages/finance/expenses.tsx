@@ -6,6 +6,7 @@ import {
   useDeleteFinanceExpense 
 } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { CurrencyInput } from "@/components/CurrencyInput";
 import { format } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -308,8 +309,12 @@ export default function FinanceExpenses() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-sm font-medium text-foreground">Valor (R$) *</label>
-              <input type="number" inputMode="decimal" step="0.01" {...form.register("amount")} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary/20 outline-none transition-all font-mono" placeholder="0.00" />
+              <label className="text-sm font-medium text-foreground">Valor *</label>
+              <CurrencyInput
+                value={form.watch("amount") as any}
+                onChange={(v) => form.setValue("amount", v as any, { shouldValidate: true })}
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary/20 outline-none transition-all font-mono"
+              />
               {form.formState.errors.amount && <p className="text-xs text-destructive">{form.formState.errors.amount.message}</p>}
             </div>
             <div className="space-y-1">

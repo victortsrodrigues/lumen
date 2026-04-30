@@ -7,13 +7,21 @@ interface MemberSelectProps {
   onChange: (memberId: string, memberName: string) => void;
   placeholder?: string;
   excludeIds?: string[];
+  /** Nome a ser exibido quando o componente já recebe um value (modo edição). */
+  initialName?: string;
 }
 
-export function MemberSelect({ value, onChange, placeholder = "Buscar membro por nome...", excludeIds = [] }: MemberSelectProps) {
+export function MemberSelect({ value, onChange, placeholder = "Buscar membro por nome...", excludeIds = [], initialName = "" }: MemberSelectProps) {
   const [search, setSearch] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedName, setSelectedName] = useState("");
+  const [selectedName, setSelectedName] = useState(initialName);
   const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Keep selectedName in sync when initialName prop changes (e.g. async load)
+  useEffect(() => {
+    if (initialName && !selectedName) setSelectedName(initialName);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialName]);
 
   const { data, isLoading } = useListMembers(
     { search, limit: 10, page: 1 },

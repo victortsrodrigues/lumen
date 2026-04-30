@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useGetPixDonateInfo, useCreatePixDonation } from "@workspace/api-client-react";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Loader2, Copy, Check, Heart } from "lucide-react";
+import { CurrencyInput } from "@/components/CurrencyInput";
 
 export default function DonatePage() {
   const { data: pixInfo, isLoading: loadingInfo } = useGetPixDonateInfo();
@@ -84,17 +85,12 @@ export default function DonatePage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1.5">
-                Valor (R$) <span className="text-destructive">*</span>
+                Valor <span className="text-destructive">*</span>
               </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0.01"
-                required
+              <CurrencyInput
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0,00"
-                className="w-full rounded-lg border bg-background px-4 py-2.5 text-lg font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+                onChange={setAmount}
+                className="w-full rounded-lg border bg-background pl-10 pr-4 py-2.5 text-lg font-medium focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 

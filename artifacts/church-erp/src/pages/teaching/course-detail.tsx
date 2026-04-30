@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { MediaSection } from "@/components/MediaSection";
+import { MemberSelect } from "@/components/MemberSelect";
 
 const CATEGORIES: Record<string, string> = {
   ebd: "EBD", discipulado: "Discipulado", seminario: "Seminário",
@@ -486,8 +487,10 @@ export default function CourseDetailPage() {
             <div className="p-6 border-b"><h2 className="text-lg font-bold">Inscrever Aluno</h2></div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="text-sm font-medium">ID do Membro</label>
-                <input value={enrollMemberId} onChange={e => setEnrollMemberId(e.target.value)} className="w-full mt-1 px-3 py-2 border rounded-lg bg-background" placeholder="ID do membro" />
+                <label className="text-sm font-medium">Membro</label>
+                <div className="mt-1">
+                  <MemberSelect value={enrollMemberId} onChange={(id) => setEnrollMemberId(id)} />
+                </div>
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t">
                 <button onClick={() => setShowEnrollModal(false)} className="px-4 py-2 border rounded-lg text-sm">Cancelar</button>

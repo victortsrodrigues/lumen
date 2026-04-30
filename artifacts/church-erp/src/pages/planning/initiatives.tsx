@@ -8,6 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth-context";
 import { Target, Plus, Loader2, X, Trash2, Check, Clock, AlertTriangle } from "lucide-react";
+import { MemberSelect } from "@/components/MemberSelect";
+import { CurrencyInput } from "@/components/CurrencyInput";
 
 const TYPE_LABELS: Record<string, string> = {
   aquisicao: "Aquisição", reforma: "Reforma", campanha: "Campanha",
@@ -39,7 +41,7 @@ export default function InitiativesPage() {
 
   const [form, setForm] = useState({
     title: "", description: "", type: "outro", priority: "media",
-    plannedBudget: "", startDate: "", endDate: "", responsibleId: "", notes: "",
+    plannedBudget: "", startDate: "", endDate: "", responsibleId: "", responsibleName: "", notes: "",
   });
 
   const { data, isLoading } = useListInitiatives({
@@ -50,7 +52,7 @@ export default function InitiativesPage() {
 
   const { data: detailData } = useGetInitiativeDetail(selectedId!, { query: { enabled: !!selectedId } });
 
-  const createMut = useCreateInitiative({ mutation: { onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/planning/initiatives"] }); toast({ title: "Sucesso", description: "Iniciativa criada." }); setShowCreate(false); setForm({ title: "", description: "", type: "outro", priority: "media", plannedBudget: "", startDate: "", endDate: "", responsibleId: "", notes: "" }); } } });
+  const createMut = useCreateInitiative({ mutation: { onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/planning/initiatives"] }); toast({ title: "Sucesso", description: "Iniciativa criada." }); setShowCreate(false); setForm({ title: "", description: "", type: "outro", priority: "media", plannedBudget: "", startDate: "", endDate: "", responsibleId: "", responsibleName: "", notes: "" }); } } });
   const updateMut = useUpdateInitiative({ mutation: { onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/planning/initiatives"] }); qc.invalidateQueries({ queryKey: ["/api/planning/initiatives"] }); toast({ title: "Sucesso", description: "Atualizado." }); } } });
   const deleteMut = useDeleteInitiative({ mutation: { onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/planning/initiatives"] }); setSelectedId(null); toast({ title: "Sucesso", description: "Removida." }); } } });
   const addStepMut = useAddInitiativeStep({ mutation: { onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/planning/initiatives"] }); setNewStepTitle(""); } } });
@@ -222,18 +224,32 @@ export default function InitiativesPage() {
                 </div>
               </div>
               {isAdmin && (
-                <div><label className="text-sm font-medium">Orçamento Previsto (R$)</label><input type="number" inputMode="decimal" step="0.01" value={form.plannedBudget} onChange={e => setForm(f => ({ ...f, plannedBudget: e.target.value }))} className="w-full mt-1 px-3 py-2 border rounded-lg bg-background text-sm" /></div>
+                <div>
+                  <label className="text-sm font-medium">Orçamento Previsto</label>
+                  <div className="mt-1">
+                    <CurrencyInput value={form.plannedBudget} onChange={(v) => setForm(f => ({ ...f, plannedBudget: v }))} />
+                  </div>
+                </div>
               )}
               <div className="grid grid-cols-2 gap-3">
                 <div><label className="text-sm font-medium">Início</label><input type="date" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} className="w-full mt-1 px-3 py-2 border rounded-lg bg-background text-sm" /></div>
                 <div><label className="text-sm font-medium">Prazo</label><input type="date" value={form.endDate} onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))} className="w-full mt-1 px-3 py-2 border rounded-lg bg-background text-sm" /></div>
               </div>
-              <div><label className="text-sm font-medium">ID do Responsável</label><input value={form.responsibleId} onChange={e => setForm(f => ({ ...f, responsibleId: e.target.value }))} className="w-full mt-1 px-3 py-2 border rounded-lg bg-background text-sm" /></div>
+              <div>
+                <label className="text-sm font-medium">Responsável</label>
+                <div className="mt-1">
+                  <MemberSelect
+                    value={form.responsibleId}
+                    initialName={form.responsibleName}
+                    onChange={(id, name) => setForm(f => ({ ...f, responsibleId: id, responsibleName: name }))}
+                  />
+                </div>
+              </div>
               <div><label className="text-sm font-medium">Observações</label><textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="w-full mt-1 px-3 py-2 border rounded-lg bg-background text-sm" rows={2} /></div>
             </div>
             <div className="p-6 border-t flex justify-end gap-3">
               <button onClick={() => setShowCreate(false)} className="px-4 py-2 border rounded-lg text-sm">Cancelar</button>
-              <button onClick={() => { const payload: any = { ...form }; if (!payload.plannedBudget) delete payload.plannedBudget; if (!payload.startDate) delete payload.startDate; if (!payload.endDate) delete payload.endDate; if (!payload.responsibleId) delete payload.responsibleId; if (!payload.notes) delete payload.notes; createMut.mutate({ data: payload }); }} disabled={!form.title.trim() || createMut.isPending} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm disabled:opacity-50 flex items-center gap-2">{createMut.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Criar</button>
+              <button onClick={() => { const { responsibleName: _responsibleName, ...rest } = form; const payload: any = { ...rest }; if (!payload.plannedBudget) delete payload.plannedBudget; if (!payload.startDate) delete payload.startDate; if (!payload.endDate) delete payload.endDate; if (!payload.responsibleId) delete payload.responsibleId; if (!payload.notes) delete payload.notes; createMut.mutate({ data: payload }); }} disabled={!form.title.trim() || createMut.isPending} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm disabled:opacity-50 flex items-center gap-2">{createMut.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Criar</button>
             </div>
           </div>
         </div>

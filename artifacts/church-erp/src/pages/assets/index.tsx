@@ -10,6 +10,8 @@ import { useAuth } from "@/hooks/use-auth-context";
 import {
   Package, Plus, Loader2, X, Trash2, Edit2, Search,
 } from "lucide-react";
+import { MemberSelect } from "@/components/MemberSelect";
+import { CurrencyInput } from "@/components/CurrencyInput";
 
 const CATEGORY_LABELS: Record<string, string> = {
   instrumento: "Instrumento", som_iluminacao: "Som/Iluminação",
@@ -31,7 +33,7 @@ const STATUS_COLORS: Record<string, string> = {
 const EMPTY_FORM = {
   name: "", description: "", category: "outro", acquisitionDate: "",
   acquisitionValue: "", currentValue: "", serialNumber: "", location: "",
-  responsibleId: "", status: "ativo", notes: "",
+  responsibleId: "", responsibleName: "", status: "ativo", notes: "",
 };
 
 export default function AssetsPage() {
@@ -117,6 +119,7 @@ export default function AssetsPage() {
       acquisitionDate: a.acquisitionDate || "", acquisitionValue: a.acquisitionValue || "",
       currentValue: a.currentValue || "", serialNumber: a.serialNumber || "",
       location: a.location || "", responsibleId: a.responsibleId || "",
+      responsibleName: a.responsibleName || "",
       status: a.status || "ativo", notes: a.notes || "",
     });
     setEditingId(a.id);
@@ -126,7 +129,8 @@ export default function AssetsPage() {
 
   const handleSave = () => {
     if (!form.name.trim() || !form.location.trim()) return;
-    const payload = { ...form } as any;
+    const { responsibleName: _rn, ...rest } = form;
+    const payload = { ...rest } as any;
     if (!payload.acquisitionDate) delete payload.acquisitionDate;
     if (!payload.acquisitionValue) delete payload.acquisitionValue;
     if (!payload.currentValue) delete payload.currentValue;
@@ -312,19 +316,29 @@ export default function AssetsPage() {
                   <input value={form.serialNumber} onChange={(e) => setForm(f => ({ ...f, serialNumber: e.target.value }))} className="w-full mt-1 px-3 py-2 border rounded-lg bg-background text-sm" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-sm font-medium">Valor Aquisição (R$)</label>
-                  <input type="number" inputMode="decimal" step="0.01" value={form.acquisitionValue} onChange={(e) => setForm(f => ({ ...f, acquisitionValue: e.target.value }))} className="w-full mt-1 px-3 py-2 border rounded-lg bg-background text-sm" />
+                  <label className="text-sm font-medium">Valor Aquisição</label>
+                  <div className="mt-1">
+                    <CurrencyInput value={form.acquisitionValue} onChange={(v) => setForm(f => ({ ...f, acquisitionValue: v }))} />
+                  </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Valor Atual (R$)</label>
-                  <input type="number" inputMode="decimal" step="0.01" value={form.currentValue} onChange={(e) => setForm(f => ({ ...f, currentValue: e.target.value }))} className="w-full mt-1 px-3 py-2 border rounded-lg bg-background text-sm" />
+                  <label className="text-sm font-medium">Valor Atual</label>
+                  <div className="mt-1">
+                    <CurrencyInput value={form.currentValue} onChange={(v) => setForm(f => ({ ...f, currentValue: v }))} />
+                  </div>
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium">ID do Responsável</label>
-                <input value={form.responsibleId} onChange={(e) => setForm(f => ({ ...f, responsibleId: e.target.value }))} className="w-full mt-1 px-3 py-2 border rounded-lg bg-background text-sm" placeholder="ID do membro responsável" />
+                <label className="text-sm font-medium">Responsável</label>
+                <div className="mt-1">
+                  <MemberSelect
+                    value={form.responsibleId}
+                    initialName={form.responsibleName}
+                    onChange={(id, name) => setForm(f => ({ ...f, responsibleId: id, responsibleName: name }))}
+                  />
+                </div>
               </div>
               <div>
                 <label className="text-sm font-medium">Observações</label>

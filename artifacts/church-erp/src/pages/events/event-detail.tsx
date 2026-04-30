@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import { MediaSection } from "@/components/MediaSection";
+import { MemberSelect } from "@/components/MemberSelect";
 import {
   Calendar, MapPin, Clock, Users, UserPlus,
   Loader2, Trash2, Check, X, Save, CalendarCheck, Plus
@@ -388,8 +389,10 @@ export default function EventDetailPage() {
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium">ID do Membro</label>
-                <input value={scheduleMemberId} onChange={e => setScheduleMemberId(e.target.value)} className="w-full mt-1 px-3 py-2 border rounded-lg bg-background" placeholder="ID do membro" />
+                <label className="text-sm font-medium">Membro</label>
+                <div className="mt-1">
+                  <MemberSelect value={scheduleMemberId} onChange={(id) => setScheduleMemberId(id)} />
+                </div>
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t">
                 <button onClick={() => setShowScheduleModal(false)} className="px-4 py-2 border rounded-lg text-sm">Cancelar</button>
@@ -413,8 +416,10 @@ export default function EventDetailPage() {
             <div className="p-6 border-b"><h2 className="text-lg font-bold">Inscrever no Evento</h2></div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="text-sm font-medium">ID do Membro</label>
-                <input value={enrollMemberId} onChange={e => setEnrollMemberId(e.target.value)} className="w-full mt-1 px-3 py-2 border rounded-lg bg-background" placeholder="ID do membro" />
+                <label className="text-sm font-medium">Membro</label>
+                <div className="mt-1">
+                  <MemberSelect value={enrollMemberId} onChange={(id) => setEnrollMemberId(id)} />
+                </div>
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t">
                 <button onClick={() => setShowEnrollModal(false)} className="px-4 py-2 border rounded-lg text-sm">Cancelar</button>
