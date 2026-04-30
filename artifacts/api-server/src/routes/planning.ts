@@ -11,6 +11,7 @@ import {
 import { eq, and, isNull, count, sum, desc, lt } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middlewares/auth.js";
 import { createAuditLog } from "../lib/audit.js";
+import { notifyMember } from "../lib/notifications.js";
 
 const router: IRouter = Router();
 
@@ -351,6 +352,18 @@ router.post("/initiatives", requireAuth, requireRole("admin"), async (req: Reque
   }).returning();
 
   await createAuditLog({ userId: user.userId, action: "INITIATIVE_CREATED", resourceType: "initiative", resourceId: i.id, details: { title: i.title, type, priority }, ipAddress: getIp(req) });
+
+  if (i.responsibleId) {
+    await notifyMember(i.responsibleId, {
+      type: "initiative.assigned",
+      title: "Você é responsável por uma iniciativa",
+      message: `Você foi designado responsável por "${i.title}".`,
+      link: `/planning/initiatives`,
+      entityType: "initiative",
+      entityId: i.id,
+    });
+  }
+
   res.status(201).json(serializeInitiative(i));
 });
 
@@ -393,6 +406,19 @@ router.put("/initiatives/:id", requireAuth, requireRole("admin", "leader"), asyn
 
   const action = status && status !== existing.status ? "INITIATIVE_STATUS_CHANGED" : "INITIATIVE_UPDATED";
   await createAuditLog({ userId: user.userId, action, resourceType: "initiative", resourceId: id, details: { title: updated.title, status }, ipAddress: getIp(req) });
+
+  // Notify when the responsible changes (or is set for the first time)
+  if (updated.responsibleId && updated.responsibleId !== existing.responsibleId) {
+    await notifyMember(updated.responsibleId, {
+      type: "initiative.assigned",
+      title: "Você é responsável por uma iniciativa",
+      message: `Você foi designado responsável por "${updated.title}".`,
+      link: `/planning/initiatives`,
+      entityType: "initiative",
+      entityId: updated.id,
+    });
+  }
+
   res.json(serializeInitiative(updated));
 });
 

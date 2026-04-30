@@ -1,4 +1,4 @@
-import { db, notificationsTable, usersTable } from "@workspace/db";
+import { db, notificationsTable, usersTable, membersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { logger } from "./logger.js";
 
@@ -32,6 +32,34 @@ export async function createNotification(args: CreateNotificationArgs): Promise<
     });
   } catch (err) {
     logger.error({ err, args }, "Failed to create notification");
+  }
+}
+
+/**
+ * Notify a member by their member ID, looking up the linked user via email.
+ * Returns true if the user was found and notified, false otherwise.
+ *
+ * Use whenever someone is "assigned" to something (responsable, counselor,
+ * pastor, scheduled volunteer, course teacher, etc).
+ */
+export async function notifyMember(
+  memberId: string,
+  args: Omit<CreateNotificationArgs, "userId">,
+): Promise<boolean> {
+  try {
+    const [member] = await db.select({ email: membersTable.email })
+      .from(membersTable).where(eq(membersTable.id, memberId)).limit(1);
+    if (!member?.email) return false;
+
+    const [user] = await db.select({ id: usersTable.id })
+      .from(usersTable).where(eq(usersTable.email, member.email)).limit(1);
+    if (!user) return false;
+
+    await createNotification({ ...args, userId: user.id });
+    return true;
+  } catch (err) {
+    logger.error({ err, memberId, args }, "Failed to notify member");
+    return false;
   }
 }
 

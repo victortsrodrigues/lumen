@@ -3,6 +3,7 @@ import { db, assetsTable, membersTable } from "@workspace/db";
 import { eq, and, isNull, count, ilike, or, sql } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middlewares/auth.js";
 import { createAuditLog } from "../lib/audit.js";
+import { notifyMember } from "../lib/notifications.js";
 
 const router: IRouter = Router();
 
@@ -176,6 +177,17 @@ router.post("/", requireAuth, requireRole("admin"), async (req: Request, res: Re
     ipAddress: getIp(req),
   });
 
+  if (asset.responsibleId) {
+    await notifyMember(asset.responsibleId, {
+      type: "asset.assigned",
+      title: "Você é responsável por um patrimônio",
+      message: `Você foi designado responsável por "${asset.name}".`,
+      link: `/assets`,
+      entityType: "asset",
+      entityId: asset.id,
+    });
+  }
+
   res.status(201).json(serializeAsset(asset));
 });
 
@@ -242,6 +254,17 @@ router.put("/:id", requireAuth, requireRole("admin"), async (req: Request, res: 
     details: { name: updated.name },
     ipAddress: getIp(req),
   });
+
+  if (updated.responsibleId && updated.responsibleId !== existing.responsibleId) {
+    await notifyMember(updated.responsibleId, {
+      type: "asset.assigned",
+      title: "Você é responsável por um patrimônio",
+      message: `Você foi designado responsável por "${updated.name}".`,
+      link: `/assets`,
+      entityType: "asset",
+      entityId: updated.id,
+    });
+  }
 
   res.json(serializeAsset(updated));
 });

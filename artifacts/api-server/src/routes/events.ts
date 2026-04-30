@@ -11,7 +11,7 @@ import {
 import { eq, desc, and, isNull, gte, lte, count, asc } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middlewares/auth.js";
 import { createAuditLog } from "../lib/audit.js";
-import { notifyAllUsers } from "../lib/notifications.js";
+import { notifyAllUsers, notifyMember } from "../lib/notifications.js";
 
 const router: IRouter = Router();
 
@@ -629,6 +629,16 @@ router.post("/:eventId/schedule", requireAuth, requireRole("admin", "leader"), a
     resourceId: schedule.id,
     details: { eventId, serviceRoleId, memberId, roleName: role.name },
     ipAddress: ip,
+  });
+
+  const eventDate = event.startDate?.toLocaleDateString("pt-BR") ?? "";
+  await notifyMember(memberId, {
+    type: "schedule.assigned",
+    title: "Você foi escalado",
+    message: `Você foi escalado como ${role.name} em "${event.title}" — ${eventDate}.`,
+    link: `/events/${eventId}`,
+    entityType: "event_schedule",
+    entityId: schedule.id,
   });
 
   res.status(201).json(serializeSchedule(schedule, role.name));
