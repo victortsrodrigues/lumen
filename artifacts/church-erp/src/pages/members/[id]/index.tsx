@@ -100,7 +100,7 @@ export default function MemberProfile() {
 
   if (isLoading) {
     return (
-      <AppLayout breadcrumbs={[{ label: "Membros", href: "/members" }, { label: member?.fullName || "Membro" }]}>
+      <AppLayout breadcrumbs={[{ label: "Rol de Membros", href: "/members" }, { label: member?.fullName || "Membro" }]}>
         <div className="flex justify-center py-32"><Loader2 className="w-10 h-10 animate-spin text-primary" /></div>
       </AppLayout>
     );
@@ -108,7 +108,7 @@ export default function MemberProfile() {
 
   if (isError || !member) {
     return (
-      <AppLayout breadcrumbs={[{ label: "Membros", href: "/members" }, { label: member?.fullName || "Membro" }]}>
+      <AppLayout breadcrumbs={[{ label: "Rol de Membros", href: "/members" }, { label: member?.fullName || "Membro" }]}>
         <div className="bg-destructive/10 text-destructive p-6 rounded-xl border border-destructive/20 text-center">
           Membro não encontrado ou acesso negado.
         </div>
@@ -120,7 +120,7 @@ export default function MemberProfile() {
   const canDelete = user?.role === 'admin';
 
   return (
-    <AppLayout breadcrumbs={[{ label: "Membros", href: "/members" }, { label: member?.fullName || "Membro" }]}>
+    <AppLayout breadcrumbs={[{ label: "Rol de Membros", href: "/members" }, { label: member?.fullName || "Membro" }]}>
       {/* Header Profile */}
       <div className="bg-card rounded-3xl border border-border shadow-sm p-6 sm:p-8 mb-8 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-r from-primary/20 to-primary/5"></div>
@@ -217,8 +217,12 @@ export default function MemberProfile() {
                   <p className="font-medium text-foreground capitalize">{member.sex || '-'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Família</p>
-                  <p className="font-medium text-foreground">{member.familyName || '-'}</p>
+                  <p className="text-sm text-muted-foreground mb-1">Classificação</p>
+                  <p className="font-medium text-foreground">
+                    {(member as any).classification === 'comungante' ? 'Comungante'
+                      : (member as any).classification === 'nao_comungante' ? 'Não Comungante'
+                      : '-'}
+                  </p>
                 </div>
               </div>
             </div>
@@ -235,9 +239,9 @@ export default function MemberProfile() {
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Data de Batismo</p>
+                  <p className="text-sm text-muted-foreground mb-1">Data de Recepção</p>
                   <p className="font-medium text-foreground">
-                    {member.baptismDate ? format(new Date(member.baptismDate), "dd/MM/yyyy") : '-'}
+                    {(member as any).receptionDate ? format(new Date((member as any).receptionDate), "dd/MM/yyyy") : '-'}
                   </p>
                 </div>
               </div>

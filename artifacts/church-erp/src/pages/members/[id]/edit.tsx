@@ -19,7 +19,7 @@ export default function EditMember() {
   }
 
   return (
-    <AppLayout breadcrumbs={[{ label: "Membros", href: "/members" }, ...(member ? [{ label: member.fullName, href: `/members/${id}` }, { label: "Editar" }] : [{ label: "Editar" }])]}>
+    <AppLayout breadcrumbs={[{ label: "Rol de Membros", href: "/members" }, ...(member ? [{ label: member.fullName, href: `/members/${id}` }, { label: "Editar" }] : [{ label: "Editar" }])]}>
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20 bg-card rounded-2xl border border-border shadow-sm">
           <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />

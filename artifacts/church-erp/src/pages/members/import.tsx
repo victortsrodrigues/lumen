@@ -105,7 +105,7 @@ export default function ImportMembers() {
   };
 
   return (
-    <AppLayout breadcrumbs={[{ label: "Membros", href: "/members" }, { label: "Importar" }]}>
+    <AppLayout breadcrumbs={[{ label: "Rol de Membros", href: "/members" }, { label: "Importar" }]}>
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-display font-bold text-foreground">Importação em Massa</h2>

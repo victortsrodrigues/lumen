@@ -14,7 +14,16 @@ import { useState } from "react";
 const MENU_ITEMS = [
   { icon: Home, label: "Dashboard", href: "/" },
   { icon: User, label: "Meu Perfil", href: "/profile", roles: ["leader", "member"] },
-  { icon: Users, label: "Membros", href: "/members", roles: ["admin"] },
+  {
+    icon: Users,
+    label: "Rol de Membros",
+    href: "/members",
+    roles: ["admin"],
+    subItems: [
+      { icon: Users, label: "Membros", href: "/members" },
+      { icon: UsersRound, label: "Agrupamentos", href: "/members/groups" },
+    ],
+  },
   {
     icon: DollarSign,
     label: "Financeiro",
@@ -76,6 +85,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps = {}) {
     "/finance": location.startsWith("/finance"),
     "/teaching": location.startsWith("/teaching"),
     "/lgpd": location.startsWith("/lgpd"),
+    "/members": location.startsWith("/members"),
   });
 
   // Expand sidebar menus based on current location

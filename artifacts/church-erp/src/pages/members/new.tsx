@@ -11,7 +11,7 @@ export default function NewMember() {
   }
 
   return (
-    <AppLayout breadcrumbs={[{ label: "Membros", href: "/members" }, { label: "Novo Membro" }]}>
+    <AppLayout breadcrumbs={[{ label: "Rol de Membros", href: "/members" }, { label: "Novo Membro" }]}>
       <MemberForm />
     </AppLayout>
   );

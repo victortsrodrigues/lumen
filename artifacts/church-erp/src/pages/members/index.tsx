@@ -55,6 +55,7 @@ export default function MembersList() {
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ListMembersStatus | undefined>(undefined);
+  const [classificationFilter, setClassificationFilter] = useState<string>('');
   
   const [cpfRevealDialog, setCpfRevealDialog] = useState<{ isOpen: boolean; memberId: string | null; memberName: string; revealedCpf: string | null; isLoading: boolean }>({
     isOpen: false,
@@ -78,7 +79,8 @@ export default function MembersList() {
     limit,
     search: searchQuery || undefined,
     status: statusFilter,
-  }, {
+    ...(classificationFilter ? { classification: classificationFilter as any } : {}),
+  } as any, {
     query: {
       enabled: user?.role === 'admin' || user?.role === 'leader',
       retry: 1
@@ -115,19 +117,23 @@ export default function MembersList() {
   const getStatusStyle = (status: string) => {
     switch(status) {
       case 'ativo': return 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300 border-green-200 dark:border-green-500/30';
-      case 'inativo': return 'bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-300 border-slate-200 dark:border-slate-500/30';
-      case 'visitante': return 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300 border-orange-200 dark:border-orange-500/30';
+      case 'disciplina': return 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 border-amber-200 dark:border-amber-500/30';
+      case 'rol_apartado': return 'bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-300 border-slate-200 dark:border-slate-500/30';
       case 'falecido': return 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300 border-purple-200 dark:border-purple-500/30';
+      case 'demitido': return 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300 border-red-200 dark:border-red-500/30';
       default: return 'bg-gray-100 text-gray-700';
     }
   };
+
+  const getStatusLabel = (status: string) => status === 'rol_apartado' ? 'Rol Apartado' : status;
+  const getClassificationLabel = (c?: string) => c === 'comungante' ? 'Comungante' : c === 'nao_comungante' ? 'Não Comungante' : '—';
 
   const members = data?.members || [];
   const total = data?.total || 0;
   const totalPages = Math.ceil(total / limit);
 
   return (
-    <AppLayout breadcrumbs={[{ label: "Membros" }]}>
+    <AppLayout breadcrumbs={[{ label: "Rol de Membros" }]}>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h2 className="text-2xl font-display font-bold text-foreground flex items-center">
@@ -174,13 +180,23 @@ export default function MembersList() {
                 setStatusFilter(e.target.value ? e.target.value as ListMembersStatus : undefined);
                 setPage(1);
               }}
-              className="px-4 py-2.5 rounded-xl bg-background border border-border text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 w-full sm:w-48 appearance-none transition-all"
+              className="px-4 py-2.5 rounded-xl bg-background border border-border text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 w-full sm:w-44 appearance-none transition-all"
             >
               <option value="">Todos os Status</option>
-              <option value="visitante">Visitante</option>
               <option value="ativo">Ativo</option>
-              <option value="inativo">Inativo</option>
+              <option value="disciplina">Disciplina</option>
+              <option value="rol_apartado">Rol Apartado</option>
               <option value="falecido">Falecido</option>
+              <option value="demitido">Demitido</option>
+            </select>
+            <select
+              value={classificationFilter}
+              onChange={(e) => { setClassificationFilter(e.target.value); setPage(1); }}
+              className="px-4 py-2.5 rounded-xl bg-background border border-border text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 w-full sm:w-44 appearance-none transition-all"
+            >
+              <option value="">Todas Classificações</option>
+              <option value="comungante">Comungante</option>
+              <option value="nao_comungante">Não Comungante</option>
             </select>
           </div>
         </div>
@@ -197,7 +213,7 @@ export default function MembersList() {
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4">CPF</th>
                 <th className="px-6 py-4">Contato</th>
-                <th className="px-6 py-4">Família</th>
+                <th className="px-6 py-4">Classificação</th>
                 <th className="px-6 py-4 text-right">Ações</th>
               </tr>
             </thead>
@@ -245,7 +261,7 @@ export default function MembersList() {
                     </td>
                     <td className="px-6 py-4">
                       <span className={cn("inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold capitalize border", getStatusStyle(member.status))}>
-                        {member.status}
+                        {getStatusLabel(member.status)}
                       </span>
                       {(member as any).pipelineStage && (
                         <span className={cn("ml-1.5 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium", {
@@ -275,13 +291,12 @@ export default function MembersList() {
                       {member.email || '-'}
                     </td>
                     <td className="px-6 py-4">
-                      {member.familyName ? (
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
-                          {member.familyName}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
+                      <span className={cn("inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium",
+                        (member as any).classification === 'comungante'
+                          ? "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300"
+                          : "bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300")}>
+                        {getClassificationLabel((member as any).classification)}
+                      </span>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <Link 

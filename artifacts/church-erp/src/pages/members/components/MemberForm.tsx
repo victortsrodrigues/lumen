@@ -15,6 +15,10 @@ import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, UploadCloud, MapPin, User, Save, ShieldCheck } from 'lucide-react';
 
+const COMMUNING_RECEPTION_MODES = ["profissao_fe", "profissao_fe_batismo", "carta_transferencia", "jurisdicao_pedido", "jurisdicao_ex_officio", "restauracao"] as const;
+const NON_COMMUNING_RECEPTION_MODES = ["batismo_infantil", "transferencia_menor", "arrolamento_menor"] as const;
+const ALL_RECEPTION_MODES = [...COMMUNING_RECEPTION_MODES, ...NON_COMMUNING_RECEPTION_MODES] as const;
+
 const formSchema = z.object({
   fullName: z.string().min(3, 'Nome completo é obrigatório'),
   cpf: z.string().optional(),
@@ -29,12 +33,17 @@ const formSchema = z.object({
   addressNeighborhood: z.string().optional(),
   addressCity: z.string().optional(),
   addressState: z.string().optional(),
+  classification: z.enum(['comungante', 'nao_comungante']).default('comungante'),
+  receptionMode: z.union([z.enum(ALL_RECEPTION_MODES), z.literal('')]).optional().transform(v => v === '' ? undefined : v),
+  receptionDate: z.string().optional(),
   conversionDate: z.string().optional(),
-  baptismDate: z.string().optional(),
-  enrollmentType: z.union([z.enum(['batismo', 'profissao_de_fe', 'transferencia', 'jurisdicao', 'restauracao']), z.literal('')]).optional().transform(v => v === '' ? undefined : v),
-  status: z.enum(['visitante', 'ativo', 'inativo', 'falecido']).default('ativo'),
-  familyId: z.string().optional(),
-  familyName: z.string().optional(),
+  conversionYear: z.union([z.string(), z.number(), z.literal('')]).optional().transform(v => v === '' || v === undefined ? undefined : Number(v)),
+  religiousOrigin: z.string().optional(),
+  parentsOrGuardians: z.string().optional(),
+  maritalStatus: z.union([z.enum(['solteiro', 'casado', 'viuvo', 'divorciado', 'uniao_estavel']), z.literal('')]).optional().transform(v => v === '' ? undefined : v),
+  academicEducation: z.string().optional(),
+  profession: z.string().optional(),
+  status: z.enum(['ativo', 'disciplina', 'rol_apartado', 'falecido', 'demitido']).default('ativo'),
   lgpdConsentAccepted: z.boolean().default(false),
 });
 
@@ -76,10 +85,16 @@ export default function MemberForm({ initialData, isEditing = false }: MemberFor
       addressCity: initialData?.addressCity || '',
       addressState: initialData?.addressState || '',
       conversionDate: initialData?.conversionDate ? initialData.conversionDate.split('T')[0] : '',
-      baptismDate: initialData?.baptismDate ? initialData.baptismDate.split('T')[0] : '',
-      enrollmentType: (initialData as any)?.enrollmentType || '',
+      classification: ((initialData as any)?.classification || 'comungante') as any,
+      receptionMode: ((initialData as any)?.receptionMode || '') as any,
+      receptionDate: (initialData as any)?.receptionDate ? (initialData as any).receptionDate.split('T')[0] : '',
+      conversionYear: (initialData as any)?.conversionYear || undefined,
+      religiousOrigin: (initialData as any)?.religiousOrigin || '',
+      parentsOrGuardians: (initialData as any)?.parentsOrGuardians || '',
+      maritalStatus: ((initialData as any)?.maritalStatus || '') as any,
+      academicEducation: (initialData as any)?.academicEducation || '',
+      profession: (initialData as any)?.profession || '',
       status: initialData?.status as any || 'ativo',
-      familyName: initialData?.familyName || '',
       lgpdConsentAccepted: isEditing ? true : false,
     }
   });
@@ -323,39 +338,90 @@ export default function MemberForm({ initialData, isEditing = false }: MemberFor
             </div>
             <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Classificação *</label>
+                <select {...register('classification')} className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all appearance-none font-medium">
+                  <option value="comungante">Comungante</option>
+                  <option value="nao_comungante">Não Comungante</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">Status do Membro</label>
                 <select {...register('status')} className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all appearance-none font-medium">
-                  <option value="visitante">Visitante</option>
                   <option value="ativo">Ativo</option>
-                  <option value="inativo">Inativo</option>
+                  <option value="disciplina">Disciplina</option>
+                  <option value="rol_apartado">Rol Apartado</option>
                   <option value="falecido">Falecido</option>
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Tipo de Arrolamento</label>
-                <select {...register('enrollmentType')} className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all appearance-none">
+              <div className="space-y-2 sm:col-span-2">
+                <label className="text-sm font-medium text-foreground">Modo de Recepção</label>
+                <select {...register('receptionMode')} className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all appearance-none">
                   <option value="">Selecione...</option>
-                  <option value="batismo">Batismo</option>
-                  <option value="profissao_de_fe">Profissão de Fé</option>
-                  <option value="transferencia">Transferência</option>
-                  <option value="jurisdicao">Jurisdição</option>
-                  <option value="restauracao">Restauração</option>
+                  {watch('classification') === 'comungante' ? (
+                    <>
+                      <option value="profissao_fe">Profissão de Fé</option>
+                      <option value="profissao_fe_batismo">Profissão de Fé e Batismo</option>
+                      <option value="carta_transferencia">Carta de Transferência</option>
+                      <option value="jurisdicao_pedido">Jurisdição a Pedido</option>
+                      <option value="jurisdicao_ex_officio">Jurisdição ex officio</option>
+                      <option value="restauracao">Restauração</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="batismo_infantil">Batismo Infantil</option>
+                      <option value="transferencia_menor">Transferência (menor)</option>
+                      <option value="arrolamento_menor">Arrolamento (menor)</option>
+                    </>
+                  )}
                 </select>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Data de Arrolamento</label>
-                <input type="date" {...register('conversionDate')} className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+                <label className="text-sm font-medium text-foreground">Data de Recepção</label>
+                <input type="date" {...register('receptionDate')} className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Data de Batismo</label>
-                <input type="date" {...register('baptismDate')} className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+                <label className="text-sm font-medium text-foreground">Data de Conversão</label>
+                <input type="date" {...register('conversionDate')} className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
               </div>
 
-              <div className="space-y-2 col-span-2">
-                <label className="text-sm font-medium text-foreground">Família (Agrupamento)</label>
-                <input {...register('familyName')} placeholder="Ex: Família Silva" className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Ano de Conversão</label>
+                <input type="number" min="1900" max="2100" {...register('conversionYear')} placeholder="Ex: 2010" className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Procedência Religiosa</label>
+                <input {...register('religiousOrigin')} placeholder="Ex: Igreja Batista" className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+              </div>
+
+              {watch('classification') === 'nao_comungante' && (
+                <div className="space-y-2 sm:col-span-2">
+                  <label className="text-sm font-medium text-foreground">Pais ou Responsáveis</label>
+                  <input {...register('parentsOrGuardians')} placeholder="Nome dos pais ou responsáveis" className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Estado Civil</label>
+                <select {...register('maritalStatus')} className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all appearance-none">
+                  <option value="">Selecione...</option>
+                  <option value="solteiro">Solteiro(a)</option>
+                  <option value="casado">Casado(a)</option>
+                  <option value="viuvo">Viúvo(a)</option>
+                  <option value="divorciado">Divorciado(a)</option>
+                  <option value="uniao_estavel">União Estável</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Profissão</label>
+                <input {...register('profession')} placeholder="Ex: Engenheiro" className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+              </div>
+
+              <div className="space-y-2 sm:col-span-2">
+                <label className="text-sm font-medium text-foreground">Formação Acadêmica</label>
+                <input {...register('academicEducation')} placeholder="Ex: Bacharel em Computação" className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
               </div>
             </div>
           </div>
