@@ -22,6 +22,7 @@ import NewMember from "./pages/members/new";
 import MemberProfile from "./pages/members/[id]";
 import EditMember from "./pages/members/[id]/edit";
 import ImportMembers from "./pages/members/import";
+import MemberGroupsPage from "./pages/members/groups";
 
 // Finance Module
 import FinanceDashboard from "./pages/finance";
@@ -158,11 +159,12 @@ function Router() {
       <Route path="/audit-logs" component={AuditLogs} />
       
       {/* Members Module */}
-      <Route path="/members" component={MembersList} />
       <Route path="/members/new" component={NewMember} />
       <Route path="/members/import" component={ImportMembers} />
+      <Route path="/members/groups" component={MemberGroupsPage} />
       <Route path="/members/:id/edit" component={EditMember} />
       <Route path="/members/:id" component={MemberProfile} />
+      <Route path="/members" component={MembersList} />
 
       {/* Finance Module */}
       <Route path="/finance" component={FinanceDashboard} />
