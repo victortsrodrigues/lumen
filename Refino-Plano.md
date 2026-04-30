@@ -164,7 +164,7 @@ Para cada fase, repetir o ciclo:
 
 ## Status global
 
-- [ ] Fase 1 — Rol de Membros
+- [x] Fase 1 — Rol de Membros _(commits dfe1866, ac7f0c6, fc9cc82, c9dac3a)_
 - [ ] Fase 2 — Visitantes
 - [ ] Fase 3 — Mapa de Discipulado
 - [ ] Fase 4 — Ensino e Pregação
