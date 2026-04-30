@@ -107,7 +107,10 @@ await notifyRole("admin", {
 Helpers falham silenciosamente — notificacoes nunca quebram o fluxo principal. Frontend: `<NotificationBell />` no Header com polling a cada 30s.
 
 ### MemberSelect
-Componente `src/components/MemberSelect.tsx` — dropdown com busca por nome. Usar em todo form que precisa de ID de membro (professor, responsavel, etc). Integrar com react-hook-form via `Controller`.
+Componente `src/components/MemberSelect.tsx` — dropdown com busca por nome. **Sempre usar** em campo que precise de ID de membro (responsavel, professor, escala, inscricao, etc) — nunca pedir ID cru ao usuario. Aceita `initialName` para mostrar o nome na edicao sem refetch.
+
+### CurrencyInput
+Componente `src/components/CurrencyInput.tsx` — input mascarado "R$ 1.234,56" enquanto digita. Internamente em centavos, emite decimal string ("1234.56") pronta pra API. **Sempre usar** em campo monetario — nunca `<input type="number">` para valor. Integra com react-hook-form via `form.watch("amount")` + `form.setValue("amount", v)`.
 
 ## Convencoes
 
