@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/hooks/use-auth-context';
-import { useGetMember, useGetMemberHistory, useRevealMemberCpf, useDeleteMember, useMoveMemberPipeline, useGetMemberPipelineHistory } from '@workspace/api-client-react';
+import { useGetMember, useGetMemberHistory, useRevealMemberCpf, useDeleteMember, useMoveMemberPipeline, useGetMemberPipelineHistory, useRevertMemberExclusion } from '@workspace/api-client-react';
+import { ExclusionModal } from '../components/ExclusionModal';
+import { TransferLetterModal } from '../components/TransferLetterModal';
 import { Redirect, useParams, Link, useLocation } from 'wouter';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Loader2, User, Edit, Trash2, Calendar, MapPin,
-  Phone, Mail, Heart, Activity, Clock, ShieldCheck, Eye
+  Phone, Mail, Heart, Activity, Clock, ShieldCheck, Eye, AlertTriangle, FileText, Undo2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -28,6 +30,10 @@ export default function MemberProfile() {
   const [showPipelineModal, setShowPipelineModal] = useState(false);
   const [newStage, setNewStage] = useState("");
   const [stageReason, setStageReason] = useState("");
+  const [showExclusionModal, setShowExclusionModal] = useState(false);
+  const [showTransferLetterModal, setShowTransferLetterModal] = useState(false);
+
+  const revertExclusion = useRevertMemberExclusion();
 
   const { data: member, isLoading, isError } = useGetMember(id, {
     query: { enabled: !!id }
@@ -91,11 +97,24 @@ export default function MemberProfile() {
   const getStatusStyle = (status: string) => {
     switch(status) {
       case 'ativo': return 'bg-green-100 text-green-700 border-green-200';
-      case 'inativo': return 'bg-slate-100 text-slate-700 border-slate-200';
-      case 'visitante': return 'bg-orange-100 text-orange-700 border-orange-200';
+      case 'disciplina': return 'bg-amber-100 text-amber-700 border-amber-200';
+      case 'rol_apartado': return 'bg-slate-100 text-slate-700 border-slate-200';
       case 'falecido': return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'demitido': return 'bg-red-100 text-red-700 border-red-200';
       default: return 'bg-gray-100 text-gray-700';
     }
+  };
+  const getStatusLabel = (status: string) => status === 'rol_apartado' ? 'Rol Apartado' : status;
+  const EXCLUSION_REASON_LABELS: Record<string, string> = {
+    transferencia: "Transferência",
+    falecimento: "Falecimento",
+    exclusao_pedido: "Exclusão a Pedido",
+    exclusao_disciplina: "Exclusão por Disciplina",
+    exclusao_abandono: "Exclusão por Abandono",
+    ordenacao_ministerio: "Ordenação ao Ministério",
+    transferencia_responsaveis: "Transferência (responsáveis)",
+    profissao_fe_migracao: "Profissão de Fé (migração)",
+    exclusao_abandono_responsaveis: "Abandono dos Responsáveis",
   };
 
   if (isLoading) {
@@ -138,7 +157,10 @@ export default function MemberProfile() {
             <div className="flex flex-wrap items-center gap-3 mb-1">
               <h1 className="text-3xl font-display font-bold text-foreground">{member.fullName}</h1>
               <span className={cn("px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border", getStatusStyle(member.status))}>
-                {member.status}
+                {getStatusLabel(member.status)}
+              </span>
+              <span className="px-3 py-1 rounded-full text-xs font-medium border bg-cyan-50 text-cyan-800 border-cyan-200">
+                {(member as any).classification === 'comungante' ? 'Comungante' : 'Não Comungante'}
               </span>
             </div>
             <p className="text-muted-foreground flex items-center gap-2">
@@ -147,15 +169,24 @@ export default function MemberProfile() {
           </div>
 
           {canEdit && (
-            <div className="flex items-center gap-3 w-full sm:w-auto mt-4 sm:mt-0">
-              <Link href={`/members/${id}/edit`} className="flex-1 sm:flex-none flex items-center justify-center px-5 py-2.5 rounded-xl font-medium text-sm bg-secondary hover:bg-secondary/80 text-foreground transition-all">
+            <div className="flex items-center gap-3 w-full sm:w-auto mt-4 sm:mt-0 flex-wrap">
+              <Link href={`/members/${id}/edit`} className="flex items-center justify-center px-5 py-2.5 rounded-xl font-medium text-sm bg-secondary hover:bg-secondary/80 text-foreground transition-all">
                 <Edit className="w-4 h-4 mr-2" /> Editar
               </Link>
+              {canDelete && member.status !== 'demitido' && (
+                <button
+                  onClick={() => setShowExclusionModal(true)}
+                  className="flex items-center justify-center px-4 py-2.5 rounded-xl font-medium text-sm border border-amber-300 text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-all"
+                  title="Registrar exclusão"
+                >
+                  <AlertTriangle className="w-4 h-4 mr-2" /> Registrar Exclusão
+                </button>
+              )}
               {canDelete && (
-                <button 
+                <button
                   onClick={() => setDeleteDialogOpen(true)}
                   className="p-2.5 rounded-xl text-destructive hover:bg-destructive/10 transition-colors border border-transparent hover:border-destructive/20"
-                  title="Excluir membro"
+                  title="Anonimizar (LGPD)"
                 >
                   <Trash2 className="w-5 h-5" />
                 </button>
@@ -164,6 +195,56 @@ export default function MemberProfile() {
           )}
         </div>
       </div>
+
+      {/* Exclusion banner (visible when demitido) */}
+      {member.status === 'demitido' && (member as any).exclusionReason && (
+        <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-2xl p-5 mb-6 flex items-start gap-4 flex-wrap">
+          <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-red-900 dark:text-red-200">
+              Membro excluído — {EXCLUSION_REASON_LABELS[(member as any).exclusionReason] || (member as any).exclusionReason}
+            </p>
+            {(member as any).exclusionDate && (
+              <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                Em {format(new Date((member as any).exclusionDate), "dd/MM/yyyy")}
+              </p>
+            )}
+            {(member as any).exclusionNotes && (
+              <p className="text-sm text-red-700 dark:text-red-300 mt-2 italic">"{(member as any).exclusionNotes}"</p>
+            )}
+            {(member as any).exclusionLetterPath && (
+              <a
+                href={`/api/storage${(member as any).exclusionLetterPath}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-sm text-red-700 dark:text-red-300 hover:underline mt-2"
+              >
+                <FileText className="w-4 h-4" /> Baixar carta de transferência
+              </a>
+            )}
+          </div>
+          {canDelete && (
+            <div className="flex flex-col gap-2 shrink-0">
+              {(member as any).exclusionReason === 'transferencia' && !(member as any).exclusionLetterPath && (
+                <button
+                  onClick={() => setShowTransferLetterModal(true)}
+                  className="flex items-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-xl text-sm hover:opacity-90"
+                >
+                  <FileText className="w-4 h-4" /> Gerar carta
+                </button>
+              )}
+              <button
+                onClick={() => revertExclusion.mutate({ id })}
+                disabled={revertExclusion.isPending}
+                className="flex items-center gap-2 px-3 py-2 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 rounded-xl text-sm hover:bg-red-100 dark:hover:bg-red-950/30 disabled:opacity-50"
+              >
+                {revertExclusion.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Undo2 className="w-4 h-4" />}
+                Reverter
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex items-center gap-6 border-b border-border mb-8 px-2">
@@ -431,6 +512,30 @@ export default function MemberProfile() {
             </div>
           </div>
         </div>
+      )}
+
+      {showExclusionModal && (
+        <ExclusionModal
+          memberId={id}
+          memberName={member.fullName}
+          classification={((member as any).classification || 'comungante') as 'comungante' | 'nao_comungante'}
+          onClose={() => setShowExclusionModal(false)}
+          onTransferSuccess={() => {
+            setShowExclusionModal(false);
+            setShowTransferLetterModal(true);
+          }}
+        />
+      )}
+
+      {showTransferLetterModal && (
+        <TransferLetterModal
+          memberId={id}
+          memberName={member.fullName}
+          receptionMode={(member as any).receptionMode || null}
+          receptionDate={(member as any).receptionDate || null}
+          classification={(member as any).classification || 'comungante'}
+          onClose={() => setShowTransferLetterModal(false)}
+        />
       )}
     </AppLayout>
   );
