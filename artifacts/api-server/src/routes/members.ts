@@ -1,7 +1,11 @@
 import { Router, type IRouter, Request, Response } from "express";
-import { db, membersTable, memberHistoryTable, consentRecordsTable, financeEntriesTable, courseEnrollmentsTable, eventRegistrationsTable, ministryMembersTable, ministriesTable, assetsTable, eventSchedulesTable, planningInitiativesTable, memberPipelineHistoryTable, usersTable } from "@workspace/db";
-import { gte } from "drizzle-orm";
-import { eq, desc, or, ilike, and, sql, count, isNull } from "drizzle-orm";
+import {
+  db, membersTable, memberHistoryTable, consentRecordsTable, financeEntriesTable,
+  courseEnrollmentsTable, eventRegistrationsTable, ministryMembersTable, ministriesTable,
+  assetsTable, eventSchedulesTable, planningInitiativesTable, memberPipelineHistoryTable,
+  usersTable, memberChildrenTable, memberGroupsTable, memberGroupMembersTable,
+} from "@workspace/db";
+import { eq, desc, ilike, and, count, isNull, inArray, or } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middlewares/auth.js";
 import { createAuditLog } from "../lib/audit.js";
 import {
@@ -17,6 +21,49 @@ function getIp(req: Request): string {
   return req.socket?.remoteAddress ?? "unknown";
 }
 
+// ─── ENUMS / VALIDATIONS ────────────────────────────────────────────────────
+
+const VALID_PIPELINE_STAGES = ["culto", "pequeno_grupo", "ministerio"] as const;
+
+const COMMUNING_RECEPTION_MODES = [
+  "profissao_fe", "profissao_fe_batismo", "carta_transferencia",
+  "jurisdicao_pedido", "jurisdicao_ex_officio", "restauracao",
+] as const;
+const NON_COMMUNING_RECEPTION_MODES = [
+  "batismo_infantil", "transferencia_menor", "arrolamento_menor",
+] as const;
+
+const COMMUNING_EXCLUSION_REASONS = [
+  "transferencia", "falecimento", "exclusao_pedido",
+  "exclusao_disciplina", "exclusao_abandono", "ordenacao_ministerio",
+] as const;
+const NON_COMMUNING_EXCLUSION_REASONS = [
+  "transferencia_responsaveis", "falecimento",
+  "profissao_fe_migracao", "exclusao_abandono_responsaveis",
+] as const;
+
+function isValidReceptionMode(classification: string, mode: string): boolean {
+  if (classification === "comungante") return (COMMUNING_RECEPTION_MODES as readonly string[]).includes(mode);
+  if (classification === "nao_comungante") return (NON_COMMUNING_RECEPTION_MODES as readonly string[]).includes(mode);
+  return false;
+}
+
+function isValidExclusionReason(classification: string, reason: string): boolean {
+  if (classification === "comungante") return (COMMUNING_EXCLUSION_REASONS as readonly string[]).includes(reason);
+  if (classification === "nao_comungante") return (NON_COMMUNING_EXCLUSION_REASONS as readonly string[]).includes(reason);
+  return false;
+}
+
+// Allowlist for PUT /members/me — own profile updates
+const SELF_PROFILE_ALLOWED_FIELDS = new Set([
+  "fullName", "dateOfBirth", "sex", "phone",
+  "addressZip", "addressStreet", "addressNumber", "addressComplement",
+  "addressNeighborhood", "addressCity", "addressState",
+  "photoPath", "maritalStatus", "academicEducation", "profession",
+]);
+
+// ─── SERIALIZATION ──────────────────────────────────────────────────────────
+
 function serializeMemberSummary(m: typeof membersTable.$inferSelect) {
   const cpfDecrypted = decryptIfPresent(m.cpfEncrypted);
   return {
@@ -24,16 +71,20 @@ function serializeMemberSummary(m: typeof membersTable.$inferSelect) {
     fullName: m.fullName,
     cpfMasked: cpfDecrypted ? maskCpf(cpfDecrypted) : "***.***.***-**",
     email: m.email,
+    classification: m.classification,
     status: m.status,
     pipelineStage: m.pipelineStage,
+    receptionMode: m.receptionMode,
     photoPath: m.photoPath,
-    familyId: m.familyId,
-    familyName: m.familyName,
     createdAt: m.createdAt,
   };
 }
 
-function serializeMemberDetail(m: typeof membersTable.$inferSelect) {
+function serializeMemberDetail(m: typeof membersTable.$inferSelect, extras?: {
+  spouseName?: string | null;
+  children?: Array<{ id: string; fullName: string }>;
+  groups?: Array<{ id: string; name: string }>;
+}) {
   const cpfDecrypted = decryptIfPresent(m.cpfEncrypted);
   return {
     id: m.id,
@@ -50,14 +101,33 @@ function serializeMemberDetail(m: typeof membersTable.$inferSelect) {
     addressNeighborhood: decryptIfPresent(m.addressNeighborhoodEncrypted),
     addressCity: m.addressCity,
     addressState: m.addressState,
+    // Eclesiástico
+    classification: m.classification,
+    receptionMode: m.receptionMode,
+    receptionDate: m.receptionDate,
     conversionDate: m.conversionDate,
-    baptismDate: m.baptismDate,
-    enrollmentType: m.enrollmentType,
+    conversionYear: m.conversionYear,
+    religiousOrigin: m.religiousOrigin,
+    infantBaptism: m.infantBaptism,
+    infantBaptismChurch: m.infantBaptismChurch,
+    infantBaptismPastor: m.infantBaptismPastor,
+    parentsOrGuardians: m.parentsOrGuardians,
+    // Pessoal
+    maritalStatus: m.maritalStatus,
+    spouseMemberId: m.spouseMemberId,
+    spouseName: extras?.spouseName ?? null,
+    academicEducation: m.academicEducation,
+    profession: m.profession,
+    // Status / exclusão
     status: m.status,
     pipelineStage: m.pipelineStage,
+    exclusionReason: m.exclusionReason,
+    exclusionDate: m.exclusionDate,
+    exclusionNotes: m.exclusionNotes,
+    exclusionLetterPath: m.exclusionLetterPath,
     photoPath: m.photoPath,
-    familyId: m.familyId,
-    familyName: m.familyName,
+    children: extras?.children ?? [],
+    groups: extras?.groups ?? [],
     createdAt: m.createdAt,
     updatedAt: m.updatedAt,
   };
@@ -65,7 +135,14 @@ function serializeMemberDetail(m: typeof membersTable.$inferSelect) {
 
 function buildHistoryDiff(before: Record<string, unknown>, after: Record<string, unknown>): Record<string, { from: unknown; to: unknown }> {
   const changes: Record<string, { from: unknown; to: unknown }> = {};
-  const safeFields = ["fullName", "dateOfBirth", "sex", "email", "addressCity", "addressState", "addressNumber", "addressComplement", "conversionDate", "baptismDate", "status", "familyId", "familyName", "photoPath"];
+  const safeFields = [
+    "fullName", "dateOfBirth", "sex", "email", "addressCity", "addressState",
+    "addressNumber", "addressComplement", "conversionDate", "receptionDate",
+    "conversionYear", "religiousOrigin", "infantBaptism", "infantBaptismChurch",
+    "infantBaptismPastor", "parentsOrGuardians", "classification", "receptionMode",
+    "maritalStatus", "spouseMemberId", "academicEducation", "profession",
+    "status", "pipelineStage", "photoPath",
+  ];
   for (const field of safeFields) {
     if (before[field] !== after[field]) {
       changes[field] = { from: before[field], to: after[field] };
@@ -80,15 +157,100 @@ function buildHistoryDiff(before: Record<string, unknown>, after: Record<string,
   return changes;
 }
 
-// GET /members - List (paginated, search)
+// ─── SPOUSE MIRROR ──────────────────────────────────────────────────────────
+
+/**
+ * Set spouse with bidirectional mirroring and chain-of-3 cleanup:
+ * - If A had B and now sets C: clear B's spouse
+ * - If C had D before being chosen by A: clear D's spouse
+ * - Then set A↔C
+ *
+ * Pass spouseId=null to clear A's spouse (also clears the other side).
+ */
+async function setSpouse(
+  memberId: string,
+  newSpouseId: string | null,
+  userId: string,
+): Promise<void> {
+  const [self] = await db.select().from(membersTable).where(eq(membersTable.id, memberId)).limit(1);
+  if (!self) return;
+
+  const previousSpouseId = self.spouseMemberId;
+
+  if (previousSpouseId === newSpouseId) return; // no-op
+
+  // Clear previous side(s)
+  if (previousSpouseId) {
+    await db.update(membersTable)
+      .set({ spouseMemberId: null, updatedByUserId: userId, updatedAt: new Date() })
+      .where(eq(membersTable.id, previousSpouseId));
+
+    await db.insert(memberHistoryTable).values({
+      memberId: previousSpouseId,
+      changedByUserId: userId,
+      changeType: "spouse_cleared",
+      fieldChanges: { spouseMemberId: null, reason: `auto-cleared by chain on member ${memberId}` },
+    });
+  }
+
+  if (newSpouseId) {
+    if (newSpouseId === memberId) return; // self-spouse not allowed (validated earlier ideally)
+
+    const [target] = await db.select().from(membersTable).where(eq(membersTable.id, newSpouseId)).limit(1);
+    if (!target) return;
+
+    // If target had a different spouse, clear that
+    if (target.spouseMemberId && target.spouseMemberId !== memberId) {
+      const previousOfTarget = target.spouseMemberId;
+      await db.update(membersTable)
+        .set({ spouseMemberId: null, updatedByUserId: userId, updatedAt: new Date() })
+        .where(eq(membersTable.id, previousOfTarget));
+      await db.insert(memberHistoryTable).values({
+        memberId: previousOfTarget,
+        changedByUserId: userId,
+        changeType: "spouse_cleared",
+        fieldChanges: { spouseMemberId: null, reason: `auto-cleared by chain on member ${memberId}` },
+      });
+    }
+
+    // Set both sides
+    await db.update(membersTable)
+      .set({ spouseMemberId: newSpouseId, updatedByUserId: userId, updatedAt: new Date() })
+      .where(eq(membersTable.id, memberId));
+    await db.update(membersTable)
+      .set({ spouseMemberId: memberId, updatedByUserId: userId, updatedAt: new Date() })
+      .where(eq(membersTable.id, newSpouseId));
+
+    await db.insert(memberHistoryTable).values([
+      { memberId, changedByUserId: userId, changeType: "spouse_set", fieldChanges: { spouseMemberId: newSpouseId } },
+      { memberId: newSpouseId, changedByUserId: userId, changeType: "spouse_set", fieldChanges: { spouseMemberId: memberId } },
+    ]);
+  } else {
+    // Just clearing self
+    await db.update(membersTable)
+      .set({ spouseMemberId: null, updatedByUserId: userId, updatedAt: new Date() })
+      .where(eq(membersTable.id, memberId));
+    await db.insert(memberHistoryTable).values({
+      memberId,
+      changedByUserId: userId,
+      changeType: "spouse_cleared",
+      fieldChanges: { spouseMemberId: null },
+    });
+  }
+}
+
+// ─── LIST ───────────────────────────────────────────────────────────────────
+
 router.get("/", requireAuth, async (req: Request, res: Response) => {
-  const userId = req.user!.userId;
   const role = req.user!.role;
   const page = Math.max(1, parseInt(req.query.page as string) || 1);
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
   const offset = (page - 1) * limit;
   const search = (req.query.search as string | undefined)?.trim();
   const statusFilter = req.query.status as string | undefined;
+  const classificationFilter = req.query.classification as string | undefined;
+  const receptionModeFilter = req.query.receptionMode as string | undefined;
+  const includeExcluded = req.query.includeExcluded === "true";
 
   // Members can only see their own profile
   if (role === "member") {
@@ -103,66 +265,51 @@ router.get("/", requireAuth, async (req: Request, res: Response) => {
     return;
   }
 
-  const conditions: ReturnType<typeof ilike>[] = [];
-
-  if (statusFilter) {
-    conditions.push(eq(membersTable.status, statusFilter as "visitante" | "ativo" | "inativo" | "falecido") as unknown as ReturnType<typeof ilike>);
+  const conditions = [];
+  if (statusFilter) conditions.push(eq(membersTable.status, statusFilter as "ativo"));
+  if (classificationFilter) conditions.push(eq(membersTable.classification, classificationFilter as "comungante"));
+  if (receptionModeFilter) conditions.push(eq(membersTable.receptionMode, receptionModeFilter as "profissao_fe"));
+  if (!includeExcluded && !statusFilter) {
+    // by default, hide demitido unless explicitly requested
+    // (keep visible if user is filtering by status)
+    // No-op: leaving demitido visible by default to match expectations.
   }
 
-  let members: typeof membersTable.$inferSelect[];
-  let total: number;
-
   if (search && search.length > 0) {
-    // Try CPF hash search first
     const cleanedSearch = search.replace(/\D/g, "");
     if (cleanedSearch.length >= 6) {
       const cpfHash = hashForSearch(cleanedSearch);
-      const byCpf = await db.select().from(membersTable).where(
-        statusFilter
-          ? and(eq(membersTable.cpfHash, cpfHash), eq(membersTable.status, statusFilter as "ativo"))
-          : eq(membersTable.cpfHash, cpfHash)
-      ).limit(limit).offset(offset);
-      if (byCpf.length > 0) {
-        const [{ total: t }] = await db.select({ total: count() }).from(membersTable).where(eq(membersTable.cpfHash, cpfHash));
-        members = byCpf;
-        total = Number(t);
-      } else {
-        const nameCondition = ilike(membersTable.fullName, `%${search}%`);
-        const whereClause = statusFilter
-          ? and(nameCondition, eq(membersTable.status, statusFilter as "ativo"))
-          : nameCondition;
-        [members, [{ total: total as unknown as number }]] = await Promise.all([
-          db.select().from(membersTable).where(whereClause).orderBy(desc(membersTable.createdAt)).limit(limit).offset(offset),
-          db.select({ total: count() }).from(membersTable).where(whereClause),
-        ]);
-        total = Number(total);
-      }
+      conditions.push(eq(membersTable.cpfHash, cpfHash));
     } else {
-      const nameCondition = ilike(membersTable.fullName, `%${search}%`);
-      const whereClause = statusFilter ? and(nameCondition, eq(membersTable.status, statusFilter as "ativo")) : nameCondition;
-      [members, [{ total: total as unknown as number }]] = await Promise.all([
-        db.select().from(membersTable).where(whereClause).orderBy(desc(membersTable.createdAt)).limit(limit).offset(offset),
-        db.select({ total: count() }).from(membersTable).where(whereClause),
-      ]);
-      total = Number(total);
+      conditions.push(ilike(membersTable.fullName, `%${search}%`));
     }
-  } else {
-    const whereClause = statusFilter ? eq(membersTable.status, statusFilter as "ativo") : undefined;
-    [members, [{ total: total as unknown as number }]] = await Promise.all([
-      db.select().from(membersTable).where(whereClause).orderBy(desc(membersTable.createdAt)).limit(limit).offset(offset),
-      db.select({ total: count() }).from(membersTable).where(whereClause),
-    ]);
-    total = Number(total);
   }
 
-  res.json({ members: members.map(serializeMemberSummary), total, page, limit });
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+  const [members, [{ total }]] = await Promise.all([
+    db.select().from(membersTable).where(whereClause)
+      .orderBy(desc(membersTable.createdAt)).limit(limit).offset(offset),
+    db.select({ total: count() }).from(membersTable).where(whereClause),
+  ]);
+
+  res.json({ members: members.map(serializeMemberSummary), total: Number(total), page, limit });
 });
 
-// POST /members - Create
+// ─── CREATE ─────────────────────────────────────────────────────────────────
+
 router.post("/", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
-  const { fullName, cpf, dateOfBirth, sex, phone, email, addressZip, addressStreet, addressNumber, addressComplement, addressNeighborhood, addressCity, addressState, conversionDate, baptismDate, enrollmentType, status, pipelineStage, photoPath, familyId, familyName, lgpdConsentAccepted } = req.body;
+  const {
+    fullName, cpf, dateOfBirth, sex, phone, email,
+    addressZip, addressStreet, addressNumber, addressComplement,
+    addressNeighborhood, addressCity, addressState,
+    classification, receptionMode, receptionDate, conversionDate, conversionYear,
+    religiousOrigin, infantBaptism, infantBaptismChurch, infantBaptismPastor, parentsOrGuardians,
+    maritalStatus, spouseMemberId, academicEducation, profession,
+    status, pipelineStage, photoPath, lgpdConsentAccepted,
+  } = req.body;
 
   if (!fullName) {
     res.status(400).json({ error: "VALIDATION_ERROR", message: "Nome completo é obrigatório" });
@@ -170,6 +317,23 @@ router.post("/", requireAuth, requireRole("admin", "leader"), async (req: Reques
   }
   if (!lgpdConsentAccepted) {
     res.status(400).json({ error: "LGPD_CONSENT_REQUIRED", message: "Consentimento LGPD é obrigatório" });
+    return;
+  }
+
+  const finalClassification = classification || "comungante";
+  if (!["comungante", "nao_comungante"].includes(finalClassification)) {
+    res.status(400).json({ error: "VALIDATION_ERROR", message: "Classificação inválida" });
+    return;
+  }
+  if (receptionMode && !isValidReceptionMode(finalClassification, receptionMode)) {
+    res.status(400).json({
+      error: "VALIDATION_ERROR",
+      message: `Modo de recepção inválido para classificação "${finalClassification}".`,
+    });
+    return;
+  }
+  if (spouseMemberId === req.params.id) {
+    res.status(400).json({ error: "VALIDATION_ERROR", message: "Cônjuge não pode ser o próprio membro" });
     return;
   }
 
@@ -191,17 +355,30 @@ router.post("/", requireAuth, requireRole("admin", "leader"), async (req: Reques
     addressNeighborhoodEncrypted: encryptIfPresent(addressNeighborhood),
     addressCity: addressCity || null,
     addressState: addressState || null,
+    classification: finalClassification as "comungante",
+    receptionMode: receptionMode || null,
+    receptionDate: receptionDate || null,
     conversionDate: conversionDate || null,
-    baptismDate: baptismDate || null,
-    enrollmentType: enrollmentType || null,
+    conversionYear: conversionYear ? Number(conversionYear) : null,
+    religiousOrigin: religiousOrigin || null,
+    infantBaptism: !!infantBaptism,
+    infantBaptismChurch: infantBaptismChurch || null,
+    infantBaptismPastor: infantBaptismPastor || null,
+    parentsOrGuardians: parentsOrGuardians || null,
+    maritalStatus: maritalStatus || null,
+    spouseMemberId: null, // set via setSpouse below to ensure mirroring
+    academicEducation: academicEducation || null,
+    profession: profession || null,
     status: (status || "ativo") as any,
     pipelineStage: (pipelineStage || "culto") as any,
     photoPath: photoPath || null,
-    familyId: familyId || null,
-    familyName: familyName || null,
     createdByUserId: userId,
     updatedByUserId: userId,
   }).returning();
+
+  if (spouseMemberId) {
+    await setSpouse(member.id, spouseMemberId, userId);
+  }
 
   await db.insert(consentRecordsTable).values({
     userId,
@@ -214,7 +391,7 @@ router.post("/", requireAuth, requireRole("admin", "leader"), async (req: Reques
     memberId: member.id,
     changedByUserId: userId,
     changeType: "created",
-    fieldChanges: { fullName },
+    fieldChanges: { fullName, classification: finalClassification },
   });
 
   await createAuditLog({
@@ -222,19 +399,21 @@ router.post("/", requireAuth, requireRole("admin", "leader"), async (req: Reques
     action: "MEMBER_CREATED",
     resourceType: "member",
     resourceId: member.id,
-    details: { fullName },
+    details: { fullName, classification: finalClassification },
     ipAddress: ip,
   });
 
-  res.status(201).json(serializeMemberDetail(member));
+  // Reload to include spouse mirroring effects
+  const [reloaded] = await db.select().from(membersTable).where(eq(membersTable.id, member.id)).limit(1);
+  res.status(201).json(serializeMemberDetail(reloaded));
 });
 
-// GET /members/import - Must come before /:id
+// ─── CSV IMPORT ─────────────────────────────────────────────────────────────
+
 router.get("/import", requireAuth, requireRole("admin", "leader"), (_req, res) => {
   res.json({ message: "Use POST /members/import/csv" });
 });
 
-// POST /members/import/csv - Bulk import
 router.post("/import/csv", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
@@ -275,17 +454,17 @@ router.post("/import/csv", requireAuth, requireRole("admin", "leader"), async (r
 
     try {
       const cpfRaw = record["cpf"]?.replace(/\D/g, "") || "";
+      const csvClassification = record["classificacao"] || record["classification"] || "comungante";
       const [member] = await db.insert(membersTable).values({
         fullName,
         cpfEncrypted: cpfRaw ? encrypt(cpfRaw) : null,
         cpfHash: cpfRaw ? hashForSearch(cpfRaw) : null,
         dateOfBirth: record["data_nascimento"] || record["date_of_birth"] || null,
-        sex: (record["sexo"] || record["sex"] || null) as "masculino" | "feminino" | "outro" | null,
+        sex: (record["sexo"] || record["sex"] || null) as "masculino" | "feminino" | null,
         phoneEncrypted: encryptIfPresent(record["telefone"] || record["phone"] || ""),
         email: record["email"] || null,
-        status: (record["status"] as "visitante" | "ativo" | "inativo" | "falecido") || "ativo",
-        familyName: record["familia"] || record["family"] || null,
-        familyId: null,
+        classification: (csvClassification === "nao_comungante" ? "nao_comungante" : "comungante") as any,
+        status: (record["status"] as "ativo") || "ativo",
         createdByUserId: userId,
         updatedByUserId: userId,
       }).returning();
@@ -328,9 +507,6 @@ router.post("/import/csv", requireAuth, requireRole("admin", "leader"), async (r
 // PIPELINE — Static routes BEFORE /:id to avoid Express collision
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const VALID_PIPELINE_STAGES = ["culto", "pequeno_grupo", "ministerio"];
-
-// GET /members/pipeline/summary
 router.get("/pipeline/summary", requireAuth, requireRole("admin", "leader"), async (_req: Request, res: Response) => {
   const members = await db.select({ stage: membersTable.pipelineStage, total: count() })
     .from(membersTable)
@@ -344,13 +520,10 @@ router.get("/pipeline/summary", requireAuth, requireRole("admin", "leader"), asy
   res.json({ summary, total: Object.values(summary).reduce((a, b) => a + b, 0) });
 });
 
-// GET /members/pipeline/stagnant?days=90
 router.get("/pipeline/stagnant", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
   const days = Math.max(1, parseInt(req.query.days as string) || 90);
   const threshold = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-  // Members who haven't changed pipeline stage in N days
-  // Use the latest pipeline_history entry per member; if none, use member createdAt
   const allActive = await db.select().from(membersTable)
     .where(eq(membersTable.status, "ativo"));
 
@@ -376,7 +549,10 @@ router.get("/pipeline/stagnant", requireAuth, requireRole("admin", "leader"), as
   res.json({ stagnant, total: stagnant.length, thresholdDays: days });
 });
 
-// GET /members/me - Own member profile (any authenticated, auto-creates if missing)
+// ═══════════════════════════════════════════════════════════════════════════════
+// SELF PROFILE (/me) — allowlist enforcement
+// ═══════════════════════════════════════════════════════════════════════════════
+
 router.get("/me", requireAuth, async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const email = req.user!.email;
@@ -384,7 +560,6 @@ router.get("/me", requireAuth, async (req: Request, res: Response) => {
   let [member] = await db.select().from(membersTable)
     .where(ilike(membersTable.email, email)).limit(1);
 
-  // Auto-create member record linked to user on first access
   if (!member) {
     const [u] = await db.select().from(usersTable)
       .where(eq(usersTable.id, userId)).limit(1);
@@ -393,7 +568,8 @@ router.get("/me", requireAuth, async (req: Request, res: Response) => {
     const [created] = await db.insert(membersTable).values({
       fullName,
       email,
-      status: "visitante" as const,
+      classification: "comungante",
+      status: "ativo" as const,
       pipelineStage: "culto" as const,
       createdByUserId: userId,
       updatedByUserId: userId,
@@ -418,10 +594,10 @@ router.get("/me", requireAuth, async (req: Request, res: Response) => {
     member = created;
   }
 
-  res.json(serializeMemberDetail(member));
+  const extras = await loadMemberExtras(member);
+  res.json(serializeMemberDetail(member, extras));
 });
 
-// PUT /members/me - Update own profile (cannot change email)
 router.put("/me", requireAuth, async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const email = req.user!.email;
@@ -434,10 +610,21 @@ router.put("/me", requireAuth, async (req: Request, res: Response) => {
     return;
   }
 
+  // Allowlist enforcement
+  const bodyKeys = Object.keys(req.body || {});
+  const forbidden = bodyKeys.filter(k => !SELF_PROFILE_ALLOWED_FIELDS.has(k));
+  if (forbidden.length > 0) {
+    res.status(400).json({
+      error: "VALIDATION_ERROR",
+      message: `Campos não permitidos para edição própria: ${forbidden.join(", ")}`,
+    });
+    return;
+  }
+
   const {
-    fullName, cpf, dateOfBirth, sex, phone, addressZip, addressStreet, addressNumber,
+    fullName, dateOfBirth, sex, phone, addressZip, addressStreet, addressNumber,
     addressComplement, addressNeighborhood, addressCity, addressState,
-    conversionDate, baptismDate, photoPath,
+    photoPath, maritalStatus, academicEducation, profession,
   } = req.body;
 
   const updateData: Partial<typeof membersTable.$inferInsert> = {
@@ -445,10 +632,6 @@ router.put("/me", requireAuth, async (req: Request, res: Response) => {
     updatedByUserId: userId,
   };
   if (fullName !== undefined) updateData.fullName = fullName;
-  if (cpf !== undefined) {
-    updateData.cpfEncrypted = cpf ? encrypt(cpf.replace(/\D/g, "")) : null;
-    updateData.cpfHash = cpf ? hashForSearch(cpf) : null;
-  }
   if (dateOfBirth !== undefined) updateData.dateOfBirth = dateOfBirth || null;
   if (sex !== undefined) updateData.sex = sex || null;
   if (phone !== undefined) updateData.phoneEncrypted = encryptIfPresent(phone);
@@ -459,9 +642,10 @@ router.put("/me", requireAuth, async (req: Request, res: Response) => {
   if (addressNeighborhood !== undefined) updateData.addressNeighborhoodEncrypted = encryptIfPresent(addressNeighborhood);
   if (addressCity !== undefined) updateData.addressCity = addressCity || null;
   if (addressState !== undefined) updateData.addressState = addressState || null;
-  if (conversionDate !== undefined) updateData.conversionDate = conversionDate || null;
-  if (baptismDate !== undefined) updateData.baptismDate = baptismDate || null;
   if (photoPath !== undefined) updateData.photoPath = photoPath || null;
+  if (maritalStatus !== undefined) updateData.maritalStatus = maritalStatus || null;
+  if (academicEducation !== undefined) updateData.academicEducation = academicEducation || null;
+  if (profession !== undefined) updateData.profession = profession || null;
 
   const [updated] = await db.update(membersTable).set(updateData)
     .where(eq(membersTable.id, existing.id)).returning();
@@ -484,10 +668,50 @@ router.put("/me", requireAuth, async (req: Request, res: Response) => {
     ipAddress: ip,
   });
 
-  res.json(serializeMemberDetail(updated));
+  const extras = await loadMemberExtras(updated);
+  res.json(serializeMemberDetail(updated, extras));
 });
 
-// GET /members/:id - Single member
+// Helper: load spouse name + children + groups
+async function loadMemberExtras(m: typeof membersTable.$inferSelect) {
+  const result: { spouseName: string | null; children: Array<{ id: string; fullName: string }>; groups: Array<{ id: string; name: string }> } = {
+    spouseName: null,
+    children: [],
+    groups: [],
+  };
+
+  if (m.spouseMemberId) {
+    const [spouse] = await db.select({ fullName: membersTable.fullName })
+      .from(membersTable).where(eq(membersTable.id, m.spouseMemberId)).limit(1);
+    result.spouseName = spouse?.fullName ?? null;
+  }
+
+  const childRows = await db.select({
+    childId: memberChildrenTable.childId,
+    fullName: membersTable.fullName,
+  }).from(memberChildrenTable)
+    .innerJoin(membersTable, eq(membersTable.id, memberChildrenTable.childId))
+    .where(eq(memberChildrenTable.parentId, m.id));
+  result.children = childRows.map(c => ({ id: c.childId, fullName: c.fullName }));
+
+  const groupRows = await db.select({
+    groupId: memberGroupMembersTable.groupId,
+    name: memberGroupsTable.name,
+  }).from(memberGroupMembersTable)
+    .innerJoin(memberGroupsTable, eq(memberGroupsTable.id, memberGroupMembersTable.groupId))
+    .where(and(
+      eq(memberGroupMembersTable.memberId, m.id),
+      isNull(memberGroupsTable.deletedAt),
+    ));
+  result.groups = groupRows.map(g => ({ id: g.groupId, name: g.name }));
+
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DETAIL / UPDATE / DELETE
+// ═══════════════════════════════════════════════════════════════════════════════
+
 router.get("/:id", requireAuth, async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const role = req.user!.role;
@@ -512,10 +736,10 @@ router.get("/:id", requireAuth, async (req: Request, res: Response) => {
     ipAddress: ip,
   });
 
-  res.json(serializeMemberDetail(member));
+  const extras = await loadMemberExtras(member);
+  res.json(serializeMemberDetail(member, extras));
 });
 
-// PUT /members/:id - Update
 router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
@@ -526,7 +750,28 @@ router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Requ
     return;
   }
 
-  const { fullName, cpf, dateOfBirth, sex, phone, email, addressZip, addressStreet, addressNumber, addressComplement, addressNeighborhood, addressCity, addressState, conversionDate, baptismDate, enrollmentType, status, photoPath, familyId, familyName } = req.body;
+  const {
+    fullName, cpf, dateOfBirth, sex, phone, email,
+    addressZip, addressStreet, addressNumber, addressComplement,
+    addressNeighborhood, addressCity, addressState,
+    classification, receptionMode, receptionDate, conversionDate, conversionYear,
+    religiousOrigin, infantBaptism, infantBaptismChurch, infantBaptismPastor, parentsOrGuardians,
+    maritalStatus, spouseMemberId, academicEducation, profession,
+    status, photoPath,
+  } = req.body;
+
+  const finalClassification = classification ?? existing.classification;
+  if (receptionMode && !isValidReceptionMode(finalClassification, receptionMode)) {
+    res.status(400).json({
+      error: "VALIDATION_ERROR",
+      message: `Modo de recepção inválido para classificação "${finalClassification}".`,
+    });
+    return;
+  }
+  if (spouseMemberId === existing.id) {
+    res.status(400).json({ error: "VALIDATION_ERROR", message: "Cônjuge não pode ser o próprio membro" });
+    return;
+  }
 
   const updateData: Partial<typeof membersTable.$inferInsert> = {
     updatedAt: new Date(),
@@ -548,16 +793,30 @@ router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Requ
   if (addressNeighborhood !== undefined) updateData.addressNeighborhoodEncrypted = encryptIfPresent(addressNeighborhood);
   if (addressCity !== undefined) updateData.addressCity = addressCity || null;
   if (addressState !== undefined) updateData.addressState = addressState || null;
+  if (classification !== undefined) updateData.classification = classification;
+  if (receptionMode !== undefined) updateData.receptionMode = receptionMode || null;
+  if (receptionDate !== undefined) updateData.receptionDate = receptionDate || null;
   if (conversionDate !== undefined) updateData.conversionDate = conversionDate || null;
-  if (baptismDate !== undefined) updateData.baptismDate = baptismDate || null;
-  if (enrollmentType !== undefined) updateData.enrollmentType = enrollmentType || null;
+  if (conversionYear !== undefined) updateData.conversionYear = conversionYear ? Number(conversionYear) : null;
+  if (religiousOrigin !== undefined) updateData.religiousOrigin = religiousOrigin || null;
+  if (infantBaptism !== undefined) updateData.infantBaptism = !!infantBaptism;
+  if (infantBaptismChurch !== undefined) updateData.infantBaptismChurch = infantBaptismChurch || null;
+  if (infantBaptismPastor !== undefined) updateData.infantBaptismPastor = infantBaptismPastor || null;
+  if (parentsOrGuardians !== undefined) updateData.parentsOrGuardians = parentsOrGuardians || null;
+  if (maritalStatus !== undefined) updateData.maritalStatus = maritalStatus || null;
+  if (academicEducation !== undefined) updateData.academicEducation = academicEducation || null;
+  if (profession !== undefined) updateData.profession = profession || null;
   if (status !== undefined) updateData.status = status;
   if (photoPath !== undefined) updateData.photoPath = photoPath || null;
-  if (familyId !== undefined) updateData.familyId = familyId || null;
-  if (familyName !== undefined) updateData.familyName = familyName || null;
 
-  const [updated] = await db.update(membersTable).set(updateData).where(eq(membersTable.id, req.params.id)).returning();
+  await db.update(membersTable).set(updateData).where(eq(membersTable.id, req.params.id));
 
+  // Spouse mirror is handled separately
+  if (spouseMemberId !== undefined) {
+    await setSpouse(req.params.id, spouseMemberId || null, userId);
+  }
+
+  const [updated] = await db.select().from(membersTable).where(eq(membersTable.id, req.params.id)).limit(1);
   const diff = buildHistoryDiff(existing as unknown as Record<string, unknown>, updated as unknown as Record<string, unknown>);
 
   await db.insert(memberHistoryTable).values({
@@ -576,11 +835,11 @@ router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Requ
     ipAddress: ip,
   });
 
-  res.json(serializeMemberDetail(updated));
+  const extras = await loadMemberExtras(updated);
+  res.json(serializeMemberDetail(updated, extras));
 });
 
 // DELETE /members/:id - Anonymize (LGPD-compliant, admin only)
-// Instead of hard delete, anonymizes PII while preserving fiscal records
 router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
@@ -594,7 +853,23 @@ router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request, re
   const anonName = `Membro Anonimizado #${existing.id.slice(0, 8)}`;
   const anonEmail = `anon-${existing.id.slice(0, 8)}@anonimizado.local`;
 
-  // 1. Anonymize member PII
+  // Clear spouse on the other side if any
+  if (existing.spouseMemberId) {
+    await db.update(membersTable)
+      .set({ spouseMemberId: null, updatedByUserId: userId, updatedAt: new Date() })
+      .where(eq(membersTable.id, existing.spouseMemberId));
+  }
+
+  // Delete children links (both directions)
+  await db.delete(memberChildrenTable).where(or(
+    eq(memberChildrenTable.parentId, existing.id),
+    eq(memberChildrenTable.childId, existing.id),
+  ));
+
+  // Delete group memberships
+  await db.delete(memberGroupMembersTable).where(eq(memberGroupMembersTable.memberId, existing.id));
+
+  // 1. Anonymize member PII (status → rol_apartado per Fase 1 plan)
   await db.update(membersTable).set({
     fullName: anonName,
     cpfEncrypted: null,
@@ -611,16 +886,28 @@ router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request, re
     addressCity: null,
     addressState: null,
     conversionDate: null,
-    baptismDate: null,
+    receptionDate: null,
+    conversionYear: null,
+    religiousOrigin: null,
+    infantBaptism: false,
+    infantBaptismChurch: null,
+    infantBaptismPastor: null,
+    parentsOrGuardians: null,
+    maritalStatus: null,
+    spouseMemberId: null,
+    academicEducation: null,
+    profession: null,
+    exclusionReason: null,
+    exclusionDate: null,
+    exclusionNotes: null,
+    exclusionLetterPath: null,
     photoPath: null,
-    familyId: null,
-    familyName: null,
-    status: "inativo" as const,
+    status: "rol_apartado" as const,
     updatedByUserId: userId,
     updatedAt: new Date(),
   }).where(eq(membersTable.id, req.params.id));
 
-  // 2. Anonymize financial records (preserve amounts)
+  // 2. Anonymize financial records
   await db.update(financeEntriesTable).set({
     memberId: null,
     memberName: "[anonimizado]",
@@ -628,40 +915,20 @@ router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request, re
     updatedAt: new Date(),
   }).where(eq(financeEntriesTable.memberId, existing.id));
 
-  // 3. Anonymize course enrollments
-  await db.update(courseEnrollmentsTable).set({
-    memberName: "[anonimizado]",
-  }).where(eq(courseEnrollmentsTable.memberId, existing.id));
+  // 3-7. Other module anonymizations
+  await db.update(courseEnrollmentsTable).set({ memberName: "[anonimizado]" })
+    .where(eq(courseEnrollmentsTable.memberId, existing.id));
+  await db.update(eventRegistrationsTable).set({ memberName: "[anonimizado]" })
+    .where(eq(eventRegistrationsTable.memberId, existing.id));
+  await db.update(ministryMembersTable).set({ memberName: "[anonimizado]", leftAt: new Date() })
+    .where(eq(ministryMembersTable.memberId, existing.id));
+  await db.update(assetsTable).set({ responsibleId: null, responsibleName: "[anonimizado]" })
+    .where(eq(assetsTable.responsibleId, existing.id));
+  await db.update(eventSchedulesTable).set({ memberName: "[anonimizado]" })
+    .where(eq(eventSchedulesTable.memberId, existing.id));
+  await db.update(planningInitiativesTable).set({ responsibleId: null, responsibleName: "[anonimizado]" })
+    .where(eq(planningInitiativesTable.responsibleId, existing.id));
 
-  // 4. Anonymize event registrations
-  await db.update(eventRegistrationsTable).set({
-    memberName: "[anonimizado]",
-  }).where(eq(eventRegistrationsTable.memberId, existing.id));
-
-  // 5. Anonymize ministry members (soft delete + anonymize name)
-  await db.update(ministryMembersTable).set({
-    memberName: "[anonimizado]",
-    leftAt: new Date(),
-  }).where(eq(ministryMembersTable.memberId, existing.id));
-
-  // 6. Unlink assets (remove responsible)
-  await db.update(assetsTable).set({
-    responsibleId: null,
-    responsibleName: "[anonimizado]",
-  }).where(eq(assetsTable.responsibleId, existing.id));
-
-  // 7. Anonymize event schedules
-  await db.update(eventSchedulesTable).set({
-    memberName: "[anonimizado]",
-  }).where(eq(eventSchedulesTable.memberId, existing.id));
-
-  // 8. Unlink planning initiatives (remove responsible)
-  await db.update(planningInitiativesTable).set({
-    responsibleId: null,
-    responsibleName: "[anonimizado]",
-  }).where(eq(planningInitiativesTable.responsibleId, existing.id));
-
-  // 9. Record in history
   await db.insert(memberHistoryTable).values({
     memberId: existing.id,
     changedByUserId: userId,
@@ -690,7 +957,7 @@ router.get("/:id/history", requireAuth, requireRole("admin", "leader"), async (r
   res.json({ history });
 });
 
-// POST /members/:id/cpf/reveal (Admin only)
+// POST /members/:id/cpf/reveal
 router.post("/:id/cpf/reveal", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
@@ -700,7 +967,6 @@ router.post("/:id/cpf/reveal", requireAuth, requireRole("admin"), async (req: Re
     res.status(404).json({ error: "NOT_FOUND", message: "Membro não encontrado" });
     return;
   }
-
   if (!member.cpfEncrypted) {
     res.status(404).json({ error: "NOT_FOUND", message: "CPF não cadastrado para este membro" });
     return;
@@ -721,24 +987,20 @@ router.post("/:id/cpf/reveal", requireAuth, requireRole("admin"), async (req: Re
   res.json({ cpf: cpfFormatted });
 });
 
-// GET /members/:id/ministries — list ministries for a member
+// GET /members/:id/ministries
 router.get("/:id/ministries", requireAuth, async (req: Request, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 
-  // Member can only see their own ministries
   if (user.role === "member") {
-    const [self] = await db.select().from(membersTable)
-      .where(eq(membersTable.email, user.email)).limit(1);
+    const [self] = await db.select().from(membersTable).where(eq(membersTable.email, user.email)).limit(1);
     if (!self || self.id !== id) {
       res.status(403).json({ error: "Sem permissao para ver ministerios deste membro" });
       return;
     }
   }
 
-  // Check member exists
-  const [member] = await db.select().from(membersTable)
-    .where(eq(membersTable.id, id)).limit(1);
+  const [member] = await db.select().from(membersTable).where(eq(membersTable.id, id)).limit(1);
   if (!member) {
     res.status(404).json({ error: "Membro nao encontrado" });
     return;
@@ -771,7 +1033,7 @@ router.get("/:id/ministries", requireAuth, async (req: Request, res: Response) =
   });
 });
 
-// PUT /members/:id/pipeline — move member to new stage
+// PUT /members/:id/pipeline
 router.put("/:id/pipeline", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
@@ -817,15 +1079,13 @@ router.put("/:id/pipeline", requireAuth, requireRole("admin", "leader"), async (
   res.json({ message: "Etapa atualizada", fromStage, toStage: stage });
 });
 
-// GET /members/:id/pipeline — pipeline history
+// GET /members/:id/pipeline
 router.get("/:id/pipeline", requireAuth, async (req: Request, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 
-  // Member can see own pipeline, admin/leader can see any
   if (user.role === "member") {
-    const [self] = await db.select().from(membersTable)
-      .where(eq(membersTable.email, user.email)).limit(1);
+    const [self] = await db.select().from(membersTable).where(eq(membersTable.email, user.email)).limit(1);
     if (!self || self.id !== id) {
       res.status(403).json({ error: "Sem permissao para ver historico deste membro" });
       return;
@@ -852,6 +1112,360 @@ router.get("/:id/pipeline", requireAuth, async (req: Request, res: Response) => 
       createdAt: h.createdAt?.toISOString(),
     })),
   });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EXCLUSION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// POST /members/:id/exclusion — register exclusion (admin only)
+router.post("/:id/exclusion", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const ip = getIp(req);
+
+  const [existing] = await db.select().from(membersTable).where(eq(membersTable.id, req.params.id)).limit(1);
+  if (!existing) {
+    res.status(404).json({ error: "NOT_FOUND", message: "Membro não encontrado" });
+    return;
+  }
+
+  const { reason, date, notes } = req.body;
+  if (!reason) {
+    res.status(400).json({ error: "VALIDATION_ERROR", message: "Motivo é obrigatório" });
+    return;
+  }
+  if (!isValidExclusionReason(existing.classification, reason)) {
+    res.status(400).json({
+      error: "VALIDATION_ERROR",
+      message: `Motivo "${reason}" inválido para classificação "${existing.classification}".`,
+    });
+    return;
+  }
+
+  const exclusionDate = date || new Date().toISOString().slice(0, 10);
+
+  // Special case: profissao_fe_migracao — non-communing migrating to communing.
+  // Don't set status=demitido. Update classification + receptionMode instead.
+  if (reason === "profissao_fe_migracao") {
+    await db.update(membersTable).set({
+      classification: "comungante" as const,
+      receptionMode: "profissao_fe" as const,
+      receptionDate: exclusionDate,
+      parentsOrGuardians: null, // not relevant for communing
+      updatedByUserId: userId,
+      updatedAt: new Date(),
+    }).where(eq(membersTable.id, existing.id));
+
+    await db.insert(memberHistoryTable).values({
+      memberId: existing.id,
+      changedByUserId: userId,
+      changeType: "migrated_to_communing",
+      fieldChanges: {
+        fromClassification: "nao_comungante",
+        receptionMode: "profissao_fe",
+        receptionDate: exclusionDate,
+        notes: notes || null,
+      },
+    });
+
+    await createAuditLog({
+      userId,
+      action: "MEMBER_MIGRATED_TO_COMMUNING",
+      resourceType: "member",
+      resourceId: existing.id,
+      details: { receptionDate: exclusionDate },
+      ipAddress: ip,
+    });
+
+    const [reloaded] = await db.select().from(membersTable).where(eq(membersTable.id, existing.id)).limit(1);
+    const extras = await loadMemberExtras(reloaded);
+    res.json(serializeMemberDetail(reloaded, extras));
+    return;
+  }
+
+  // Standard exclusion
+  await db.update(membersTable).set({
+    status: "demitido" as const,
+    exclusionReason: reason,
+    exclusionDate,
+    exclusionNotes: notes || null,
+    updatedByUserId: userId,
+    updatedAt: new Date(),
+  }).where(eq(membersTable.id, existing.id));
+
+  await db.insert(memberHistoryTable).values({
+    memberId: existing.id,
+    changedByUserId: userId,
+    changeType: "excluded",
+    fieldChanges: { reason, date: exclusionDate, notes: notes || null },
+  });
+
+  await createAuditLog({
+    userId,
+    action: "MEMBER_EXCLUDED",
+    resourceType: "member",
+    resourceId: existing.id,
+    details: { reason, date: exclusionDate },
+    ipAddress: ip,
+  });
+
+  const [reloaded] = await db.select().from(membersTable).where(eq(membersTable.id, existing.id)).limit(1);
+  const extras = await loadMemberExtras(reloaded);
+  res.json(serializeMemberDetail(reloaded, extras));
+});
+
+// POST /members/:id/exclusion/revert — revert exclusion
+router.post("/:id/exclusion/revert", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const ip = getIp(req);
+
+  const [existing] = await db.select().from(membersTable).where(eq(membersTable.id, req.params.id)).limit(1);
+  if (!existing) {
+    res.status(404).json({ error: "NOT_FOUND", message: "Membro não encontrado" });
+    return;
+  }
+  if (existing.status !== "demitido") {
+    res.status(400).json({ error: "VALIDATION_ERROR", message: "Membro não está excluído" });
+    return;
+  }
+
+  const previousReason = existing.exclusionReason;
+  const previousDate = existing.exclusionDate;
+  const previousLetterPath = existing.exclusionLetterPath;
+
+  await db.update(membersTable).set({
+    status: "ativo" as const,
+    exclusionReason: null,
+    exclusionDate: null,
+    exclusionNotes: null,
+    exclusionLetterPath: null,
+    updatedByUserId: userId,
+    updatedAt: new Date(),
+  }).where(eq(membersTable.id, existing.id));
+
+  // Note: storage cleanup of letter file is best-effort; not blocking
+  // (TODO: implement storage.deleteFile() when storage provider supports it)
+
+  await db.insert(memberHistoryTable).values({
+    memberId: existing.id,
+    changedByUserId: userId,
+    changeType: "exclusion_reverted",
+    fieldChanges: { previousReason, previousDate, previousLetterPath },
+  });
+
+  await createAuditLog({
+    userId,
+    action: "MEMBER_EXCLUSION_REVERTED",
+    resourceType: "member",
+    resourceId: existing.id,
+    details: { previousReason },
+    ipAddress: ip,
+  });
+
+  const [reloaded] = await db.select().from(membersTable).where(eq(membersTable.id, existing.id)).limit(1);
+  const extras = await loadMemberExtras(reloaded);
+  res.json(serializeMemberDetail(reloaded, extras));
+});
+
+// POST /members/:id/exclusion/letter — save letter PDF path after frontend upload
+router.post("/:id/exclusion/letter", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const ip = getIp(req);
+
+  const [existing] = await db.select().from(membersTable).where(eq(membersTable.id, req.params.id)).limit(1);
+  if (!existing) {
+    res.status(404).json({ error: "NOT_FOUND", message: "Membro não encontrado" });
+    return;
+  }
+
+  const { letterPath, destinationChurch, responsiblePastor, secretary, notes } = req.body;
+  if (!letterPath) {
+    res.status(400).json({ error: "VALIDATION_ERROR", message: "letterPath é obrigatório" });
+    return;
+  }
+
+  await db.update(membersTable).set({
+    exclusionLetterPath: letterPath,
+    updatedByUserId: userId,
+    updatedAt: new Date(),
+  }).where(eq(membersTable.id, existing.id));
+
+  await db.insert(memberHistoryTable).values({
+    memberId: existing.id,
+    changedByUserId: userId,
+    changeType: "transfer_letter_generated",
+    fieldChanges: { destinationChurch, letterPath, responsiblePastor, secretary, notes },
+  });
+
+  await createAuditLog({
+    userId,
+    action: "MEMBER_TRANSFER_LETTER_GENERATED",
+    resourceType: "member",
+    resourceId: existing.id,
+    details: { destinationChurch },
+    ipAddress: ip,
+  });
+
+  res.json({ letterPath });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CHILDREN
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// POST /members/:id/children — add child link
+router.post("/:id/children", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const parentId = req.params.id;
+  const { childMemberId } = req.body;
+
+  if (!childMemberId) {
+    res.status(400).json({ error: "VALIDATION_ERROR", message: "childMemberId é obrigatório" });
+    return;
+  }
+  if (parentId === childMemberId) {
+    res.status(400).json({ error: "VALIDATION_ERROR", message: "Membro não pode ser pai/mãe de si mesmo" });
+    return;
+  }
+
+  const [parent, child] = await Promise.all([
+    db.select().from(membersTable).where(eq(membersTable.id, parentId)).limit(1),
+    db.select().from(membersTable).where(eq(membersTable.id, childMemberId)).limit(1),
+  ]);
+  if (!parent[0] || !child[0]) {
+    res.status(404).json({ error: "NOT_FOUND", message: "Membro não encontrado" });
+    return;
+  }
+
+  // Cycle prevention: child cannot already be a parent of parent
+  const [reverse] = await db.select().from(memberChildrenTable)
+    .where(and(
+      eq(memberChildrenTable.parentId, childMemberId),
+      eq(memberChildrenTable.childId, parentId),
+    )).limit(1);
+  if (reverse) {
+    res.status(400).json({
+      error: "VALIDATION_ERROR",
+      message: "Vínculo cíclico detectado: o filho já é pai/mãe deste membro.",
+    });
+    return;
+  }
+
+  // Duplicate prevention
+  const [duplicate] = await db.select().from(memberChildrenTable)
+    .where(and(
+      eq(memberChildrenTable.parentId, parentId),
+      eq(memberChildrenTable.childId, childMemberId),
+    )).limit(1);
+  if (duplicate) {
+    res.status(409).json({ error: "ALREADY_EXISTS", message: "Vínculo já existe" });
+    return;
+  }
+
+  await db.insert(memberChildrenTable).values({
+    parentId,
+    childId: childMemberId,
+    createdByUserId: userId,
+  });
+
+  await db.insert(memberHistoryTable).values({
+    memberId: parentId,
+    changedByUserId: userId,
+    changeType: "child_added",
+    fieldChanges: { childMemberId },
+  });
+
+  res.status(201).json({ parentId, childId: childMemberId });
+});
+
+// DELETE /members/:id/children/:childId — remove child link
+router.delete("/:id/children/:childId", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const { id: parentId, childId } = req.params;
+
+  const result = await db.delete(memberChildrenTable).where(and(
+    eq(memberChildrenTable.parentId, parentId),
+    eq(memberChildrenTable.childId, childId),
+  )).returning();
+
+  if (result.length === 0) {
+    res.status(404).json({ error: "NOT_FOUND", message: "Vínculo não encontrado" });
+    return;
+  }
+
+  await db.insert(memberHistoryTable).values({
+    memberId: parentId,
+    changedByUserId: userId,
+    changeType: "child_removed",
+    fieldChanges: { childMemberId: childId },
+  });
+
+  res.json({ message: "Vínculo removido" });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GROUPS — member-group join/leave (CRUD do group em routes/member-groups.ts)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// POST /members/:memberId/groups/:groupId — link member to group
+router.post("/:memberId/groups/:groupId", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const { memberId, groupId } = req.params;
+
+  const [member, group] = await Promise.all([
+    db.select().from(membersTable).where(eq(membersTable.id, memberId)).limit(1),
+    db.select().from(memberGroupsTable).where(and(eq(memberGroupsTable.id, groupId), isNull(memberGroupsTable.deletedAt))).limit(1),
+  ]);
+  if (!member[0] || !group[0]) {
+    res.status(404).json({ error: "NOT_FOUND", message: "Membro ou grupo não encontrado" });
+    return;
+  }
+
+  const [existing] = await db.select().from(memberGroupMembersTable)
+    .where(and(
+      eq(memberGroupMembersTable.memberId, memberId),
+      eq(memberGroupMembersTable.groupId, groupId),
+    )).limit(1);
+  if (existing) {
+    res.status(409).json({ error: "ALREADY_EXISTS", message: "Membro já está no grupo" });
+    return;
+  }
+
+  await db.insert(memberGroupMembersTable).values({ memberId, groupId, createdByUserId: userId });
+
+  await db.insert(memberHistoryTable).values({
+    memberId,
+    changedByUserId: userId,
+    changeType: "group_joined",
+    fieldChanges: { groupId },
+  });
+
+  res.status(201).json({ memberId, groupId });
+});
+
+// DELETE /members/:memberId/groups/:groupId — unlink
+router.delete("/:memberId/groups/:groupId", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const { memberId, groupId } = req.params;
+
+  const result = await db.delete(memberGroupMembersTable).where(and(
+    eq(memberGroupMembersTable.memberId, memberId),
+    eq(memberGroupMembersTable.groupId, groupId),
+  )).returning();
+
+  if (result.length === 0) {
+    res.status(404).json({ error: "NOT_FOUND", message: "Vínculo não encontrado" });
+    return;
+  }
+
+  await db.insert(memberHistoryTable).values({
+    memberId,
+    changedByUserId: userId,
+    changeType: "group_left",
+    fieldChanges: { groupId },
+  });
+
+  res.json({ message: "Membro removido do grupo" });
 });
 
 export default router;

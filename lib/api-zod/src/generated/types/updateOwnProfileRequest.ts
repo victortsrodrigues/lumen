@@ -5,11 +5,14 @@
  * Church ERP API
  * OpenAPI spec version: 0.2.0
  */
+import type { MemberMaritalStatus } from "./memberMaritalStatus";
 import type { UpdateOwnProfileRequestSex } from "./updateOwnProfileRequestSex";
 
+/**
+ * Allowlist no backend — apenas estes campos aceitos no PUT /members/me.
+ */
 export interface UpdateOwnProfileRequest {
   fullName?: string;
-  cpf?: string;
   dateOfBirth?: string;
   sex?: UpdateOwnProfileRequestSex;
   phone?: string;
@@ -20,7 +23,8 @@ export interface UpdateOwnProfileRequest {
   addressNeighborhood?: string;
   addressCity?: string;
   addressState?: string;
-  conversionDate?: string;
-  baptismDate?: string;
   photoPath?: string;
+  maritalStatus?: MemberMaritalStatus;
+  academicEducation?: string;
+  profession?: string;
 }

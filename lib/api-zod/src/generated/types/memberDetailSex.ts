@@ -12,5 +12,4 @@ export type MemberDetailSex =
 export const MemberDetailSex = {
   masculino: "masculino",
   feminino: "feminino",
-  outro: "outro",
 } as const;

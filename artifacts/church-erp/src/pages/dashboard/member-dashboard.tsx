@@ -81,14 +81,14 @@ export default function MemberDashboard() {
                       </span>
                     )}
                   </div>
-                  {(data.profile.baptismDate || data.profile.conversionDate) && (
+                  {((data.profile as any).receptionDate || data.profile.conversionDate) && (
                     <p className="text-xs text-muted-foreground mt-2">
-                      {data.profile.baptismDate && (
-                        <>Batismo: {formatDate(data.profile.baptismDate)}</>
+                      {(data.profile as any).receptionDate && (
+                        <>Recepção: {formatDate((data.profile as any).receptionDate)}</>
                       )}
-                      {data.profile.baptismDate && data.profile.conversionDate && " · "}
+                      {(data.profile as any).receptionDate && data.profile.conversionDate && " · "}
                       {data.profile.conversionDate && (
-                        <>Arrolamento: {formatDate(data.profile.conversionDate)}</>
+                        <>Conversão: {formatDate(data.profile.conversionDate)}</>
                       )}
                     </p>
                   )}

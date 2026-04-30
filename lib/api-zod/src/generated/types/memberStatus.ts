@@ -9,8 +9,9 @@
 export type MemberStatus = (typeof MemberStatus)[keyof typeof MemberStatus];
 
 export const MemberStatus = {
-  visitante: "visitante",
   ativo: "ativo",
-  inativo: "inativo",
+  disciplina: "disciplina",
+  rol_apartado: "rol_apartado",
   falecido: "falecido",
+  demitido: "demitido",
 } as const;

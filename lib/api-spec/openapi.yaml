@@ -768,6 +768,201 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /members/{id}/exclusion:
+    post:
+      operationId: registerMemberExclusion
+      tags: [members]
+      summary: Register member exclusion (admin only)
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterExclusionRequest"
+      responses:
+        "200":
+          description: Excluded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberDetail"
+
+  /members/{id}/exclusion/revert:
+    post:
+      operationId: revertMemberExclusion
+      tags: [members]
+      summary: Revert member exclusion (admin only)
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Reverted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberDetail"
+
+  /members/{id}/exclusion/letter:
+    post:
+      operationId: saveTransferLetter
+      tags: [members]
+      summary: Save transfer letter PDF path after upload
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransferLetterRequest"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  letterPath: { type: string }
+
+  /members/{id}/children:
+    post:
+      operationId: addMemberChild
+      tags: [members]
+      summary: Add child link
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddChildRequest"
+      responses:
+        "201":
+          description: Linked
+
+  /members/{id}/children/{childId}:
+    delete:
+      operationId: removeMemberChild
+      tags: [members]
+      summary: Remove child link
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+        - { in: path, name: childId, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Unlinked
+
+  /members/{memberId}/groups/{groupId}:
+    post:
+      operationId: linkMemberToGroup
+      tags: [members]
+      summary: Link member to a group
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: memberId, required: true, schema: { type: string } }
+        - { in: path, name: groupId, required: true, schema: { type: string } }
+      responses:
+        "201":
+          description: Linked
+    delete:
+      operationId: unlinkMemberFromGroup
+      tags: [members]
+      summary: Unlink member from a group
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: memberId, required: true, schema: { type: string } }
+        - { in: path, name: groupId, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Unlinked
+
+  /member-groups:
+    get:
+      operationId: listMemberGroups
+      tags: [members]
+      summary: List member groups
+      security: [{ cookieAuth: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberGroupListResponse"
+    post:
+      operationId: createMemberGroup
+      tags: [members]
+      summary: Create a member group
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMemberGroupRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberGroup"
+
+  /member-groups/{id}:
+    get:
+      operationId: getMemberGroup
+      tags: [members]
+      summary: Get a member group with members
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberGroupDetail"
+    put:
+      operationId: updateMemberGroup
+      tags: [members]
+      summary: Update a member group
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMemberGroupRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberGroup"
+    delete:
+      operationId: deleteMemberGroup
+      tags: [members]
+      summary: Delete a member group
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Deleted
+
   /members/import/csv:
     post:
       operationId: importMembersCsv
@@ -5100,33 +5295,60 @@ components:
 
     MemberStatus:
       type: string
-      enum: [visitante, ativo, inativo, falecido]
+      enum: [ativo, disciplina, rol_apartado, falecido, demitido]
+
+    MemberClassification:
+      type: string
+      enum: [comungante, nao_comungante]
+
+    MemberReceptionMode:
+      type: string
+      enum:
+        - profissao_fe
+        - profissao_fe_batismo
+        - carta_transferencia
+        - jurisdicao_pedido
+        - jurisdicao_ex_officio
+        - restauracao
+        - batismo_infantil
+        - transferencia_menor
+        - arrolamento_menor
+
+    MemberMaritalStatus:
+      type: string
+      enum: [solteiro, casado, viuvo, divorciado, uniao_estavel]
+
+    MemberExclusionReason:
+      type: string
+      enum:
+        - transferencia
+        - falecimento
+        - exclusao_pedido
+        - exclusao_disciplina
+        - exclusao_abandono
+        - ordenacao_ministerio
+        - transferencia_responsaveis
+        - profissao_fe_migracao
+        - exclusao_abandono_responsaveis
 
     MemberSummary:
       type: object
       properties:
-        id:
-          type: string
-        fullName:
-          type: string
-        cpfMasked:
-          type: string
-        email:
-          type: string
+        id: { type: string }
+        fullName: { type: string }
+        cpfMasked: { type: string }
+        email: { type: string }
+        classification:
+          $ref: "#/components/schemas/MemberClassification"
         status:
           $ref: "#/components/schemas/MemberStatus"
         pipelineStage:
           type: string
           enum: [culto, pequeno_grupo, ministerio]
-        photoPath:
-          type: string
-        familyId:
-          type: string
-        familyName:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
+        receptionMode:
+          $ref: "#/components/schemas/MemberReceptionMode"
+        photoPath: { type: string }
+        createdAt: { type: string, format: date-time }
       required:
         - id
         - fullName
@@ -5134,67 +5356,84 @@ components:
         - status
         - createdAt
 
+    MemberLink:
+      type: object
+      properties:
+        id: { type: string }
+        fullName: { type: string }
+      required: [id, fullName]
+
+    MemberGroupLink:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+      required: [id, name]
+
     MemberDetail:
       type: object
       properties:
-        id:
-          type: string
-        fullName:
-          type: string
-        cpfMasked:
-          type: string
-        dateOfBirth:
-          type: string
-        sex:
-          type: string
-          enum: [masculino, feminino, outro]
-        phone:
-          type: string
-        email:
-          type: string
-        addressZip:
-          type: string
-        addressStreet:
-          type: string
-        addressNumber:
-          type: string
-        addressComplement:
-          type: string
-        addressNeighborhood:
-          type: string
-        addressCity:
-          type: string
-        addressState:
-          type: string
-        conversionDate:
-          type: string
-        baptismDate:
-          type: string
-        enrollmentType:
-          type: string
-          nullable: true
-          enum: [batismo, profissao_de_fe, transferencia, jurisdicao, restauracao]
+        id: { type: string }
+        fullName: { type: string }
+        cpfMasked: { type: string }
+        dateOfBirth: { type: string }
+        sex: { type: string, enum: [masculino, feminino] }
+        phone: { type: string }
+        email: { type: string }
+        addressZip: { type: string }
+        addressStreet: { type: string }
+        addressNumber: { type: string }
+        addressComplement: { type: string }
+        addressNeighborhood: { type: string }
+        addressCity: { type: string }
+        addressState: { type: string }
+        # Eclesiástico
+        classification:
+          $ref: "#/components/schemas/MemberClassification"
+        receptionMode:
+          $ref: "#/components/schemas/MemberReceptionMode"
+        receptionDate: { type: string }
+        conversionDate: { type: string }
+        conversionYear: { type: integer }
+        religiousOrigin: { type: string }
+        infantBaptism: { type: boolean }
+        infantBaptismChurch: { type: string }
+        infantBaptismPastor: { type: string }
+        parentsOrGuardians: { type: string }
+        # Pessoal
+        maritalStatus:
+          $ref: "#/components/schemas/MemberMaritalStatus"
+        spouseMemberId: { type: string }
+        spouseName: { type: string }
+        academicEducation: { type: string }
+        profession: { type: string }
+        # Status / exclusão
         status:
           $ref: "#/components/schemas/MemberStatus"
         pipelineStage:
           type: string
           enum: [culto, pequeno_grupo, ministerio]
-        photoPath:
-          type: string
-        familyId:
-          type: string
-        familyName:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
+        exclusionReason:
+          $ref: "#/components/schemas/MemberExclusionReason"
+        exclusionDate: { type: string }
+        exclusionNotes: { type: string }
+        exclusionLetterPath: { type: string }
+        photoPath: { type: string }
+        children:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemberLink"
+        groups:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemberGroupLink"
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
       required:
         - id
         - fullName
         - cpfMasked
+        - classification
         - status
         - createdAt
         - updatedAt
@@ -5206,115 +5445,94 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/MemberSummary"
-        total:
-          type: integer
-        page:
-          type: integer
-        limit:
-          type: integer
-      required:
-        - members
-        - total
-        - page
-        - limit
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+      required: [members, total, page, limit]
 
     CreateMemberRequest:
       type: object
       properties:
-        fullName:
-          type: string
-        cpf:
-          type: string
-        dateOfBirth:
-          type: string
-        sex:
-          type: string
-          enum: [masculino, feminino, outro]
-        phone:
-          type: string
-        email:
-          type: string
-        addressZip:
-          type: string
-        addressStreet:
-          type: string
-        addressNumber:
-          type: string
-        addressComplement:
-          type: string
-        addressNeighborhood:
-          type: string
-        addressCity:
-          type: string
-        addressState:
-          type: string
-        conversionDate:
-          type: string
-        baptismDate:
-          type: string
+        fullName: { type: string }
+        cpf: { type: string }
+        dateOfBirth: { type: string }
+        sex: { type: string, enum: [masculino, feminino] }
+        phone: { type: string }
+        email: { type: string }
+        addressZip: { type: string }
+        addressStreet: { type: string }
+        addressNumber: { type: string }
+        addressComplement: { type: string }
+        addressNeighborhood: { type: string }
+        addressCity: { type: string }
+        addressState: { type: string }
+        classification:
+          $ref: "#/components/schemas/MemberClassification"
+        receptionMode:
+          $ref: "#/components/schemas/MemberReceptionMode"
+        receptionDate: { type: string }
+        conversionDate: { type: string }
+        conversionYear: { type: integer }
+        religiousOrigin: { type: string }
+        infantBaptism: { type: boolean }
+        infantBaptismChurch: { type: string }
+        infantBaptismPastor: { type: string }
+        parentsOrGuardians: { type: string }
+        maritalStatus:
+          $ref: "#/components/schemas/MemberMaritalStatus"
+        spouseMemberId: { type: string }
+        academicEducation: { type: string }
+        profession: { type: string }
         status:
           $ref: "#/components/schemas/MemberStatus"
-        photoPath:
-          type: string
-        familyId:
-          type: string
-        familyName:
-          type: string
-        lgpdConsentAccepted:
-          type: boolean
+        photoPath: { type: string }
+        lgpdConsentAccepted: { type: boolean }
       required:
         - fullName
-        - status
         - lgpdConsentAccepted
 
     UpdateMemberRequest:
       type: object
       properties:
-        fullName:
-          type: string
-        cpf:
-          type: string
-        dateOfBirth:
-          type: string
-        sex:
-          type: string
-          enum: [masculino, feminino, outro]
-        phone:
-          type: string
-        email:
-          type: string
-        addressZip:
-          type: string
-        addressStreet:
-          type: string
-        addressNumber:
-          type: string
-        addressComplement:
-          type: string
-        addressNeighborhood:
-          type: string
-        addressCity:
-          type: string
-        addressState:
-          type: string
-        conversionDate:
-          type: string
-        baptismDate:
-          type: string
+        fullName: { type: string }
+        cpf: { type: string }
+        dateOfBirth: { type: string }
+        sex: { type: string, enum: [masculino, feminino] }
+        phone: { type: string }
+        email: { type: string }
+        addressZip: { type: string }
+        addressStreet: { type: string }
+        addressNumber: { type: string }
+        addressComplement: { type: string }
+        addressNeighborhood: { type: string }
+        addressCity: { type: string }
+        addressState: { type: string }
+        classification:
+          $ref: "#/components/schemas/MemberClassification"
+        receptionMode:
+          $ref: "#/components/schemas/MemberReceptionMode"
+        receptionDate: { type: string }
+        conversionDate: { type: string }
+        conversionYear: { type: integer }
+        religiousOrigin: { type: string }
+        infantBaptism: { type: boolean }
+        infantBaptismChurch: { type: string }
+        infantBaptismPastor: { type: string }
+        parentsOrGuardians: { type: string }
+        maritalStatus:
+          $ref: "#/components/schemas/MemberMaritalStatus"
+        spouseMemberId: { type: string, nullable: true }
+        academicEducation: { type: string }
+        profession: { type: string }
         status:
           $ref: "#/components/schemas/MemberStatus"
-        photoPath:
-          type: string
-        familyId:
-          type: string
-        familyName:
-          type: string
+        photoPath: { type: string }
 
     UpdateOwnProfileRequest:
       type: object
+      description: Allowlist no backend — apenas estes campos aceitos no PUT /members/me.
       properties:
         fullName: { type: string }
-        cpf: { type: string }
         dateOfBirth: { type: string }
         sex: { type: string, enum: [masculino, feminino] }
         phone: { type: string }
@@ -5325,9 +5543,85 @@ components:
         addressNeighborhood: { type: string }
         addressCity: { type: string }
         addressState: { type: string }
-        conversionDate: { type: string }
-        baptismDate: { type: string }
         photoPath: { type: string }
+        maritalStatus:
+          $ref: "#/components/schemas/MemberMaritalStatus"
+        academicEducation: { type: string }
+        profession: { type: string }
+
+    RegisterExclusionRequest:
+      type: object
+      properties:
+        reason:
+          $ref: "#/components/schemas/MemberExclusionReason"
+        date: { type: string }
+        notes: { type: string }
+      required: [reason]
+
+    TransferLetterRequest:
+      type: object
+      properties:
+        letterPath: { type: string }
+        destinationChurch: { type: string }
+        responsiblePastor: { type: string }
+        secretary: { type: string }
+        notes: { type: string }
+      required: [letterPath]
+
+    AddChildRequest:
+      type: object
+      properties:
+        childMemberId: { type: string }
+      required: [childMemberId]
+
+    MemberGroup:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        memberCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required: [id, name]
+
+    MemberGroupListResponse:
+      type: object
+      properties:
+        groups:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemberGroup"
+      required: [groups]
+
+    MemberGroupDetail:
+      allOf:
+        - $ref: "#/components/schemas/MemberGroup"
+        - type: object
+          properties:
+            members:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: { type: string }
+                  fullName: { type: string }
+                  email: { type: string, nullable: true }
+                  photoPath: { type: string, nullable: true }
+                required: [id, fullName]
+
+    CreateMemberGroupRequest:
+      type: object
+      properties:
+        name: { type: string }
+        description: { type: string }
+      required: [name]
+
+    UpdateMemberGroupRequest:
+      type: object
+      properties:
+        name: { type: string }
+        description: { type: string }
 
     RevealCpfResponse:
       type: object

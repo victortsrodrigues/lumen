@@ -5,9 +5,14 @@
  * Church ERP API
  * OpenAPI spec version: 0.2.0
  */
-import type { MemberDetailEnrollmentType } from "./memberDetailEnrollmentType";
+import type { MemberClassification } from "./memberClassification";
 import type { MemberDetailPipelineStage } from "./memberDetailPipelineStage";
 import type { MemberDetailSex } from "./memberDetailSex";
+import type { MemberExclusionReason } from "./memberExclusionReason";
+import type { MemberGroupLink } from "./memberGroupLink";
+import type { MemberLink } from "./memberLink";
+import type { MemberMaritalStatus } from "./memberMaritalStatus";
+import type { MemberReceptionMode } from "./memberReceptionMode";
 import type { MemberStatus } from "./memberStatus";
 
 export interface MemberDetail {
@@ -25,14 +30,30 @@ export interface MemberDetail {
   addressNeighborhood?: string;
   addressCity?: string;
   addressState?: string;
+  classification: MemberClassification;
+  receptionMode?: MemberReceptionMode;
+  receptionDate?: string;
   conversionDate?: string;
-  baptismDate?: string;
-  enrollmentType?: MemberDetailEnrollmentType;
+  conversionYear?: number;
+  religiousOrigin?: string;
+  infantBaptism?: boolean;
+  infantBaptismChurch?: string;
+  infantBaptismPastor?: string;
+  parentsOrGuardians?: string;
+  maritalStatus?: MemberMaritalStatus;
+  spouseMemberId?: string;
+  spouseName?: string;
+  academicEducation?: string;
+  profession?: string;
   status: MemberStatus;
   pipelineStage?: MemberDetailPipelineStage;
+  exclusionReason?: MemberExclusionReason;
+  exclusionDate?: string;
+  exclusionNotes?: string;
+  exclusionLetterPath?: string;
   photoPath?: string;
-  familyId?: string;
-  familyName?: string;
+  children?: MemberLink[];
+  groups?: MemberGroupLink[];
   createdAt: Date;
   updatedAt: Date;
 }

@@ -107,10 +107,60 @@ export interface AuditLogListResponse {
 export type MemberStatus = (typeof MemberStatus)[keyof typeof MemberStatus];
 
 export const MemberStatus = {
-  visitante: "visitante",
   ativo: "ativo",
-  inativo: "inativo",
+  disciplina: "disciplina",
+  rol_apartado: "rol_apartado",
   falecido: "falecido",
+  demitido: "demitido",
+} as const;
+
+export type MemberClassification =
+  (typeof MemberClassification)[keyof typeof MemberClassification];
+
+export const MemberClassification = {
+  comungante: "comungante",
+  nao_comungante: "nao_comungante",
+} as const;
+
+export type MemberReceptionMode =
+  (typeof MemberReceptionMode)[keyof typeof MemberReceptionMode];
+
+export const MemberReceptionMode = {
+  profissao_fe: "profissao_fe",
+  profissao_fe_batismo: "profissao_fe_batismo",
+  carta_transferencia: "carta_transferencia",
+  jurisdicao_pedido: "jurisdicao_pedido",
+  jurisdicao_ex_officio: "jurisdicao_ex_officio",
+  restauracao: "restauracao",
+  batismo_infantil: "batismo_infantil",
+  transferencia_menor: "transferencia_menor",
+  arrolamento_menor: "arrolamento_menor",
+} as const;
+
+export type MemberMaritalStatus =
+  (typeof MemberMaritalStatus)[keyof typeof MemberMaritalStatus];
+
+export const MemberMaritalStatus = {
+  solteiro: "solteiro",
+  casado: "casado",
+  viuvo: "viuvo",
+  divorciado: "divorciado",
+  uniao_estavel: "uniao_estavel",
+} as const;
+
+export type MemberExclusionReason =
+  (typeof MemberExclusionReason)[keyof typeof MemberExclusionReason];
+
+export const MemberExclusionReason = {
+  transferencia: "transferencia",
+  falecimento: "falecimento",
+  exclusao_pedido: "exclusao_pedido",
+  exclusao_disciplina: "exclusao_disciplina",
+  exclusao_abandono: "exclusao_abandono",
+  ordenacao_ministerio: "ordenacao_ministerio",
+  transferencia_responsaveis: "transferencia_responsaveis",
+  profissao_fe_migracao: "profissao_fe_migracao",
+  exclusao_abandono_responsaveis: "exclusao_abandono_responsaveis",
 } as const;
 
 export type MemberSummaryPipelineStage =
@@ -127,12 +177,22 @@ export interface MemberSummary {
   fullName: string;
   cpfMasked: string;
   email?: string;
+  classification?: MemberClassification;
   status: MemberStatus;
   pipelineStage?: MemberSummaryPipelineStage;
+  receptionMode?: MemberReceptionMode;
   photoPath?: string;
-  familyId?: string;
-  familyName?: string;
   createdAt: string;
+}
+
+export interface MemberLink {
+  id: string;
+  fullName: string;
+}
+
+export interface MemberGroupLink {
+  id: string;
+  name: string;
 }
 
 export type MemberDetailSex =
@@ -141,19 +201,6 @@ export type MemberDetailSex =
 export const MemberDetailSex = {
   masculino: "masculino",
   feminino: "feminino",
-  outro: "outro",
-} as const;
-
-export type MemberDetailEnrollmentType =
-  | (typeof MemberDetailEnrollmentType)[keyof typeof MemberDetailEnrollmentType]
-  | null;
-
-export const MemberDetailEnrollmentType = {
-  batismo: "batismo",
-  profissao_de_fe: "profissao_de_fe",
-  transferencia: "transferencia",
-  jurisdicao: "jurisdicao",
-  restauracao: "restauracao",
 } as const;
 
 export type MemberDetailPipelineStage =
@@ -180,14 +227,30 @@ export interface MemberDetail {
   addressNeighborhood?: string;
   addressCity?: string;
   addressState?: string;
+  classification: MemberClassification;
+  receptionMode?: MemberReceptionMode;
+  receptionDate?: string;
   conversionDate?: string;
-  baptismDate?: string;
-  enrollmentType?: MemberDetailEnrollmentType;
+  conversionYear?: number;
+  religiousOrigin?: string;
+  infantBaptism?: boolean;
+  infantBaptismChurch?: string;
+  infantBaptismPastor?: string;
+  parentsOrGuardians?: string;
+  maritalStatus?: MemberMaritalStatus;
+  spouseMemberId?: string;
+  spouseName?: string;
+  academicEducation?: string;
+  profession?: string;
   status: MemberStatus;
   pipelineStage?: MemberDetailPipelineStage;
+  exclusionReason?: MemberExclusionReason;
+  exclusionDate?: string;
+  exclusionNotes?: string;
+  exclusionLetterPath?: string;
   photoPath?: string;
-  familyId?: string;
-  familyName?: string;
+  children?: MemberLink[];
+  groups?: MemberGroupLink[];
   createdAt: string;
   updatedAt: string;
 }
@@ -205,7 +268,6 @@ export type CreateMemberRequestSex =
 export const CreateMemberRequestSex = {
   masculino: "masculino",
   feminino: "feminino",
-  outro: "outro",
 } as const;
 
 export interface CreateMemberRequest {
@@ -222,12 +284,22 @@ export interface CreateMemberRequest {
   addressNeighborhood?: string;
   addressCity?: string;
   addressState?: string;
+  classification?: MemberClassification;
+  receptionMode?: MemberReceptionMode;
+  receptionDate?: string;
   conversionDate?: string;
-  baptismDate?: string;
-  status: MemberStatus;
+  conversionYear?: number;
+  religiousOrigin?: string;
+  infantBaptism?: boolean;
+  infantBaptismChurch?: string;
+  infantBaptismPastor?: string;
+  parentsOrGuardians?: string;
+  maritalStatus?: MemberMaritalStatus;
+  spouseMemberId?: string;
+  academicEducation?: string;
+  profession?: string;
+  status?: MemberStatus;
   photoPath?: string;
-  familyId?: string;
-  familyName?: string;
   lgpdConsentAccepted: boolean;
 }
 
@@ -237,7 +309,6 @@ export type UpdateMemberRequestSex =
 export const UpdateMemberRequestSex = {
   masculino: "masculino",
   feminino: "feminino",
-  outro: "outro",
 } as const;
 
 export interface UpdateMemberRequest {
@@ -254,12 +325,22 @@ export interface UpdateMemberRequest {
   addressNeighborhood?: string;
   addressCity?: string;
   addressState?: string;
+  classification?: MemberClassification;
+  receptionMode?: MemberReceptionMode;
+  receptionDate?: string;
   conversionDate?: string;
-  baptismDate?: string;
+  conversionYear?: number;
+  religiousOrigin?: string;
+  infantBaptism?: boolean;
+  infantBaptismChurch?: string;
+  infantBaptismPastor?: string;
+  parentsOrGuardians?: string;
+  maritalStatus?: MemberMaritalStatus;
+  spouseMemberId?: string | null;
+  academicEducation?: string;
+  profession?: string;
   status?: MemberStatus;
   photoPath?: string;
-  familyId?: string;
-  familyName?: string;
 }
 
 export type UpdateOwnProfileRequestSex =
@@ -270,9 +351,11 @@ export const UpdateOwnProfileRequestSex = {
   feminino: "feminino",
 } as const;
 
+/**
+ * Allowlist no backend — apenas estes campos aceitos no PUT /members/me.
+ */
 export interface UpdateOwnProfileRequest {
   fullName?: string;
-  cpf?: string;
   dateOfBirth?: string;
   sex?: UpdateOwnProfileRequestSex;
   phone?: string;
@@ -283,9 +366,62 @@ export interface UpdateOwnProfileRequest {
   addressNeighborhood?: string;
   addressCity?: string;
   addressState?: string;
-  conversionDate?: string;
-  baptismDate?: string;
   photoPath?: string;
+  maritalStatus?: MemberMaritalStatus;
+  academicEducation?: string;
+  profession?: string;
+}
+
+export interface RegisterExclusionRequest {
+  reason: MemberExclusionReason;
+  date?: string;
+  notes?: string;
+}
+
+export interface TransferLetterRequest {
+  letterPath: string;
+  destinationChurch?: string;
+  responsiblePastor?: string;
+  secretary?: string;
+  notes?: string;
+}
+
+export interface AddChildRequest {
+  childMemberId: string;
+}
+
+export interface MemberGroup {
+  id: string;
+  name: string;
+  description?: string | null;
+  memberCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MemberGroupListResponse {
+  groups: MemberGroup[];
+}
+
+export type MemberGroupDetailMembersItem = {
+  id: string;
+  fullName: string;
+  email?: string | null;
+  photoPath?: string | null;
+};
+
+export type MemberGroupDetail = MemberGroup & {
+  members?: MemberGroupDetailMembersItem[];
+};
+
+export interface CreateMemberGroupRequest {
+  name: string;
+  description?: string;
+}
+
+export interface UpdateMemberGroupRequest {
+  name?: string;
+  description?: string;
 }
 
 export interface RevealCpfResponse {
@@ -2973,6 +3109,10 @@ export const ListMembersStatus = {
 
 export type GetStagnantMembersParams = {
   days?: number;
+};
+
+export type SaveTransferLetter200 = {
+  letterPath?: string;
 };
 
 export type ListFinanceEntriesParams = {

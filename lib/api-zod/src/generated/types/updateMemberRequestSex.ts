@@ -12,5 +12,4 @@ export type UpdateMemberRequestSex =
 export const UpdateMemberRequestSex = {
   masculino: "masculino",
   feminino: "feminino",
-  outro: "outro",
 } as const;

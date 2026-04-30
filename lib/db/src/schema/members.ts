@@ -1,15 +1,65 @@
-import { pgTable, text, timestamp, pgEnum, date } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, pgEnum, date, integer, boolean, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const memberStatusEnum = pgEnum("member_status", ["visitante", "ativo", "inativo", "falecido"]);
+// ─── ENUMS ──────────────────────────────────────────────────────────────────
+
+export const memberStatusEnum = pgEnum("member_status", [
+  "ativo",
+  "disciplina",
+  "rol_apartado",
+  "falecido",
+  "demitido",
+]);
+
 export const memberSexEnum = pgEnum("member_sex", ["masculino", "feminino"]);
+
 export const memberPipelineStageEnum = pgEnum("member_pipeline_stage", [
   "culto", "pequeno_grupo", "ministerio",
 ]);
-export const memberEnrollmentTypeEnum = pgEnum("member_enrollment_type", [
-  "batismo", "profissao_de_fe", "transferencia", "jurisdicao", "restauracao",
+
+export const memberClassificationEnum = pgEnum("member_classification", [
+  "comungante",
+  "nao_comungante",
 ]);
+
+export const memberReceptionModeEnum = pgEnum("member_reception_mode", [
+  // Comungantes
+  "profissao_fe",
+  "profissao_fe_batismo",
+  "carta_transferencia",
+  "jurisdicao_pedido",
+  "jurisdicao_ex_officio",
+  "restauracao",
+  // Não comungantes
+  "batismo_infantil",
+  "transferencia_menor",
+  "arrolamento_menor",
+]);
+
+export const memberMaritalStatusEnum = pgEnum("member_marital_status", [
+  "solteiro",
+  "casado",
+  "viuvo",
+  "divorciado",
+  "uniao_estavel",
+]);
+
+export const memberExclusionReasonEnum = pgEnum("member_exclusion_reason", [
+  // Comungantes
+  "transferencia",
+  "falecimento",
+  "exclusao_pedido",
+  "exclusao_disciplina",
+  "exclusao_abandono",
+  "ordenacao_ministerio",
+  // Não comungantes
+  "transferencia_responsaveis",
+  "profissao_fe_migracao",
+  "exclusao_abandono_responsaveis",
+]);
+
+// ─── MEMBERS TABLE ──────────────────────────────────────────────────────────
 
 export const membersTable = pgTable("members", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -36,25 +86,44 @@ export const membersTable = pgTable("members", {
   addressCity: text("address_city"),
   addressState: text("address_state"),
 
+  // ─── Eclesiástico ───
+  classification: memberClassificationEnum("classification").notNull().default("comungante"),
+  receptionMode: memberReceptionModeEnum("reception_mode"),
+  receptionDate: date("reception_date"),
   conversionDate: date("conversion_date"),
-  baptismDate: date("baptism_date"),
-  enrollmentType: memberEnrollmentTypeEnum("enrollment_type"),
+  conversionYear: integer("conversion_year"),
+  religiousOrigin: text("religious_origin"),
+  infantBaptism: boolean("infant_baptism").notNull().default(false),
+  infantBaptismChurch: text("infant_baptism_church"),
+  infantBaptismPastor: text("infant_baptism_pastor"),
+  parentsOrGuardians: text("parents_or_guardians"),
 
+  // ─── Pessoal ───
+  maritalStatus: memberMaritalStatusEnum("marital_status"),
+  spouseMemberId: text("spouse_member_id"),
+  academicEducation: text("academic_education"),
+  profession: text("profession"),
+
+  // ─── Status / exclusão ───
   status: memberStatusEnum("status").notNull().default("ativo"),
   pipelineStage: memberPipelineStageEnum("pipeline_stage").notNull().default("culto"),
+  exclusionReason: memberExclusionReasonEnum("exclusion_reason"),
+  exclusionDate: date("exclusion_date"),
+  exclusionNotes: text("exclusion_notes"),
+  exclusionLetterPath: text("exclusion_letter_path"),
 
   // Object storage path for photo
   photoPath: text("photo_path"),
-
-  // Family grouping
-  familyId: text("family_id"),
-  familyName: text("family_name"),
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   createdByUserId: text("created_by_user_id").notNull(),
   updatedByUserId: text("updated_by_user_id").notNull(),
-});
+}, (table) => [
+  index("idx_members_classification").on(table.classification),
+  index("idx_members_status").on(table.status),
+  index("idx_members_spouse").on(table.spouseMemberId),
+]);
 
 export const insertMemberSchema = createInsertSchema(membersTable).omit({
   id: true,

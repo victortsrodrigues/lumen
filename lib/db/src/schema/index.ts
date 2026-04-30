@@ -3,6 +3,8 @@ export * from "./audit_logs";
 export * from "./consent_records";
 export * from "./members";
 export * from "./member_history";
+export * from "./member_children";
+export * from "./member_groups";
 export * from "./finance";
 export * from "./teaching";
 export * from "./events";

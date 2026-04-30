@@ -3,6 +3,7 @@ import { useGetOwnProfile, useUpdateOwnProfile, useLookupCep, useRequestUploadUr
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { cleanFormPayload } from "@/hooks/use-form-errors";
 import {
   User, Loader2, Save, Mail, Phone, MapPin, Calendar, Edit2, X, UploadCloud,
 } from "lucide-react";
@@ -27,10 +28,10 @@ function formatPhone(digits: string): string {
 }
 
 const EMPTY_FORM = {
-  fullName: "", cpf: "", dateOfBirth: "", sex: "", phone: "",
+  fullName: "", dateOfBirth: "", sex: "", phone: "",
   addressZip: "", addressStreet: "", addressNumber: "", addressComplement: "",
   addressNeighborhood: "", addressCity: "", addressState: "",
-  conversionDate: "", baptismDate: "",
+  maritalStatus: "", academicEducation: "", profession: "",
 };
 
 export default function ProfilePage() {
@@ -94,8 +95,9 @@ export default function ProfilePage() {
       addressNeighborhood: (profile as any).addressNeighborhood || "",
       addressCity: profile.addressCity || "",
       addressState: profile.addressState || "",
-      conversionDate: profile.conversionDate || "",
-      baptismDate: profile.baptismDate || "",
+      maritalStatus: (profile as any).maritalStatus || "",
+      academicEducation: (profile as any).academicEducation || "",
+      profession: (profile as any).profession || "",
     });
     setPhotoPreview(currentPhotoUrl);
     setIsEditing(true);
@@ -154,9 +156,8 @@ export default function ProfilePage() {
     const phoneDigits = form.phone.replace(/\D/g, "");
 
     updateMutation.mutate({
-      data: {
+      data: cleanFormPayload({
         fullName: form.fullName,
-        cpf: form.cpf || undefined,
         dateOfBirth: form.dateOfBirth || undefined,
         sex: (form.sex as any) || undefined,
         phone: phoneDigits || undefined,
@@ -167,10 +168,11 @@ export default function ProfilePage() {
         addressNeighborhood: form.addressNeighborhood || undefined,
         addressCity: form.addressCity || undefined,
         addressState: form.addressState || undefined,
-        conversionDate: form.conversionDate || undefined,
-        baptismDate: form.baptismDate || undefined,
+        maritalStatus: (form.maritalStatus as any) || undefined,
+        academicEducation: form.academicEducation || undefined,
+        profession: form.profession || undefined,
         ...(finalPhotoPath ? { photoPath: finalPhotoPath } : {}),
-      },
+      }) as any,
     });
   };
 
@@ -259,12 +261,12 @@ export default function ProfilePage() {
                   <p className="font-medium mt-0.5">{profile.sex ? SEX_LABELS[profile.sex] || profile.sex : "—"}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground text-xs">Data de Arrolamento</p>
+                  <p className="text-muted-foreground text-xs">Data de Conversão</p>
                   <p className="font-medium mt-0.5">{formatDate(profile.conversionDate)}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground text-xs">Data de Batismo</p>
-                  <p className="font-medium mt-0.5">{formatDate(profile.baptismDate)}</p>
+                  <p className="text-muted-foreground text-xs">Data de Recepção</p>
+                  <p className="font-medium mt-0.5">{formatDate((profile as any).receptionDate)}</p>
                 </div>
               </div>
             </div>
@@ -335,10 +337,11 @@ export default function ProfilePage() {
                 <input type="email" value={profile.email || ""} disabled className="w-full border rounded-lg px-3 py-2 text-sm bg-muted/50 text-muted-foreground cursor-not-allowed" />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">CPF</label>
-                  <input type="text" value={form.cpf} onChange={(e) => setForm(f => ({ ...f, cpf: e.target.value.replace(/\D/g, "").slice(0, 11) }))} inputMode="numeric" maxLength={11} className="w-full border rounded-lg px-3 py-2 text-sm bg-background" />
+                  <input type="text" value={profile.cpfMasked || ""} disabled className="w-full border rounded-lg px-3 py-2 text-sm bg-muted/50 text-muted-foreground cursor-not-allowed" />
+                  <p className="text-xs text-muted-foreground mt-1">Para alterar, contate a administração.</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Data de Nascimento</label>
@@ -406,17 +409,28 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Religious */}
+            {/* Profissional/Pessoal */}
             <div className="rounded-2xl border bg-card p-6 space-y-4">
-              <h3 className="font-semibold flex items-center gap-2"><Calendar className="h-4 w-4" /> Vida Cristã</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <h3 className="font-semibold">Dados Pessoais</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Data de Arrolamento</label>
-                  <input type="date" value={form.conversionDate} onChange={(e) => setForm(f => ({ ...f, conversionDate: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm bg-background" />
+                  <label className="block text-sm font-medium mb-1">Estado Civil</label>
+                  <select value={form.maritalStatus} onChange={(e) => setForm(f => ({ ...f, maritalStatus: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm bg-background">
+                    <option value="">Não informado</option>
+                    <option value="solteiro">Solteiro(a)</option>
+                    <option value="casado">Casado(a)</option>
+                    <option value="viuvo">Viúvo(a)</option>
+                    <option value="divorciado">Divorciado(a)</option>
+                    <option value="uniao_estavel">União Estável</option>
+                  </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Data de Batismo</label>
-                  <input type="date" value={form.baptismDate} onChange={(e) => setForm(f => ({ ...f, baptismDate: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm bg-background" />
+                  <label className="block text-sm font-medium mb-1">Profissão</label>
+                  <input type="text" value={form.profession} onChange={(e) => setForm(f => ({ ...f, profession: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm bg-background" placeholder="Ex: Engenheiro" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium mb-1">Formação Acadêmica</label>
+                  <input type="text" value={form.academicEducation} onChange={(e) => setForm(f => ({ ...f, academicEducation: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm bg-background" placeholder="Ex: Bacharel em Computação" />
                 </div>
               </div>
             </div>

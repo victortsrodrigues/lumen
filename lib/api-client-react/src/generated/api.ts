@@ -18,6 +18,7 @@ import type {
 
 import type {
   AddBudgetItems201,
+  AddChildRequest,
   AddInitiativeStepBody,
   AddLiturgyItemRequest,
   AddMinistryMemberRequest,
@@ -74,6 +75,7 @@ import type {
   CreateLgpdRequestBody,
   CreateLiturgyRequest,
   CreateMediaRequest,
+  CreateMemberGroupRequest,
   CreateMemberRequest,
   CreateMinistryGoalRequest,
   CreateMinistryRequest,
@@ -164,6 +166,9 @@ import type {
   MediaLink,
   MediaListResponse,
   MemberDetail,
+  MemberGroup,
+  MemberGroupDetail,
+  MemberGroupListResponse,
   MemberHistoryResponse,
   MemberListResponse,
   MemberMinistriesResponse,
@@ -200,6 +205,7 @@ import type {
   PublicPagesListResponse,
   RecordAttendanceRequest,
   RecordEventAttendanceRequest,
+  RegisterExclusionRequest,
   RegisterForEventBody,
   RegisterRequest,
   ReorderLiturgyItemsRequest,
@@ -209,6 +215,7 @@ import type {
   RevealCpfResponse,
   ReviewArticleRequest,
   ReviewSongSuggestionRequest,
+  SaveTransferLetter200,
   ServiceRole,
   ServiceRolesListResponse,
   Song,
@@ -218,6 +225,7 @@ import type {
   StagnantMembersResponse,
   StudentProgress,
   TeachingDashboard,
+  TransferLetterRequest,
   UnreadCountResponse,
   UpcomingEventsResponse,
   UpdateArticleRequest,
@@ -237,6 +245,7 @@ import type {
   UpdateLiturgyItemRequest,
   UpdateLiturgyRequest,
   UpdateMediaRequest,
+  UpdateMemberGroupRequest,
   UpdateMemberRequest,
   UpdateMinistryGoalRequest,
   UpdateMinistryMemberRoleBody,
@@ -2508,6 +2517,1029 @@ export const useRevealMemberCpf = <
   TContext
 > => {
   return useMutation(getRevealMemberCpfMutationOptions(options));
+};
+
+/**
+ * @summary Register member exclusion (admin only)
+ */
+export const getRegisterMemberExclusionUrl = (id: string) => {
+  return `/api/members/${id}/exclusion`;
+};
+
+export const registerMemberExclusion = async (
+  id: string,
+  registerExclusionRequest: RegisterExclusionRequest,
+  options?: RequestInit,
+): Promise<MemberDetail> => {
+  return customFetch<MemberDetail>(getRegisterMemberExclusionUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(registerExclusionRequest),
+  });
+};
+
+export const getRegisterMemberExclusionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof registerMemberExclusion>>,
+    TError,
+    { id: string; data: BodyType<RegisterExclusionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof registerMemberExclusion>>,
+  TError,
+  { id: string; data: BodyType<RegisterExclusionRequest> },
+  TContext
+> => {
+  const mutationKey = ["registerMemberExclusion"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof registerMemberExclusion>>,
+    { id: string; data: BodyType<RegisterExclusionRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return registerMemberExclusion(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RegisterMemberExclusionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof registerMemberExclusion>>
+>;
+export type RegisterMemberExclusionMutationBody =
+  BodyType<RegisterExclusionRequest>;
+export type RegisterMemberExclusionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Register member exclusion (admin only)
+ */
+export const useRegisterMemberExclusion = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof registerMemberExclusion>>,
+    TError,
+    { id: string; data: BodyType<RegisterExclusionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof registerMemberExclusion>>,
+  TError,
+  { id: string; data: BodyType<RegisterExclusionRequest> },
+  TContext
+> => {
+  return useMutation(getRegisterMemberExclusionMutationOptions(options));
+};
+
+/**
+ * @summary Revert member exclusion (admin only)
+ */
+export const getRevertMemberExclusionUrl = (id: string) => {
+  return `/api/members/${id}/exclusion/revert`;
+};
+
+export const revertMemberExclusion = async (
+  id: string,
+  options?: RequestInit,
+): Promise<MemberDetail> => {
+  return customFetch<MemberDetail>(getRevertMemberExclusionUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getRevertMemberExclusionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof revertMemberExclusion>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof revertMemberExclusion>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["revertMemberExclusion"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof revertMemberExclusion>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return revertMemberExclusion(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RevertMemberExclusionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof revertMemberExclusion>>
+>;
+
+export type RevertMemberExclusionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Revert member exclusion (admin only)
+ */
+export const useRevertMemberExclusion = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof revertMemberExclusion>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof revertMemberExclusion>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getRevertMemberExclusionMutationOptions(options));
+};
+
+/**
+ * @summary Save transfer letter PDF path after upload
+ */
+export const getSaveTransferLetterUrl = (id: string) => {
+  return `/api/members/${id}/exclusion/letter`;
+};
+
+export const saveTransferLetter = async (
+  id: string,
+  transferLetterRequest: TransferLetterRequest,
+  options?: RequestInit,
+): Promise<SaveTransferLetter200> => {
+  return customFetch<SaveTransferLetter200>(getSaveTransferLetterUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(transferLetterRequest),
+  });
+};
+
+export const getSaveTransferLetterMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof saveTransferLetter>>,
+    TError,
+    { id: string; data: BodyType<TransferLetterRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof saveTransferLetter>>,
+  TError,
+  { id: string; data: BodyType<TransferLetterRequest> },
+  TContext
+> => {
+  const mutationKey = ["saveTransferLetter"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof saveTransferLetter>>,
+    { id: string; data: BodyType<TransferLetterRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return saveTransferLetter(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SaveTransferLetterMutationResult = NonNullable<
+  Awaited<ReturnType<typeof saveTransferLetter>>
+>;
+export type SaveTransferLetterMutationBody = BodyType<TransferLetterRequest>;
+export type SaveTransferLetterMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Save transfer letter PDF path after upload
+ */
+export const useSaveTransferLetter = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof saveTransferLetter>>,
+    TError,
+    { id: string; data: BodyType<TransferLetterRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof saveTransferLetter>>,
+  TError,
+  { id: string; data: BodyType<TransferLetterRequest> },
+  TContext
+> => {
+  return useMutation(getSaveTransferLetterMutationOptions(options));
+};
+
+/**
+ * @summary Add child link
+ */
+export const getAddMemberChildUrl = (id: string) => {
+  return `/api/members/${id}/children`;
+};
+
+export const addMemberChild = async (
+  id: string,
+  addChildRequest: AddChildRequest,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getAddMemberChildUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(addChildRequest),
+  });
+};
+
+export const getAddMemberChildMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addMemberChild>>,
+    TError,
+    { id: string; data: BodyType<AddChildRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof addMemberChild>>,
+  TError,
+  { id: string; data: BodyType<AddChildRequest> },
+  TContext
+> => {
+  const mutationKey = ["addMemberChild"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof addMemberChild>>,
+    { id: string; data: BodyType<AddChildRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return addMemberChild(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AddMemberChildMutationResult = NonNullable<
+  Awaited<ReturnType<typeof addMemberChild>>
+>;
+export type AddMemberChildMutationBody = BodyType<AddChildRequest>;
+export type AddMemberChildMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Add child link
+ */
+export const useAddMemberChild = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addMemberChild>>,
+    TError,
+    { id: string; data: BodyType<AddChildRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof addMemberChild>>,
+  TError,
+  { id: string; data: BodyType<AddChildRequest> },
+  TContext
+> => {
+  return useMutation(getAddMemberChildMutationOptions(options));
+};
+
+/**
+ * @summary Remove child link
+ */
+export const getRemoveMemberChildUrl = (id: string, childId: string) => {
+  return `/api/members/${id}/children/${childId}`;
+};
+
+export const removeMemberChild = async (
+  id: string,
+  childId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getRemoveMemberChildUrl(id, childId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getRemoveMemberChildMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeMemberChild>>,
+    TError,
+    { id: string; childId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof removeMemberChild>>,
+  TError,
+  { id: string; childId: string },
+  TContext
+> => {
+  const mutationKey = ["removeMemberChild"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof removeMemberChild>>,
+    { id: string; childId: string }
+  > = (props) => {
+    const { id, childId } = props ?? {};
+
+    return removeMemberChild(id, childId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RemoveMemberChildMutationResult = NonNullable<
+  Awaited<ReturnType<typeof removeMemberChild>>
+>;
+
+export type RemoveMemberChildMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Remove child link
+ */
+export const useRemoveMemberChild = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeMemberChild>>,
+    TError,
+    { id: string; childId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof removeMemberChild>>,
+  TError,
+  { id: string; childId: string },
+  TContext
+> => {
+  return useMutation(getRemoveMemberChildMutationOptions(options));
+};
+
+/**
+ * @summary Link member to a group
+ */
+export const getLinkMemberToGroupUrl = (memberId: string, groupId: string) => {
+  return `/api/members/${memberId}/groups/${groupId}`;
+};
+
+export const linkMemberToGroup = async (
+  memberId: string,
+  groupId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getLinkMemberToGroupUrl(memberId, groupId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getLinkMemberToGroupMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof linkMemberToGroup>>,
+    TError,
+    { memberId: string; groupId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof linkMemberToGroup>>,
+  TError,
+  { memberId: string; groupId: string },
+  TContext
+> => {
+  const mutationKey = ["linkMemberToGroup"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof linkMemberToGroup>>,
+    { memberId: string; groupId: string }
+  > = (props) => {
+    const { memberId, groupId } = props ?? {};
+
+    return linkMemberToGroup(memberId, groupId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type LinkMemberToGroupMutationResult = NonNullable<
+  Awaited<ReturnType<typeof linkMemberToGroup>>
+>;
+
+export type LinkMemberToGroupMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Link member to a group
+ */
+export const useLinkMemberToGroup = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof linkMemberToGroup>>,
+    TError,
+    { memberId: string; groupId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof linkMemberToGroup>>,
+  TError,
+  { memberId: string; groupId: string },
+  TContext
+> => {
+  return useMutation(getLinkMemberToGroupMutationOptions(options));
+};
+
+/**
+ * @summary Unlink member from a group
+ */
+export const getUnlinkMemberFromGroupUrl = (
+  memberId: string,
+  groupId: string,
+) => {
+  return `/api/members/${memberId}/groups/${groupId}`;
+};
+
+export const unlinkMemberFromGroup = async (
+  memberId: string,
+  groupId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getUnlinkMemberFromGroupUrl(memberId, groupId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getUnlinkMemberFromGroupMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unlinkMemberFromGroup>>,
+    TError,
+    { memberId: string; groupId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof unlinkMemberFromGroup>>,
+  TError,
+  { memberId: string; groupId: string },
+  TContext
+> => {
+  const mutationKey = ["unlinkMemberFromGroup"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof unlinkMemberFromGroup>>,
+    { memberId: string; groupId: string }
+  > = (props) => {
+    const { memberId, groupId } = props ?? {};
+
+    return unlinkMemberFromGroup(memberId, groupId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UnlinkMemberFromGroupMutationResult = NonNullable<
+  Awaited<ReturnType<typeof unlinkMemberFromGroup>>
+>;
+
+export type UnlinkMemberFromGroupMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Unlink member from a group
+ */
+export const useUnlinkMemberFromGroup = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unlinkMemberFromGroup>>,
+    TError,
+    { memberId: string; groupId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof unlinkMemberFromGroup>>,
+  TError,
+  { memberId: string; groupId: string },
+  TContext
+> => {
+  return useMutation(getUnlinkMemberFromGroupMutationOptions(options));
+};
+
+/**
+ * @summary List member groups
+ */
+export const getListMemberGroupsUrl = () => {
+  return `/api/member-groups`;
+};
+
+export const listMemberGroups = async (
+  options?: RequestInit,
+): Promise<MemberGroupListResponse> => {
+  return customFetch<MemberGroupListResponse>(getListMemberGroupsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListMemberGroupsQueryKey = () => {
+  return [`/api/member-groups`] as const;
+};
+
+export const getListMemberGroupsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listMemberGroups>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listMemberGroups>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListMemberGroupsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listMemberGroups>>
+  > = ({ signal }) => listMemberGroups({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listMemberGroups>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListMemberGroupsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listMemberGroups>>
+>;
+export type ListMemberGroupsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List member groups
+ */
+
+export function useListMemberGroups<
+  TData = Awaited<ReturnType<typeof listMemberGroups>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listMemberGroups>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListMemberGroupsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a member group
+ */
+export const getCreateMemberGroupUrl = () => {
+  return `/api/member-groups`;
+};
+
+export const createMemberGroup = async (
+  createMemberGroupRequest: CreateMemberGroupRequest,
+  options?: RequestInit,
+): Promise<MemberGroup> => {
+  return customFetch<MemberGroup>(getCreateMemberGroupUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createMemberGroupRequest),
+  });
+};
+
+export const getCreateMemberGroupMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createMemberGroup>>,
+    TError,
+    { data: BodyType<CreateMemberGroupRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createMemberGroup>>,
+  TError,
+  { data: BodyType<CreateMemberGroupRequest> },
+  TContext
+> => {
+  const mutationKey = ["createMemberGroup"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createMemberGroup>>,
+    { data: BodyType<CreateMemberGroupRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createMemberGroup(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateMemberGroupMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createMemberGroup>>
+>;
+export type CreateMemberGroupMutationBody = BodyType<CreateMemberGroupRequest>;
+export type CreateMemberGroupMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a member group
+ */
+export const useCreateMemberGroup = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createMemberGroup>>,
+    TError,
+    { data: BodyType<CreateMemberGroupRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createMemberGroup>>,
+  TError,
+  { data: BodyType<CreateMemberGroupRequest> },
+  TContext
+> => {
+  return useMutation(getCreateMemberGroupMutationOptions(options));
+};
+
+/**
+ * @summary Get a member group with members
+ */
+export const getGetMemberGroupUrl = (id: string) => {
+  return `/api/member-groups/${id}`;
+};
+
+export const getMemberGroup = async (
+  id: string,
+  options?: RequestInit,
+): Promise<MemberGroupDetail> => {
+  return customFetch<MemberGroupDetail>(getGetMemberGroupUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMemberGroupQueryKey = (id: string) => {
+  return [`/api/member-groups/${id}`] as const;
+};
+
+export const getGetMemberGroupQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMemberGroup>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMemberGroup>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMemberGroupQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMemberGroup>>> = ({
+    signal,
+  }) => getMemberGroup(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMemberGroup>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMemberGroupQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMemberGroup>>
+>;
+export type GetMemberGroupQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get a member group with members
+ */
+
+export function useGetMemberGroup<
+  TData = Awaited<ReturnType<typeof getMemberGroup>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMemberGroup>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMemberGroupQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update a member group
+ */
+export const getUpdateMemberGroupUrl = (id: string) => {
+  return `/api/member-groups/${id}`;
+};
+
+export const updateMemberGroup = async (
+  id: string,
+  updateMemberGroupRequest: UpdateMemberGroupRequest,
+  options?: RequestInit,
+): Promise<MemberGroup> => {
+  return customFetch<MemberGroup>(getUpdateMemberGroupUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateMemberGroupRequest),
+  });
+};
+
+export const getUpdateMemberGroupMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateMemberGroup>>,
+    TError,
+    { id: string; data: BodyType<UpdateMemberGroupRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateMemberGroup>>,
+  TError,
+  { id: string; data: BodyType<UpdateMemberGroupRequest> },
+  TContext
+> => {
+  const mutationKey = ["updateMemberGroup"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateMemberGroup>>,
+    { id: string; data: BodyType<UpdateMemberGroupRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateMemberGroup(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateMemberGroupMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateMemberGroup>>
+>;
+export type UpdateMemberGroupMutationBody = BodyType<UpdateMemberGroupRequest>;
+export type UpdateMemberGroupMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a member group
+ */
+export const useUpdateMemberGroup = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateMemberGroup>>,
+    TError,
+    { id: string; data: BodyType<UpdateMemberGroupRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateMemberGroup>>,
+  TError,
+  { id: string; data: BodyType<UpdateMemberGroupRequest> },
+  TContext
+> => {
+  return useMutation(getUpdateMemberGroupMutationOptions(options));
+};
+
+/**
+ * @summary Delete a member group
+ */
+export const getDeleteMemberGroupUrl = (id: string) => {
+  return `/api/member-groups/${id}`;
+};
+
+export const deleteMemberGroup = async (
+  id: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteMemberGroupUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteMemberGroupMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteMemberGroup>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteMemberGroup>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["deleteMemberGroup"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteMemberGroup>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteMemberGroup(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteMemberGroupMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteMemberGroup>>
+>;
+
+export type DeleteMemberGroupMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a member group
+ */
+export const useDeleteMemberGroup = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteMemberGroup>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteMemberGroup>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getDeleteMemberGroupMutationOptions(options));
 };
 
 /**

@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.2.0
  */
 import type { CreateMemberRequestSex } from "./createMemberRequestSex";
+import type { MemberClassification } from "./memberClassification";
+import type { MemberMaritalStatus } from "./memberMaritalStatus";
+import type { MemberReceptionMode } from "./memberReceptionMode";
 import type { MemberStatus } from "./memberStatus";
 
 export interface CreateMemberRequest {
@@ -22,11 +25,21 @@ export interface CreateMemberRequest {
   addressNeighborhood?: string;
   addressCity?: string;
   addressState?: string;
+  classification?: MemberClassification;
+  receptionMode?: MemberReceptionMode;
+  receptionDate?: string;
   conversionDate?: string;
-  baptismDate?: string;
-  status: MemberStatus;
+  conversionYear?: number;
+  religiousOrigin?: string;
+  infantBaptism?: boolean;
+  infantBaptismChurch?: string;
+  infantBaptismPastor?: string;
+  parentsOrGuardians?: string;
+  maritalStatus?: MemberMaritalStatus;
+  spouseMemberId?: string;
+  academicEducation?: string;
+  profession?: string;
+  status?: MemberStatus;
   photoPath?: string;
-  familyId?: string;
-  familyName?: string;
   lgpdConsentAccepted: boolean;
 }

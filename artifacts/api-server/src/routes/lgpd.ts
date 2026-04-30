@@ -18,8 +18,10 @@ import {
   songSuggestionsTable,
   liturgyItemsTable,
   pixDonationsTable,
+  memberChildrenTable,
+  memberGroupMembersTable,
 } from "@workspace/db";
-import { eq, desc, and, count } from "drizzle-orm";
+import { eq, desc, and, count, or } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middlewares/auth.js";
 import { createAuditLog } from "../lib/audit.js";
 import { decryptIfPresent, maskCpf } from "../lib/crypto.js";
@@ -79,11 +81,15 @@ router.get("/my-data", requireAuth, async (req: Request, res: Response) => {
       addressCity: member.addressCity,
       addressState: member.addressState,
       conversionDate: member.conversionDate,
-      baptismDate: member.baptismDate,
+      receptionDate: member.receptionDate,
+      classification: member.classification,
+      receptionMode: member.receptionMode,
+      conversionYear: member.conversionYear,
+      maritalStatus: member.maritalStatus,
+      academicEducation: member.academicEducation,
+      profession: member.profession,
       status: member.status,
       photoPath: member.photoPath,
-      familyId: member.familyId,
-      familyName: member.familyName,
       createdAt: member.createdAt,
     },
     consents: consents.map(c => ({
@@ -147,9 +153,13 @@ router.get("/my-data/export", requireAuth, async (req: Request, res: Response) =
         state: member.addressState,
       },
       conversionDate: member.conversionDate,
-      baptismDate: member.baptismDate,
+      receptionDate: member.receptionDate,
+      classification: member.classification,
+      receptionMode: member.receptionMode,
+      maritalStatus: member.maritalStatus,
+      academicEducation: member.academicEducation,
+      profession: member.profession,
       status: member.status,
-      familyName: member.familyName,
       memberSince: member.createdAt,
     },
     consents,
@@ -320,7 +330,26 @@ async function anonymizeMember(memberId: string, adminUserId: string): Promise<v
   const anonEmail = `anon-${randomUUID().slice(0, 8)}@anonimizado.local`;
   const anonName = `Membro Anonimizado #${memberId.slice(0, 8)}`;
 
-  // 1. Anonymize member record
+  // 0. Load existing to capture spouse + letter path
+  const [existing] = await db.select().from(membersTable).where(eq(membersTable.id, memberId)).limit(1);
+
+  // Clear spouse on the other side
+  if (existing?.spouseMemberId) {
+    await db.update(membersTable)
+      .set({ spouseMemberId: null, updatedByUserId: adminUserId, updatedAt: new Date() })
+      .where(eq(membersTable.id, existing.spouseMemberId));
+  }
+
+  // Delete children links (both directions)
+  await db.delete(memberChildrenTable).where(or(
+    eq(memberChildrenTable.parentId, memberId),
+    eq(memberChildrenTable.childId, memberId),
+  ));
+
+  // Delete group memberships
+  await db.delete(memberGroupMembersTable).where(eq(memberGroupMembersTable.memberId, memberId));
+
+  // 1. Anonymize member record (status → rol_apartado per Fase 1 plan)
   await db.update(membersTable).set({
     fullName: anonName,
     cpfEncrypted: null,
@@ -337,11 +366,23 @@ async function anonymizeMember(memberId: string, adminUserId: string): Promise<v
     addressCity: null,
     addressState: null,
     conversionDate: null,
-    baptismDate: null,
+    receptionDate: null,
+    conversionYear: null,
+    religiousOrigin: null,
+    infantBaptism: false,
+    infantBaptismChurch: null,
+    infantBaptismPastor: null,
+    parentsOrGuardians: null,
+    maritalStatus: null,
+    spouseMemberId: null,
+    academicEducation: null,
+    profession: null,
+    exclusionReason: null,
+    exclusionDate: null,
+    exclusionNotes: null,
+    exclusionLetterPath: null,
     photoPath: null,
-    familyId: null,
-    familyName: null,
-    status: "inativo" as const,
+    status: "rol_apartado" as const,
     updatedByUserId: adminUserId,
     updatedAt: new Date(),
   }).where(eq(membersTable.id, memberId));

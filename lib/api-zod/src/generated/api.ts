@@ -343,13 +343,31 @@ export const ListMembersResponse = zod.object({
       fullName: zod.string(),
       cpfMasked: zod.string(),
       email: zod.string().optional(),
-      status: zod.enum(["visitante", "ativo", "inativo", "falecido"]),
+      classification: zod.enum(["comungante", "nao_comungante"]).optional(),
+      status: zod.enum([
+        "ativo",
+        "disciplina",
+        "rol_apartado",
+        "falecido",
+        "demitido",
+      ]),
       pipelineStage: zod
         .enum(["culto", "pequeno_grupo", "ministerio"])
         .optional(),
+      receptionMode: zod
+        .enum([
+          "profissao_fe",
+          "profissao_fe_batismo",
+          "carta_transferencia",
+          "jurisdicao_pedido",
+          "jurisdicao_ex_officio",
+          "restauracao",
+          "batismo_infantil",
+          "transferencia_menor",
+          "arrolamento_menor",
+        ])
+        .optional(),
       photoPath: zod.string().optional(),
-      familyId: zod.string().optional(),
-      familyName: zod.string().optional(),
       createdAt: zod.date(),
     }),
   ),
@@ -365,7 +383,7 @@ export const CreateMemberBody = zod.object({
   fullName: zod.string(),
   cpf: zod.string().optional(),
   dateOfBirth: zod.string().optional(),
-  sex: zod.enum(["masculino", "feminino", "outro"]).optional(),
+  sex: zod.enum(["masculino", "feminino"]).optional(),
   phone: zod.string().optional(),
   email: zod.string().optional(),
   addressZip: zod.string().optional(),
@@ -375,12 +393,38 @@ export const CreateMemberBody = zod.object({
   addressNeighborhood: zod.string().optional(),
   addressCity: zod.string().optional(),
   addressState: zod.string().optional(),
+  classification: zod.enum(["comungante", "nao_comungante"]).optional(),
+  receptionMode: zod
+    .enum([
+      "profissao_fe",
+      "profissao_fe_batismo",
+      "carta_transferencia",
+      "jurisdicao_pedido",
+      "jurisdicao_ex_officio",
+      "restauracao",
+      "batismo_infantil",
+      "transferencia_menor",
+      "arrolamento_menor",
+    ])
+    .optional(),
+  receptionDate: zod.string().optional(),
   conversionDate: zod.string().optional(),
-  baptismDate: zod.string().optional(),
-  status: zod.enum(["visitante", "ativo", "inativo", "falecido"]),
+  conversionYear: zod.number().optional(),
+  religiousOrigin: zod.string().optional(),
+  infantBaptism: zod.boolean().optional(),
+  infantBaptismChurch: zod.string().optional(),
+  infantBaptismPastor: zod.string().optional(),
+  parentsOrGuardians: zod.string().optional(),
+  maritalStatus: zod
+    .enum(["solteiro", "casado", "viuvo", "divorciado", "uniao_estavel"])
+    .optional(),
+  spouseMemberId: zod.string().optional(),
+  academicEducation: zod.string().optional(),
+  profession: zod.string().optional(),
+  status: zod
+    .enum(["ativo", "disciplina", "rol_apartado", "falecido", "demitido"])
+    .optional(),
   photoPath: zod.string().optional(),
-  familyId: zod.string().optional(),
-  familyName: zod.string().optional(),
   lgpdConsentAccepted: zod.boolean(),
 });
 
@@ -461,7 +505,7 @@ export const GetOwnProfileResponse = zod.object({
   fullName: zod.string(),
   cpfMasked: zod.string(),
   dateOfBirth: zod.string().optional(),
-  sex: zod.enum(["masculino", "feminino", "outro"]).optional(),
+  sex: zod.enum(["masculino", "feminino"]).optional(),
   phone: zod.string().optional(),
   email: zod.string().optional(),
   addressZip: zod.string().optional(),
@@ -471,22 +515,76 @@ export const GetOwnProfileResponse = zod.object({
   addressNeighborhood: zod.string().optional(),
   addressCity: zod.string().optional(),
   addressState: zod.string().optional(),
-  conversionDate: zod.string().optional(),
-  baptismDate: zod.string().optional(),
-  enrollmentType: zod
+  classification: zod.enum(["comungante", "nao_comungante"]),
+  receptionMode: zod
     .enum([
-      "batismo",
-      "profissao_de_fe",
-      "transferencia",
-      "jurisdicao",
+      "profissao_fe",
+      "profissao_fe_batismo",
+      "carta_transferencia",
+      "jurisdicao_pedido",
+      "jurisdicao_ex_officio",
       "restauracao",
+      "batismo_infantil",
+      "transferencia_menor",
+      "arrolamento_menor",
     ])
-    .nullish(),
-  status: zod.enum(["visitante", "ativo", "inativo", "falecido"]),
+    .optional(),
+  receptionDate: zod.string().optional(),
+  conversionDate: zod.string().optional(),
+  conversionYear: zod.number().optional(),
+  religiousOrigin: zod.string().optional(),
+  infantBaptism: zod.boolean().optional(),
+  infantBaptismChurch: zod.string().optional(),
+  infantBaptismPastor: zod.string().optional(),
+  parentsOrGuardians: zod.string().optional(),
+  maritalStatus: zod
+    .enum(["solteiro", "casado", "viuvo", "divorciado", "uniao_estavel"])
+    .optional(),
+  spouseMemberId: zod.string().optional(),
+  spouseName: zod.string().optional(),
+  academicEducation: zod.string().optional(),
+  profession: zod.string().optional(),
+  status: zod.enum([
+    "ativo",
+    "disciplina",
+    "rol_apartado",
+    "falecido",
+    "demitido",
+  ]),
   pipelineStage: zod.enum(["culto", "pequeno_grupo", "ministerio"]).optional(),
+  exclusionReason: zod
+    .enum([
+      "transferencia",
+      "falecimento",
+      "exclusao_pedido",
+      "exclusao_disciplina",
+      "exclusao_abandono",
+      "ordenacao_ministerio",
+      "transferencia_responsaveis",
+      "profissao_fe_migracao",
+      "exclusao_abandono_responsaveis",
+    ])
+    .optional(),
+  exclusionDate: zod.string().optional(),
+  exclusionNotes: zod.string().optional(),
+  exclusionLetterPath: zod.string().optional(),
   photoPath: zod.string().optional(),
-  familyId: zod.string().optional(),
-  familyName: zod.string().optional(),
+  children: zod
+    .array(
+      zod.object({
+        id: zod.string(),
+        fullName: zod.string(),
+      }),
+    )
+    .optional(),
+  groups: zod
+    .array(
+      zod.object({
+        id: zod.string(),
+        name: zod.string(),
+      }),
+    )
+    .optional(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -494,30 +592,36 @@ export const GetOwnProfileResponse = zod.object({
 /**
  * @summary Update own profile (email cannot change)
  */
-export const UpdateOwnProfileBody = zod.object({
-  fullName: zod.string().optional(),
-  cpf: zod.string().optional(),
-  dateOfBirth: zod.string().optional(),
-  sex: zod.enum(["masculino", "feminino"]).optional(),
-  phone: zod.string().optional(),
-  addressZip: zod.string().optional(),
-  addressStreet: zod.string().optional(),
-  addressNumber: zod.string().optional(),
-  addressComplement: zod.string().optional(),
-  addressNeighborhood: zod.string().optional(),
-  addressCity: zod.string().optional(),
-  addressState: zod.string().optional(),
-  conversionDate: zod.string().optional(),
-  baptismDate: zod.string().optional(),
-  photoPath: zod.string().optional(),
-});
+export const UpdateOwnProfileBody = zod
+  .object({
+    fullName: zod.string().optional(),
+    dateOfBirth: zod.string().optional(),
+    sex: zod.enum(["masculino", "feminino"]).optional(),
+    phone: zod.string().optional(),
+    addressZip: zod.string().optional(),
+    addressStreet: zod.string().optional(),
+    addressNumber: zod.string().optional(),
+    addressComplement: zod.string().optional(),
+    addressNeighborhood: zod.string().optional(),
+    addressCity: zod.string().optional(),
+    addressState: zod.string().optional(),
+    photoPath: zod.string().optional(),
+    maritalStatus: zod
+      .enum(["solteiro", "casado", "viuvo", "divorciado", "uniao_estavel"])
+      .optional(),
+    academicEducation: zod.string().optional(),
+    profession: zod.string().optional(),
+  })
+  .describe(
+    "Allowlist no backend — apenas estes campos aceitos no PUT \/members\/me.",
+  );
 
 export const UpdateOwnProfileResponse = zod.object({
   id: zod.string(),
   fullName: zod.string(),
   cpfMasked: zod.string(),
   dateOfBirth: zod.string().optional(),
-  sex: zod.enum(["masculino", "feminino", "outro"]).optional(),
+  sex: zod.enum(["masculino", "feminino"]).optional(),
   phone: zod.string().optional(),
   email: zod.string().optional(),
   addressZip: zod.string().optional(),
@@ -527,22 +631,76 @@ export const UpdateOwnProfileResponse = zod.object({
   addressNeighborhood: zod.string().optional(),
   addressCity: zod.string().optional(),
   addressState: zod.string().optional(),
-  conversionDate: zod.string().optional(),
-  baptismDate: zod.string().optional(),
-  enrollmentType: zod
+  classification: zod.enum(["comungante", "nao_comungante"]),
+  receptionMode: zod
     .enum([
-      "batismo",
-      "profissao_de_fe",
-      "transferencia",
-      "jurisdicao",
+      "profissao_fe",
+      "profissao_fe_batismo",
+      "carta_transferencia",
+      "jurisdicao_pedido",
+      "jurisdicao_ex_officio",
       "restauracao",
+      "batismo_infantil",
+      "transferencia_menor",
+      "arrolamento_menor",
     ])
-    .nullish(),
-  status: zod.enum(["visitante", "ativo", "inativo", "falecido"]),
+    .optional(),
+  receptionDate: zod.string().optional(),
+  conversionDate: zod.string().optional(),
+  conversionYear: zod.number().optional(),
+  religiousOrigin: zod.string().optional(),
+  infantBaptism: zod.boolean().optional(),
+  infantBaptismChurch: zod.string().optional(),
+  infantBaptismPastor: zod.string().optional(),
+  parentsOrGuardians: zod.string().optional(),
+  maritalStatus: zod
+    .enum(["solteiro", "casado", "viuvo", "divorciado", "uniao_estavel"])
+    .optional(),
+  spouseMemberId: zod.string().optional(),
+  spouseName: zod.string().optional(),
+  academicEducation: zod.string().optional(),
+  profession: zod.string().optional(),
+  status: zod.enum([
+    "ativo",
+    "disciplina",
+    "rol_apartado",
+    "falecido",
+    "demitido",
+  ]),
   pipelineStage: zod.enum(["culto", "pequeno_grupo", "ministerio"]).optional(),
+  exclusionReason: zod
+    .enum([
+      "transferencia",
+      "falecimento",
+      "exclusao_pedido",
+      "exclusao_disciplina",
+      "exclusao_abandono",
+      "ordenacao_ministerio",
+      "transferencia_responsaveis",
+      "profissao_fe_migracao",
+      "exclusao_abandono_responsaveis",
+    ])
+    .optional(),
+  exclusionDate: zod.string().optional(),
+  exclusionNotes: zod.string().optional(),
+  exclusionLetterPath: zod.string().optional(),
   photoPath: zod.string().optional(),
-  familyId: zod.string().optional(),
-  familyName: zod.string().optional(),
+  children: zod
+    .array(
+      zod.object({
+        id: zod.string(),
+        fullName: zod.string(),
+      }),
+    )
+    .optional(),
+  groups: zod
+    .array(
+      zod.object({
+        id: zod.string(),
+        name: zod.string(),
+      }),
+    )
+    .optional(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -559,7 +717,7 @@ export const GetMemberResponse = zod.object({
   fullName: zod.string(),
   cpfMasked: zod.string(),
   dateOfBirth: zod.string().optional(),
-  sex: zod.enum(["masculino", "feminino", "outro"]).optional(),
+  sex: zod.enum(["masculino", "feminino"]).optional(),
   phone: zod.string().optional(),
   email: zod.string().optional(),
   addressZip: zod.string().optional(),
@@ -569,22 +727,76 @@ export const GetMemberResponse = zod.object({
   addressNeighborhood: zod.string().optional(),
   addressCity: zod.string().optional(),
   addressState: zod.string().optional(),
-  conversionDate: zod.string().optional(),
-  baptismDate: zod.string().optional(),
-  enrollmentType: zod
+  classification: zod.enum(["comungante", "nao_comungante"]),
+  receptionMode: zod
     .enum([
-      "batismo",
-      "profissao_de_fe",
-      "transferencia",
-      "jurisdicao",
+      "profissao_fe",
+      "profissao_fe_batismo",
+      "carta_transferencia",
+      "jurisdicao_pedido",
+      "jurisdicao_ex_officio",
       "restauracao",
+      "batismo_infantil",
+      "transferencia_menor",
+      "arrolamento_menor",
     ])
-    .nullish(),
-  status: zod.enum(["visitante", "ativo", "inativo", "falecido"]),
+    .optional(),
+  receptionDate: zod.string().optional(),
+  conversionDate: zod.string().optional(),
+  conversionYear: zod.number().optional(),
+  religiousOrigin: zod.string().optional(),
+  infantBaptism: zod.boolean().optional(),
+  infantBaptismChurch: zod.string().optional(),
+  infantBaptismPastor: zod.string().optional(),
+  parentsOrGuardians: zod.string().optional(),
+  maritalStatus: zod
+    .enum(["solteiro", "casado", "viuvo", "divorciado", "uniao_estavel"])
+    .optional(),
+  spouseMemberId: zod.string().optional(),
+  spouseName: zod.string().optional(),
+  academicEducation: zod.string().optional(),
+  profession: zod.string().optional(),
+  status: zod.enum([
+    "ativo",
+    "disciplina",
+    "rol_apartado",
+    "falecido",
+    "demitido",
+  ]),
   pipelineStage: zod.enum(["culto", "pequeno_grupo", "ministerio"]).optional(),
+  exclusionReason: zod
+    .enum([
+      "transferencia",
+      "falecimento",
+      "exclusao_pedido",
+      "exclusao_disciplina",
+      "exclusao_abandono",
+      "ordenacao_ministerio",
+      "transferencia_responsaveis",
+      "profissao_fe_migracao",
+      "exclusao_abandono_responsaveis",
+    ])
+    .optional(),
+  exclusionDate: zod.string().optional(),
+  exclusionNotes: zod.string().optional(),
+  exclusionLetterPath: zod.string().optional(),
   photoPath: zod.string().optional(),
-  familyId: zod.string().optional(),
-  familyName: zod.string().optional(),
+  children: zod
+    .array(
+      zod.object({
+        id: zod.string(),
+        fullName: zod.string(),
+      }),
+    )
+    .optional(),
+  groups: zod
+    .array(
+      zod.object({
+        id: zod.string(),
+        name: zod.string(),
+      }),
+    )
+    .optional(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -600,7 +812,7 @@ export const UpdateMemberBody = zod.object({
   fullName: zod.string().optional(),
   cpf: zod.string().optional(),
   dateOfBirth: zod.string().optional(),
-  sex: zod.enum(["masculino", "feminino", "outro"]).optional(),
+  sex: zod.enum(["masculino", "feminino"]).optional(),
   phone: zod.string().optional(),
   email: zod.string().optional(),
   addressZip: zod.string().optional(),
@@ -610,12 +822,38 @@ export const UpdateMemberBody = zod.object({
   addressNeighborhood: zod.string().optional(),
   addressCity: zod.string().optional(),
   addressState: zod.string().optional(),
+  classification: zod.enum(["comungante", "nao_comungante"]).optional(),
+  receptionMode: zod
+    .enum([
+      "profissao_fe",
+      "profissao_fe_batismo",
+      "carta_transferencia",
+      "jurisdicao_pedido",
+      "jurisdicao_ex_officio",
+      "restauracao",
+      "batismo_infantil",
+      "transferencia_menor",
+      "arrolamento_menor",
+    ])
+    .optional(),
+  receptionDate: zod.string().optional(),
   conversionDate: zod.string().optional(),
-  baptismDate: zod.string().optional(),
-  status: zod.enum(["visitante", "ativo", "inativo", "falecido"]).optional(),
+  conversionYear: zod.number().optional(),
+  religiousOrigin: zod.string().optional(),
+  infantBaptism: zod.boolean().optional(),
+  infantBaptismChurch: zod.string().optional(),
+  infantBaptismPastor: zod.string().optional(),
+  parentsOrGuardians: zod.string().optional(),
+  maritalStatus: zod
+    .enum(["solteiro", "casado", "viuvo", "divorciado", "uniao_estavel"])
+    .optional(),
+  spouseMemberId: zod.string().nullish(),
+  academicEducation: zod.string().optional(),
+  profession: zod.string().optional(),
+  status: zod
+    .enum(["ativo", "disciplina", "rol_apartado", "falecido", "demitido"])
+    .optional(),
   photoPath: zod.string().optional(),
-  familyId: zod.string().optional(),
-  familyName: zod.string().optional(),
 });
 
 export const UpdateMemberResponse = zod.object({
@@ -623,7 +861,7 @@ export const UpdateMemberResponse = zod.object({
   fullName: zod.string(),
   cpfMasked: zod.string(),
   dateOfBirth: zod.string().optional(),
-  sex: zod.enum(["masculino", "feminino", "outro"]).optional(),
+  sex: zod.enum(["masculino", "feminino"]).optional(),
   phone: zod.string().optional(),
   email: zod.string().optional(),
   addressZip: zod.string().optional(),
@@ -633,22 +871,76 @@ export const UpdateMemberResponse = zod.object({
   addressNeighborhood: zod.string().optional(),
   addressCity: zod.string().optional(),
   addressState: zod.string().optional(),
-  conversionDate: zod.string().optional(),
-  baptismDate: zod.string().optional(),
-  enrollmentType: zod
+  classification: zod.enum(["comungante", "nao_comungante"]),
+  receptionMode: zod
     .enum([
-      "batismo",
-      "profissao_de_fe",
-      "transferencia",
-      "jurisdicao",
+      "profissao_fe",
+      "profissao_fe_batismo",
+      "carta_transferencia",
+      "jurisdicao_pedido",
+      "jurisdicao_ex_officio",
       "restauracao",
+      "batismo_infantil",
+      "transferencia_menor",
+      "arrolamento_menor",
     ])
-    .nullish(),
-  status: zod.enum(["visitante", "ativo", "inativo", "falecido"]),
+    .optional(),
+  receptionDate: zod.string().optional(),
+  conversionDate: zod.string().optional(),
+  conversionYear: zod.number().optional(),
+  religiousOrigin: zod.string().optional(),
+  infantBaptism: zod.boolean().optional(),
+  infantBaptismChurch: zod.string().optional(),
+  infantBaptismPastor: zod.string().optional(),
+  parentsOrGuardians: zod.string().optional(),
+  maritalStatus: zod
+    .enum(["solteiro", "casado", "viuvo", "divorciado", "uniao_estavel"])
+    .optional(),
+  spouseMemberId: zod.string().optional(),
+  spouseName: zod.string().optional(),
+  academicEducation: zod.string().optional(),
+  profession: zod.string().optional(),
+  status: zod.enum([
+    "ativo",
+    "disciplina",
+    "rol_apartado",
+    "falecido",
+    "demitido",
+  ]),
   pipelineStage: zod.enum(["culto", "pequeno_grupo", "ministerio"]).optional(),
+  exclusionReason: zod
+    .enum([
+      "transferencia",
+      "falecimento",
+      "exclusao_pedido",
+      "exclusao_disciplina",
+      "exclusao_abandono",
+      "ordenacao_ministerio",
+      "transferencia_responsaveis",
+      "profissao_fe_migracao",
+      "exclusao_abandono_responsaveis",
+    ])
+    .optional(),
+  exclusionDate: zod.string().optional(),
+  exclusionNotes: zod.string().optional(),
+  exclusionLetterPath: zod.string().optional(),
   photoPath: zod.string().optional(),
-  familyId: zod.string().optional(),
-  familyName: zod.string().optional(),
+  children: zod
+    .array(
+      zod.object({
+        id: zod.string(),
+        fullName: zod.string(),
+      }),
+    )
+    .optional(),
+  groups: zod
+    .array(
+      zod.object({
+        id: zod.string(),
+        name: zod.string(),
+      }),
+    )
+    .optional(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -693,6 +985,351 @@ export const RevealMemberCpfParams = zod.object({
 
 export const RevealMemberCpfResponse = zod.object({
   cpf: zod.string(),
+});
+
+/**
+ * @summary Register member exclusion (admin only)
+ */
+export const RegisterMemberExclusionParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const RegisterMemberExclusionBody = zod.object({
+  reason: zod.enum([
+    "transferencia",
+    "falecimento",
+    "exclusao_pedido",
+    "exclusao_disciplina",
+    "exclusao_abandono",
+    "ordenacao_ministerio",
+    "transferencia_responsaveis",
+    "profissao_fe_migracao",
+    "exclusao_abandono_responsaveis",
+  ]),
+  date: zod.string().optional(),
+  notes: zod.string().optional(),
+});
+
+export const RegisterMemberExclusionResponse = zod.object({
+  id: zod.string(),
+  fullName: zod.string(),
+  cpfMasked: zod.string(),
+  dateOfBirth: zod.string().optional(),
+  sex: zod.enum(["masculino", "feminino"]).optional(),
+  phone: zod.string().optional(),
+  email: zod.string().optional(),
+  addressZip: zod.string().optional(),
+  addressStreet: zod.string().optional(),
+  addressNumber: zod.string().optional(),
+  addressComplement: zod.string().optional(),
+  addressNeighborhood: zod.string().optional(),
+  addressCity: zod.string().optional(),
+  addressState: zod.string().optional(),
+  classification: zod.enum(["comungante", "nao_comungante"]),
+  receptionMode: zod
+    .enum([
+      "profissao_fe",
+      "profissao_fe_batismo",
+      "carta_transferencia",
+      "jurisdicao_pedido",
+      "jurisdicao_ex_officio",
+      "restauracao",
+      "batismo_infantil",
+      "transferencia_menor",
+      "arrolamento_menor",
+    ])
+    .optional(),
+  receptionDate: zod.string().optional(),
+  conversionDate: zod.string().optional(),
+  conversionYear: zod.number().optional(),
+  religiousOrigin: zod.string().optional(),
+  infantBaptism: zod.boolean().optional(),
+  infantBaptismChurch: zod.string().optional(),
+  infantBaptismPastor: zod.string().optional(),
+  parentsOrGuardians: zod.string().optional(),
+  maritalStatus: zod
+    .enum(["solteiro", "casado", "viuvo", "divorciado", "uniao_estavel"])
+    .optional(),
+  spouseMemberId: zod.string().optional(),
+  spouseName: zod.string().optional(),
+  academicEducation: zod.string().optional(),
+  profession: zod.string().optional(),
+  status: zod.enum([
+    "ativo",
+    "disciplina",
+    "rol_apartado",
+    "falecido",
+    "demitido",
+  ]),
+  pipelineStage: zod.enum(["culto", "pequeno_grupo", "ministerio"]).optional(),
+  exclusionReason: zod
+    .enum([
+      "transferencia",
+      "falecimento",
+      "exclusao_pedido",
+      "exclusao_disciplina",
+      "exclusao_abandono",
+      "ordenacao_ministerio",
+      "transferencia_responsaveis",
+      "profissao_fe_migracao",
+      "exclusao_abandono_responsaveis",
+    ])
+    .optional(),
+  exclusionDate: zod.string().optional(),
+  exclusionNotes: zod.string().optional(),
+  exclusionLetterPath: zod.string().optional(),
+  photoPath: zod.string().optional(),
+  children: zod
+    .array(
+      zod.object({
+        id: zod.string(),
+        fullName: zod.string(),
+      }),
+    )
+    .optional(),
+  groups: zod
+    .array(
+      zod.object({
+        id: zod.string(),
+        name: zod.string(),
+      }),
+    )
+    .optional(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary Revert member exclusion (admin only)
+ */
+export const RevertMemberExclusionParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const RevertMemberExclusionResponse = zod.object({
+  id: zod.string(),
+  fullName: zod.string(),
+  cpfMasked: zod.string(),
+  dateOfBirth: zod.string().optional(),
+  sex: zod.enum(["masculino", "feminino"]).optional(),
+  phone: zod.string().optional(),
+  email: zod.string().optional(),
+  addressZip: zod.string().optional(),
+  addressStreet: zod.string().optional(),
+  addressNumber: zod.string().optional(),
+  addressComplement: zod.string().optional(),
+  addressNeighborhood: zod.string().optional(),
+  addressCity: zod.string().optional(),
+  addressState: zod.string().optional(),
+  classification: zod.enum(["comungante", "nao_comungante"]),
+  receptionMode: zod
+    .enum([
+      "profissao_fe",
+      "profissao_fe_batismo",
+      "carta_transferencia",
+      "jurisdicao_pedido",
+      "jurisdicao_ex_officio",
+      "restauracao",
+      "batismo_infantil",
+      "transferencia_menor",
+      "arrolamento_menor",
+    ])
+    .optional(),
+  receptionDate: zod.string().optional(),
+  conversionDate: zod.string().optional(),
+  conversionYear: zod.number().optional(),
+  religiousOrigin: zod.string().optional(),
+  infantBaptism: zod.boolean().optional(),
+  infantBaptismChurch: zod.string().optional(),
+  infantBaptismPastor: zod.string().optional(),
+  parentsOrGuardians: zod.string().optional(),
+  maritalStatus: zod
+    .enum(["solteiro", "casado", "viuvo", "divorciado", "uniao_estavel"])
+    .optional(),
+  spouseMemberId: zod.string().optional(),
+  spouseName: zod.string().optional(),
+  academicEducation: zod.string().optional(),
+  profession: zod.string().optional(),
+  status: zod.enum([
+    "ativo",
+    "disciplina",
+    "rol_apartado",
+    "falecido",
+    "demitido",
+  ]),
+  pipelineStage: zod.enum(["culto", "pequeno_grupo", "ministerio"]).optional(),
+  exclusionReason: zod
+    .enum([
+      "transferencia",
+      "falecimento",
+      "exclusao_pedido",
+      "exclusao_disciplina",
+      "exclusao_abandono",
+      "ordenacao_ministerio",
+      "transferencia_responsaveis",
+      "profissao_fe_migracao",
+      "exclusao_abandono_responsaveis",
+    ])
+    .optional(),
+  exclusionDate: zod.string().optional(),
+  exclusionNotes: zod.string().optional(),
+  exclusionLetterPath: zod.string().optional(),
+  photoPath: zod.string().optional(),
+  children: zod
+    .array(
+      zod.object({
+        id: zod.string(),
+        fullName: zod.string(),
+      }),
+    )
+    .optional(),
+  groups: zod
+    .array(
+      zod.object({
+        id: zod.string(),
+        name: zod.string(),
+      }),
+    )
+    .optional(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary Save transfer letter PDF path after upload
+ */
+export const SaveTransferLetterParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const SaveTransferLetterBody = zod.object({
+  letterPath: zod.string(),
+  destinationChurch: zod.string().optional(),
+  responsiblePastor: zod.string().optional(),
+  secretary: zod.string().optional(),
+  notes: zod.string().optional(),
+});
+
+export const SaveTransferLetterResponse = zod.object({
+  letterPath: zod.string().optional(),
+});
+
+/**
+ * @summary Add child link
+ */
+export const AddMemberChildParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const AddMemberChildBody = zod.object({
+  childMemberId: zod.string(),
+});
+
+/**
+ * @summary Remove child link
+ */
+export const RemoveMemberChildParams = zod.object({
+  id: zod.coerce.string(),
+  childId: zod.coerce.string(),
+});
+
+/**
+ * @summary Link member to a group
+ */
+export const LinkMemberToGroupParams = zod.object({
+  memberId: zod.coerce.string(),
+  groupId: zod.coerce.string(),
+});
+
+/**
+ * @summary Unlink member from a group
+ */
+export const UnlinkMemberFromGroupParams = zod.object({
+  memberId: zod.coerce.string(),
+  groupId: zod.coerce.string(),
+});
+
+/**
+ * @summary List member groups
+ */
+export const ListMemberGroupsResponse = zod.object({
+  groups: zod.array(
+    zod.object({
+      id: zod.string(),
+      name: zod.string(),
+      description: zod.string().nullish(),
+      memberCount: zod.number().optional(),
+      createdAt: zod.date().optional(),
+      updatedAt: zod.date().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Create a member group
+ */
+export const CreateMemberGroupBody = zod.object({
+  name: zod.string(),
+  description: zod.string().optional(),
+});
+
+/**
+ * @summary Get a member group with members
+ */
+export const GetMemberGroupParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetMemberGroupResponse = zod
+  .object({
+    id: zod.string(),
+    name: zod.string(),
+    description: zod.string().nullish(),
+    memberCount: zod.number().optional(),
+    createdAt: zod.date().optional(),
+    updatedAt: zod.date().optional(),
+  })
+  .and(
+    zod.object({
+      members: zod
+        .array(
+          zod.object({
+            id: zod.string(),
+            fullName: zod.string(),
+            email: zod.string().nullish(),
+            photoPath: zod.string().nullish(),
+          }),
+        )
+        .optional(),
+    }),
+  );
+
+/**
+ * @summary Update a member group
+ */
+export const UpdateMemberGroupParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateMemberGroupBody = zod.object({
+  name: zod.string().optional(),
+  description: zod.string().optional(),
+});
+
+export const UpdateMemberGroupResponse = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  memberCount: zod.number().optional(),
+  createdAt: zod.date().optional(),
+  updatedAt: zod.date().optional(),
+});
+
+/**
+ * @summary Delete a member group
+ */
+export const DeleteMemberGroupParams = zod.object({
+  id: zod.coerce.string(),
 });
 
 /**

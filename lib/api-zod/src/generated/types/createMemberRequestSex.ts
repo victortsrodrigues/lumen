@@ -12,5 +12,4 @@ export type CreateMemberRequestSex =
 export const CreateMemberRequestSex = {
   masculino: "masculino",
   feminino: "feminino",
-  outro: "outro",
 } as const;
