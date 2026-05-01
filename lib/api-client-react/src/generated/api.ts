@@ -23,6 +23,7 @@ import type {
   AddLiturgyItemRequest,
   AddMinistryMemberRequest,
   AddToScheduleRequest,
+  AddVisitRequest,
   Article,
   ArticlesListResponse,
   Asset,
@@ -45,6 +46,7 @@ import type {
   ConsentsListResponse,
   ContentItem,
   ContentsListResponse,
+  ConvertVisitorRequest,
   CounselingCase,
   CounselingCaseDetail,
   CounselingCasesListResponse,
@@ -87,6 +89,7 @@ import type {
   CreateServiceRoleRequest,
   CreateSongRequest,
   CreateSongSuggestionRequest,
+  CreateVisitorRequest,
   CsrfTokenResponse,
   DashboardStats,
   Directive,
@@ -158,6 +161,7 @@ import type {
   ListPixDonationsParams,
   ListSongsParams,
   ListTeachingCoursesParams,
+  ListVisitorsParams,
   LiturgiesListResponse,
   Liturgy,
   LiturgyDetail,
@@ -258,7 +262,13 @@ import type {
   UpdateScheduleStatusBody,
   UpdateServiceRoleRequest,
   UpdateSongRequest,
+  UpdateVisitorRequest,
   UserProfile,
+  VisitorDetail,
+  VisitorListResponse,
+  VisitorSummary,
+  VisitorSummaryStats,
+  VisitorVisit,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -3540,6 +3550,866 @@ export const useDeleteMemberGroup = <
   TContext
 > => {
   return useMutation(getDeleteMemberGroupMutationOptions(options));
+};
+
+/**
+ * @summary List visitors
+ */
+export const getListVisitorsUrl = (params?: ListVisitorsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/visitors?${stringifiedParams}`
+    : `/api/visitors`;
+};
+
+export const listVisitors = async (
+  params?: ListVisitorsParams,
+  options?: RequestInit,
+): Promise<VisitorListResponse> => {
+  return customFetch<VisitorListResponse>(getListVisitorsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListVisitorsQueryKey = (params?: ListVisitorsParams) => {
+  return [`/api/visitors`, ...(params ? [params] : [])] as const;
+};
+
+export const getListVisitorsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listVisitors>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListVisitorsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listVisitors>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListVisitorsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listVisitors>>> = ({
+    signal,
+  }) => listVisitors(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listVisitors>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListVisitorsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listVisitors>>
+>;
+export type ListVisitorsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List visitors
+ */
+
+export function useListVisitors<
+  TData = Awaited<ReturnType<typeof listVisitors>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListVisitorsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listVisitors>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListVisitorsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a visitor
+ */
+export const getCreateVisitorUrl = () => {
+  return `/api/visitors`;
+};
+
+export const createVisitor = async (
+  createVisitorRequest: CreateVisitorRequest,
+  options?: RequestInit,
+): Promise<VisitorSummary> => {
+  return customFetch<VisitorSummary>(getCreateVisitorUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createVisitorRequest),
+  });
+};
+
+export const getCreateVisitorMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createVisitor>>,
+    TError,
+    { data: BodyType<CreateVisitorRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createVisitor>>,
+  TError,
+  { data: BodyType<CreateVisitorRequest> },
+  TContext
+> => {
+  const mutationKey = ["createVisitor"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createVisitor>>,
+    { data: BodyType<CreateVisitorRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createVisitor(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateVisitorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createVisitor>>
+>;
+export type CreateVisitorMutationBody = BodyType<CreateVisitorRequest>;
+export type CreateVisitorMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a visitor
+ */
+export const useCreateVisitor = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createVisitor>>,
+    TError,
+    { data: BodyType<CreateVisitorRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createVisitor>>,
+  TError,
+  { data: BodyType<CreateVisitorRequest> },
+  TContext
+> => {
+  return useMutation(getCreateVisitorMutationOptions(options));
+};
+
+/**
+ * @summary KPIs for visitors module
+ */
+export const getGetVisitorsSummaryUrl = () => {
+  return `/api/visitors/summary`;
+};
+
+export const getVisitorsSummary = async (
+  options?: RequestInit,
+): Promise<VisitorSummaryStats> => {
+  return customFetch<VisitorSummaryStats>(getGetVisitorsSummaryUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetVisitorsSummaryQueryKey = () => {
+  return [`/api/visitors/summary`] as const;
+};
+
+export const getGetVisitorsSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getVisitorsSummary>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getVisitorsSummary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetVisitorsSummaryQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getVisitorsSummary>>
+  > = ({ signal }) => getVisitorsSummary({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getVisitorsSummary>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetVisitorsSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getVisitorsSummary>>
+>;
+export type GetVisitorsSummaryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary KPIs for visitors module
+ */
+
+export function useGetVisitorsSummary<
+  TData = Awaited<ReturnType<typeof getVisitorsSummary>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getVisitorsSummary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetVisitorsSummaryQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get visitor detail with visits
+ */
+export const getGetVisitorUrl = (id: string) => {
+  return `/api/visitors/${id}`;
+};
+
+export const getVisitor = async (
+  id: string,
+  options?: RequestInit,
+): Promise<VisitorDetail> => {
+  return customFetch<VisitorDetail>(getGetVisitorUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetVisitorQueryKey = (id: string) => {
+  return [`/api/visitors/${id}`] as const;
+};
+
+export const getGetVisitorQueryOptions = <
+  TData = Awaited<ReturnType<typeof getVisitor>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getVisitor>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetVisitorQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getVisitor>>> = ({
+    signal,
+  }) => getVisitor(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getVisitor>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetVisitorQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getVisitor>>
+>;
+export type GetVisitorQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get visitor detail with visits
+ */
+
+export function useGetVisitor<
+  TData = Awaited<ReturnType<typeof getVisitor>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getVisitor>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetVisitorQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update visitor (firstVisitDate/firstVisitEventId são read-only)
+ */
+export const getUpdateVisitorUrl = (id: string) => {
+  return `/api/visitors/${id}`;
+};
+
+export const updateVisitor = async (
+  id: string,
+  updateVisitorRequest: UpdateVisitorRequest,
+  options?: RequestInit,
+): Promise<VisitorSummary> => {
+  return customFetch<VisitorSummary>(getUpdateVisitorUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateVisitorRequest),
+  });
+};
+
+export const getUpdateVisitorMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateVisitor>>,
+    TError,
+    { id: string; data: BodyType<UpdateVisitorRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateVisitor>>,
+  TError,
+  { id: string; data: BodyType<UpdateVisitorRequest> },
+  TContext
+> => {
+  const mutationKey = ["updateVisitor"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateVisitor>>,
+    { id: string; data: BodyType<UpdateVisitorRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateVisitor(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateVisitorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateVisitor>>
+>;
+export type UpdateVisitorMutationBody = BodyType<UpdateVisitorRequest>;
+export type UpdateVisitorMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update visitor (firstVisitDate/firstVisitEventId são read-only)
+ */
+export const useUpdateVisitor = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateVisitor>>,
+    TError,
+    { id: string; data: BodyType<UpdateVisitorRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateVisitor>>,
+  TError,
+  { id: string; data: BodyType<UpdateVisitorRequest> },
+  TContext
+> => {
+  return useMutation(getUpdateVisitorMutationOptions(options));
+};
+
+/**
+ * @summary Soft delete visitor (admin only)
+ */
+export const getDeleteVisitorUrl = (id: string) => {
+  return `/api/visitors/${id}`;
+};
+
+export const deleteVisitor = async (
+  id: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteVisitorUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteVisitorMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteVisitor>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteVisitor>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["deleteVisitor"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteVisitor>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteVisitor(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteVisitorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteVisitor>>
+>;
+
+export type DeleteVisitorMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Soft delete visitor (admin only)
+ */
+export const useDeleteVisitor = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteVisitor>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteVisitor>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getDeleteVisitorMutationOptions(options));
+};
+
+/**
+ * @summary Add a visit record
+ */
+export const getAddVisitorVisitUrl = (id: string) => {
+  return `/api/visitors/${id}/visits`;
+};
+
+export const addVisitorVisit = async (
+  id: string,
+  addVisitRequest: AddVisitRequest,
+  options?: RequestInit,
+): Promise<VisitorVisit> => {
+  return customFetch<VisitorVisit>(getAddVisitorVisitUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(addVisitRequest),
+  });
+};
+
+export const getAddVisitorVisitMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addVisitorVisit>>,
+    TError,
+    { id: string; data: BodyType<AddVisitRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof addVisitorVisit>>,
+  TError,
+  { id: string; data: BodyType<AddVisitRequest> },
+  TContext
+> => {
+  const mutationKey = ["addVisitorVisit"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof addVisitorVisit>>,
+    { id: string; data: BodyType<AddVisitRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return addVisitorVisit(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AddVisitorVisitMutationResult = NonNullable<
+  Awaited<ReturnType<typeof addVisitorVisit>>
+>;
+export type AddVisitorVisitMutationBody = BodyType<AddVisitRequest>;
+export type AddVisitorVisitMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Add a visit record
+ */
+export const useAddVisitorVisit = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addVisitorVisit>>,
+    TError,
+    { id: string; data: BodyType<AddVisitRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof addVisitorVisit>>,
+  TError,
+  { id: string; data: BodyType<AddVisitRequest> },
+  TContext
+> => {
+  return useMutation(getAddVisitorVisitMutationOptions(options));
+};
+
+/**
+ * @summary Edit a visit record
+ */
+export const getUpdateVisitorVisitUrl = (id: string, visitId: string) => {
+  return `/api/visitors/${id}/visits/${visitId}`;
+};
+
+export const updateVisitorVisit = async (
+  id: string,
+  visitId: string,
+  addVisitRequest: AddVisitRequest,
+  options?: RequestInit,
+): Promise<VisitorVisit> => {
+  return customFetch<VisitorVisit>(getUpdateVisitorVisitUrl(id, visitId), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(addVisitRequest),
+  });
+};
+
+export const getUpdateVisitorVisitMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateVisitorVisit>>,
+    TError,
+    { id: string; visitId: string; data: BodyType<AddVisitRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateVisitorVisit>>,
+  TError,
+  { id: string; visitId: string; data: BodyType<AddVisitRequest> },
+  TContext
+> => {
+  const mutationKey = ["updateVisitorVisit"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateVisitorVisit>>,
+    { id: string; visitId: string; data: BodyType<AddVisitRequest> }
+  > = (props) => {
+    const { id, visitId, data } = props ?? {};
+
+    return updateVisitorVisit(id, visitId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateVisitorVisitMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateVisitorVisit>>
+>;
+export type UpdateVisitorVisitMutationBody = BodyType<AddVisitRequest>;
+export type UpdateVisitorVisitMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Edit a visit record
+ */
+export const useUpdateVisitorVisit = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateVisitorVisit>>,
+    TError,
+    { id: string; visitId: string; data: BodyType<AddVisitRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateVisitorVisit>>,
+  TError,
+  { id: string; visitId: string; data: BodyType<AddVisitRequest> },
+  TContext
+> => {
+  return useMutation(getUpdateVisitorVisitMutationOptions(options));
+};
+
+/**
+ * @summary Remove a visit record (visitor must keep ≥1)
+ */
+export const getRemoveVisitorVisitUrl = (id: string, visitId: string) => {
+  return `/api/visitors/${id}/visits/${visitId}`;
+};
+
+export const removeVisitorVisit = async (
+  id: string,
+  visitId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getRemoveVisitorVisitUrl(id, visitId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getRemoveVisitorVisitMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeVisitorVisit>>,
+    TError,
+    { id: string; visitId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof removeVisitorVisit>>,
+  TError,
+  { id: string; visitId: string },
+  TContext
+> => {
+  const mutationKey = ["removeVisitorVisit"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof removeVisitorVisit>>,
+    { id: string; visitId: string }
+  > = (props) => {
+    const { id, visitId } = props ?? {};
+
+    return removeVisitorVisit(id, visitId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RemoveVisitorVisitMutationResult = NonNullable<
+  Awaited<ReturnType<typeof removeVisitorVisit>>
+>;
+
+export type RemoveVisitorVisitMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Remove a visit record (visitor must keep ≥1)
+ */
+export const useRemoveVisitorVisit = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeVisitorVisit>>,
+    TError,
+    { id: string; visitId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof removeVisitorVisit>>,
+  TError,
+  { id: string; visitId: string },
+  TContext
+> => {
+  return useMutation(getRemoveVisitorVisitMutationOptions(options));
+};
+
+/**
+ * @summary Convert visitor to member (admin only — destructive)
+ */
+export const getConvertVisitorUrl = (id: string) => {
+  return `/api/visitors/${id}/convert`;
+};
+
+export const convertVisitor = async (
+  id: string,
+  convertVisitorRequest: ConvertVisitorRequest,
+  options?: RequestInit,
+): Promise<MemberDetail> => {
+  return customFetch<MemberDetail>(getConvertVisitorUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(convertVisitorRequest),
+  });
+};
+
+export const getConvertVisitorMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof convertVisitor>>,
+    TError,
+    { id: string; data: BodyType<ConvertVisitorRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof convertVisitor>>,
+  TError,
+  { id: string; data: BodyType<ConvertVisitorRequest> },
+  TContext
+> => {
+  const mutationKey = ["convertVisitor"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof convertVisitor>>,
+    { id: string; data: BodyType<ConvertVisitorRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return convertVisitor(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ConvertVisitorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof convertVisitor>>
+>;
+export type ConvertVisitorMutationBody = BodyType<ConvertVisitorRequest>;
+export type ConvertVisitorMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Convert visitor to member (admin only — destructive)
+ */
+export const useConvertVisitor = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof convertVisitor>>,
+    TError,
+    { id: string; data: BodyType<ConvertVisitorRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof convertVisitor>>,
+  TError,
+  { id: string; data: BodyType<ConvertVisitorRequest> },
+  TContext
+> => {
+  return useMutation(getConvertVisitorMutationOptions(options));
 };
 
 /**

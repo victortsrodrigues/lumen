@@ -4,6 +4,10 @@ import {
   courseEnrollmentsTable, eventRegistrationsTable, ministryMembersTable, ministriesTable,
   assetsTable, eventSchedulesTable, planningInitiativesTable, memberPipelineHistoryTable,
   usersTable, memberChildrenTable, memberGroupsTable, memberGroupMembersTable,
+  COMMUNING_RECEPTION_MODES, NON_COMMUNING_RECEPTION_MODES,
+  COMMUNING_EXCLUSION_REASONS, NON_COMMUNING_EXCLUSION_REASONS,
+  isValidReceptionMode as sharedIsValidReceptionMode,
+  isValidExclusionReason as sharedIsValidExclusionReason,
 } from "@workspace/db";
 import { eq, desc, ilike, and, count, isNull, inArray, or } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middlewares/auth.js";
@@ -25,34 +29,14 @@ function getIp(req: Request): string {
 
 const VALID_PIPELINE_STAGES = ["culto", "pequeno_grupo", "ministerio"] as const;
 
-const COMMUNING_RECEPTION_MODES = [
-  "profissao_fe", "profissao_fe_batismo", "carta_transferencia",
-  "jurisdicao_pedido", "jurisdicao_ex_officio", "restauracao",
-] as const;
-const NON_COMMUNING_RECEPTION_MODES = [
-  "batismo_infantil", "transferencia_menor", "arrolamento_menor",
-] as const;
-
-const COMMUNING_EXCLUSION_REASONS = [
-  "transferencia", "falecimento", "exclusao_pedido",
-  "exclusao_disciplina", "exclusao_abandono", "ordenacao_ministerio",
-] as const;
-const NON_COMMUNING_EXCLUSION_REASONS = [
-  "transferencia_responsaveis", "falecimento",
-  "profissao_fe_migracao", "exclusao_abandono_responsaveis",
-] as const;
-
-function isValidReceptionMode(classification: string, mode: string): boolean {
-  if (classification === "comungante") return (COMMUNING_RECEPTION_MODES as readonly string[]).includes(mode);
-  if (classification === "nao_comungante") return (NON_COMMUNING_RECEPTION_MODES as readonly string[]).includes(mode);
-  return false;
-}
-
-function isValidExclusionReason(classification: string, reason: string): boolean {
-  if (classification === "comungante") return (COMMUNING_EXCLUSION_REASONS as readonly string[]).includes(reason);
-  if (classification === "nao_comungante") return (NON_COMMUNING_EXCLUSION_REASONS as readonly string[]).includes(reason);
-  return false;
-}
+// Re-export aliased functions for local use (single source of truth in @workspace/db)
+const isValidReceptionMode = sharedIsValidReceptionMode;
+const isValidExclusionReason = sharedIsValidExclusionReason;
+// Re-reference para uso interno (silenciar warnings de unused se houver)
+void COMMUNING_RECEPTION_MODES;
+void NON_COMMUNING_RECEPTION_MODES;
+void COMMUNING_EXCLUSION_REASONS;
+void NON_COMMUNING_EXCLUSION_REASONS;
 
 // Allowlist for PUT /members/me — own profile updates
 const SELF_PROFILE_ALLOWED_FIELDS = new Set([

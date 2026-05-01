@@ -963,6 +963,190 @@ paths:
         "200":
           description: Deleted
 
+  # ─── VISITORS ────────────────────────────────────────────────────────────
+  /visitors:
+    get:
+      operationId: listVisitors
+      tags: [visitors]
+      summary: List visitors
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: query, name: page, schema: { type: integer } }
+        - { in: query, name: limit, schema: { type: integer } }
+        - { in: query, name: search, schema: { type: string } }
+        - { in: query, name: status, schema: { $ref: "#/components/schemas/VisitorStatus" } }
+        - { in: query, name: dateFrom, schema: { type: string } }
+        - { in: query, name: dateTo, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VisitorListResponse"
+    post:
+      operationId: createVisitor
+      tags: [visitors]
+      summary: Create a visitor
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateVisitorRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VisitorSummary"
+
+  /visitors/summary:
+    get:
+      operationId: getVisitorsSummary
+      tags: [visitors]
+      summary: KPIs for visitors module
+      security: [{ cookieAuth: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VisitorSummaryStats"
+
+  /visitors/{id}:
+    get:
+      operationId: getVisitor
+      tags: [visitors]
+      summary: Get visitor detail with visits
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VisitorDetail"
+    put:
+      operationId: updateVisitor
+      tags: [visitors]
+      summary: Update visitor (firstVisitDate/firstVisitEventId são read-only)
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateVisitorRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VisitorSummary"
+    delete:
+      operationId: deleteVisitor
+      tags: [visitors]
+      summary: Soft delete visitor (admin only)
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Deleted
+
+  /visitors/{id}/visits:
+    post:
+      operationId: addVisitorVisit
+      tags: [visitors]
+      summary: Add a visit record
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddVisitRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VisitorVisit"
+
+  /visitors/{id}/visits/{visitId}:
+    put:
+      operationId: updateVisitorVisit
+      tags: [visitors]
+      summary: Edit a visit record
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+        - { in: path, name: visitId, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddVisitRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VisitorVisit"
+    delete:
+      operationId: removeVisitorVisit
+      tags: [visitors]
+      summary: Remove a visit record (visitor must keep ≥1)
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+        - { in: path, name: visitId, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Removed
+
+  /visitors/{id}/convert:
+    post:
+      operationId: convertVisitor
+      tags: [visitors]
+      summary: Convert visitor to member (admin only — destructive)
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConvertVisitorRequest"
+      responses:
+        "200":
+          description: Member created from visitor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberDetail"
+        "409":
+          description: CPF already registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /members/import/csv:
     post:
       operationId: importMembersCsv
@@ -5622,6 +5806,155 @@ components:
       properties:
         name: { type: string }
         description: { type: string }
+
+    # ─── VISITORS ─────────────────────────────────────────────────────────
+    VisitorStatus:
+      type: string
+      enum: [recente, acompanhando, sem_retorno, nao_interessado]
+
+    VisitorSummary:
+      type: object
+      properties:
+        id: { type: string }
+        fullName: { type: string }
+        phone: { type: string, nullable: true }
+        email: { type: string, nullable: true }
+        dateOfBirth: { type: string, nullable: true }
+        addressCity: { type: string, nullable: true }
+        addressState: { type: string, nullable: true }
+        howFoundUs: { type: string, nullable: true }
+        firstVisitDate: { type: string, nullable: true }
+        firstVisitEventId: { type: string, nullable: true }
+        status: { $ref: "#/components/schemas/VisitorStatus" }
+        assignedToMemberId: { type: string, nullable: true }
+        assignedToMemberName: { type: string, nullable: true }
+        notes: { type: string, nullable: true }
+        totalVisits: { type: integer }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+      required: [id, fullName, status, totalVisits, createdAt]
+
+    VisitorVisit:
+      type: object
+      properties:
+        id: { type: string }
+        visitorId: { type: string }
+        visitDate: { type: string }
+        eventId: { type: string, nullable: true }
+        eventTitle: { type: string, nullable: true }
+        notes: { type: string, nullable: true }
+        createdAt: { type: string }
+      required: [id, visitorId, visitDate, createdAt]
+
+    VisitorDetail:
+      allOf:
+        - $ref: "#/components/schemas/VisitorSummary"
+        - type: object
+          properties:
+            visits:
+              type: array
+              items:
+                $ref: "#/components/schemas/VisitorVisit"
+          required: [visits]
+
+    VisitorListResponse:
+      type: object
+      properties:
+        visitors:
+          type: array
+          items:
+            $ref: "#/components/schemas/VisitorSummary"
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+      required: [visitors, total, page, limit]
+
+    CreateVisitorRequest:
+      type: object
+      properties:
+        fullName: { type: string }
+        phone: { type: string }
+        email: { type: string }
+        dateOfBirth: { type: string }
+        addressCity: { type: string }
+        addressState: { type: string }
+        howFoundUs: { type: string }
+        firstVisitDate: { type: string }
+        firstVisitEventId: { type: string }
+        status: { $ref: "#/components/schemas/VisitorStatus" }
+        assignedToMemberId: { type: string }
+        notes: { type: string }
+      required: [fullName, firstVisitDate]
+
+    UpdateVisitorRequest:
+      type: object
+      description: firstVisitDate e firstVisitEventId são derivados — rejeitados aqui
+      properties:
+        fullName: { type: string }
+        phone: { type: string }
+        email: { type: string }
+        dateOfBirth: { type: string }
+        addressCity: { type: string }
+        addressState: { type: string }
+        howFoundUs: { type: string }
+        status: { $ref: "#/components/schemas/VisitorStatus" }
+        assignedToMemberId: { type: string, nullable: true }
+        notes: { type: string }
+
+    AddVisitRequest:
+      type: object
+      properties:
+        visitDate: { type: string }
+        eventId: { type: string }
+        notes: { type: string }
+      required: [visitDate]
+
+    ConvertVisitorRequest:
+      type: object
+      properties:
+        cpf: { type: string }
+        dateOfBirth: { type: string }
+        sex: { type: string, enum: [masculino, feminino] }
+        phone: { type: string }
+        email: { type: string }
+        addressZip: { type: string }
+        addressStreet: { type: string }
+        addressNumber: { type: string }
+        addressComplement: { type: string }
+        addressNeighborhood: { type: string }
+        addressCity: { type: string }
+        addressState: { type: string }
+        classification: { $ref: "#/components/schemas/MemberClassification" }
+        receptionMode: { $ref: "#/components/schemas/MemberReceptionMode" }
+        receptionDate: { type: string }
+        conversionDate: { type: string }
+        conversionYear: { type: integer }
+        religiousOrigin: { type: string }
+        infantBaptism: { type: boolean }
+        infantBaptismChurch: { type: string }
+        infantBaptismPastor: { type: string }
+        parentsOrGuardians: { type: string }
+        maritalStatus: { $ref: "#/components/schemas/MemberMaritalStatus" }
+        spouseMemberId: { type: string }
+        academicEducation: { type: string }
+        profession: { type: string }
+      required: [classification]
+
+    VisitorSummaryStats:
+      type: object
+      properties:
+        total: { type: integer }
+        newThisWeek: { type: integer }
+        newThisMonth: { type: integer }
+        byStatus:
+          type: object
+          properties:
+            recente: { type: integer }
+            acompanhando: { type: integer }
+            sem_retorno: { type: integer }
+            nao_interessado: { type: integer }
+        convertedLast30d: { type: integer }
+      required: [total, newThisWeek, newThisMonth, byStatus, convertedLast30d]
 
     RevealCpfResponse:
       type: object

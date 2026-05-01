@@ -14,6 +14,7 @@ import {
   counselingCasesTable,
   articlesTable,
   eventRegistrationsTable,
+  visitorsTable,
 } from "@workspace/db";
 import { eq, and, isNull, gte, lte, count, sql, sum, desc, or, inArray } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth.js";
@@ -61,6 +62,13 @@ router.get("/stats", requireAuth, async (req: Request, res: Response) => {
   for (const s of membersByStatus) {
     statusMap[s.status] = Number(s.total);
   }
+
+  // Visitantes ativos (recente + acompanhando) — fonte: tabela visitors
+  const [activeVisitors] = await db.select({ total: count() }).from(visitorsTable)
+    .where(and(
+      isNull(visitorsTable.deletedAt),
+      inArray(visitorsTable.status, ["recente", "acompanhando"]),
+    ));
 
   // ─── Finance (admin only) ──────────────────────────────────────────────
   let financePayload: any = null;
@@ -158,9 +166,11 @@ router.get("/stats", requireAuth, async (req: Request, res: Response) => {
       newThisMonth: Number(membersNew.total),
       byStatus: {
         ativo: statusMap.ativo || 0,
-        inativo: statusMap.inativo || 0,
-        visitante: statusMap.visitante || 0,
+        disciplina: statusMap.disciplina || 0,
+        rolApartado: statusMap.rol_apartado || 0,
         falecido: statusMap.falecido || 0,
+        demitido: statusMap.demitido || 0,
+        visitantes: Number(activeVisitors.total),
       },
     },
     finance: financePayload,

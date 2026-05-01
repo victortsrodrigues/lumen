@@ -5,6 +5,8 @@ export * from "./members";
 export * from "./member_history";
 export * from "./member_children";
 export * from "./member_groups";
+export * from "./member-rules";
+export * from "./visitors";
 export * from "./finance";
 export * from "./teaching";
 export * from "./events";

@@ -76,7 +76,7 @@ router.post("/register", async (req: Request, res: Response) => {
   const [newMember] = await db.insert(membersTable).values({
     fullName: name,
     email: email.toLowerCase(),
-    status: "visitante" as const,
+    status: "ativo" as const, // público registra como ativo; visitor é módulo separado
     pipelineStage: "culto" as const,
     createdByUserId: user.id,
     updatedByUserId: user.id,

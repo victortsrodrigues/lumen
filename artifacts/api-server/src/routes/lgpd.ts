@@ -20,6 +20,8 @@ import {
   pixDonationsTable,
   memberChildrenTable,
   memberGroupMembersTable,
+  visitorsTable,
+  visitorVisitsTable,
 } from "@workspace/db";
 import { eq, desc, and, count, or } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middlewares/auth.js";
@@ -466,7 +468,15 @@ async function anonymizeMember(memberId: string, adminUserId: string): Promise<v
     donorEmail: null,
   }).where(eq(pixDonationsTable.memberId, memberId));
 
-  // 14. Record in member history
+  // 14. Limpar assignedToMember em visitors (member era responsável)
+  await db.update(visitorsTable).set({
+    assignedToMemberId: null,
+    assignedToMemberName: null,
+    updatedByUserId: adminUserId,
+    updatedAt: new Date(),
+  }).where(eq(visitorsTable.assignedToMemberId, memberId));
+
+  // 15. Record in member history
   await db.insert(memberHistoryTable).values({
     memberId,
     changedByUserId: adminUserId,
@@ -481,6 +491,34 @@ async function anonymizeMember(memberId: string, adminUserId: string): Promise<v
     resourceId: memberId,
     details: { memberId: "[OMITIDO - LGPD]" },
   });
+}
+
+/**
+ * Anonimiza um visitor (utility function).
+ *
+ * Sem endpoint REST nesta fase — invocar via SQL/console se necessário.
+ * TODO: estender lgpd_requests com coluna `visitorId` e endpoint admin.
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function anonymizeVisitor(visitorId: string, adminUserId: string): Promise<void> {
+  await db.update(visitorsTable).set({
+    fullName: `Visitante Anonimizado #${visitorId.slice(0, 8)}`,
+    phoneEncrypted: null,
+    email: null,
+    dateOfBirth: null,
+    addressCity: null,
+    addressState: null,
+    howFoundUs: null,
+    assignedToMemberId: null,
+    assignedToMemberName: null,
+    notes: null,
+    updatedByUserId: adminUserId,
+    updatedAt: new Date(),
+  }).where(eq(visitorsTable.id, visitorId));
+
+  await db.update(visitorVisitsTable).set({
+    notes: null,
+  }).where(eq(visitorVisitsTable.visitorId, visitorId));
 }
 
 export default router;

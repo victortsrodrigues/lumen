@@ -1333,6 +1333,378 @@ export const DeleteMemberGroupParams = zod.object({
 });
 
 /**
+ * @summary List visitors
+ */
+export const ListVisitorsQueryParams = zod.object({
+  page: zod.coerce.number().optional(),
+  limit: zod.coerce.number().optional(),
+  search: zod.coerce.string().optional(),
+  status: zod
+    .enum(["recente", "acompanhando", "sem_retorno", "nao_interessado"])
+    .optional(),
+  dateFrom: zod.coerce.string().optional(),
+  dateTo: zod.coerce.string().optional(),
+});
+
+export const ListVisitorsResponse = zod.object({
+  visitors: zod.array(
+    zod.object({
+      id: zod.string(),
+      fullName: zod.string(),
+      phone: zod.string().nullish(),
+      email: zod.string().nullish(),
+      dateOfBirth: zod.string().nullish(),
+      addressCity: zod.string().nullish(),
+      addressState: zod.string().nullish(),
+      howFoundUs: zod.string().nullish(),
+      firstVisitDate: zod.string().nullish(),
+      firstVisitEventId: zod.string().nullish(),
+      status: zod.enum([
+        "recente",
+        "acompanhando",
+        "sem_retorno",
+        "nao_interessado",
+      ]),
+      assignedToMemberId: zod.string().nullish(),
+      assignedToMemberName: zod.string().nullish(),
+      notes: zod.string().nullish(),
+      totalVisits: zod.number(),
+      createdAt: zod.string(),
+      updatedAt: zod.string().optional(),
+    }),
+  ),
+  total: zod.number(),
+  page: zod.number(),
+  limit: zod.number(),
+});
+
+/**
+ * @summary Create a visitor
+ */
+export const CreateVisitorBody = zod.object({
+  fullName: zod.string(),
+  phone: zod.string().optional(),
+  email: zod.string().optional(),
+  dateOfBirth: zod.string().optional(),
+  addressCity: zod.string().optional(),
+  addressState: zod.string().optional(),
+  howFoundUs: zod.string().optional(),
+  firstVisitDate: zod.string(),
+  firstVisitEventId: zod.string().optional(),
+  status: zod
+    .enum(["recente", "acompanhando", "sem_retorno", "nao_interessado"])
+    .optional(),
+  assignedToMemberId: zod.string().optional(),
+  notes: zod.string().optional(),
+});
+
+/**
+ * @summary KPIs for visitors module
+ */
+export const GetVisitorsSummaryResponse = zod.object({
+  total: zod.number(),
+  newThisWeek: zod.number(),
+  newThisMonth: zod.number(),
+  byStatus: zod.object({
+    recente: zod.number().optional(),
+    acompanhando: zod.number().optional(),
+    sem_retorno: zod.number().optional(),
+    nao_interessado: zod.number().optional(),
+  }),
+  convertedLast30d: zod.number(),
+});
+
+/**
+ * @summary Get visitor detail with visits
+ */
+export const GetVisitorParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetVisitorResponse = zod
+  .object({
+    id: zod.string(),
+    fullName: zod.string(),
+    phone: zod.string().nullish(),
+    email: zod.string().nullish(),
+    dateOfBirth: zod.string().nullish(),
+    addressCity: zod.string().nullish(),
+    addressState: zod.string().nullish(),
+    howFoundUs: zod.string().nullish(),
+    firstVisitDate: zod.string().nullish(),
+    firstVisitEventId: zod.string().nullish(),
+    status: zod.enum([
+      "recente",
+      "acompanhando",
+      "sem_retorno",
+      "nao_interessado",
+    ]),
+    assignedToMemberId: zod.string().nullish(),
+    assignedToMemberName: zod.string().nullish(),
+    notes: zod.string().nullish(),
+    totalVisits: zod.number(),
+    createdAt: zod.string(),
+    updatedAt: zod.string().optional(),
+  })
+  .and(
+    zod.object({
+      visits: zod.array(
+        zod.object({
+          id: zod.string(),
+          visitorId: zod.string(),
+          visitDate: zod.string(),
+          eventId: zod.string().nullish(),
+          eventTitle: zod.string().nullish(),
+          notes: zod.string().nullish(),
+          createdAt: zod.string(),
+        }),
+      ),
+    }),
+  );
+
+/**
+ * @summary Update visitor (firstVisitDate/firstVisitEventId são read-only)
+ */
+export const UpdateVisitorParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateVisitorBody = zod
+  .object({
+    fullName: zod.string().optional(),
+    phone: zod.string().optional(),
+    email: zod.string().optional(),
+    dateOfBirth: zod.string().optional(),
+    addressCity: zod.string().optional(),
+    addressState: zod.string().optional(),
+    howFoundUs: zod.string().optional(),
+    status: zod
+      .enum(["recente", "acompanhando", "sem_retorno", "nao_interessado"])
+      .optional(),
+    assignedToMemberId: zod.string().nullish(),
+    notes: zod.string().optional(),
+  })
+  .describe(
+    "firstVisitDate e firstVisitEventId são derivados — rejeitados aqui",
+  );
+
+export const UpdateVisitorResponse = zod.object({
+  id: zod.string(),
+  fullName: zod.string(),
+  phone: zod.string().nullish(),
+  email: zod.string().nullish(),
+  dateOfBirth: zod.string().nullish(),
+  addressCity: zod.string().nullish(),
+  addressState: zod.string().nullish(),
+  howFoundUs: zod.string().nullish(),
+  firstVisitDate: zod.string().nullish(),
+  firstVisitEventId: zod.string().nullish(),
+  status: zod.enum([
+    "recente",
+    "acompanhando",
+    "sem_retorno",
+    "nao_interessado",
+  ]),
+  assignedToMemberId: zod.string().nullish(),
+  assignedToMemberName: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  totalVisits: zod.number(),
+  createdAt: zod.string(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Soft delete visitor (admin only)
+ */
+export const DeleteVisitorParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+/**
+ * @summary Add a visit record
+ */
+export const AddVisitorVisitParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const AddVisitorVisitBody = zod.object({
+  visitDate: zod.string(),
+  eventId: zod.string().optional(),
+  notes: zod.string().optional(),
+});
+
+/**
+ * @summary Edit a visit record
+ */
+export const UpdateVisitorVisitParams = zod.object({
+  id: zod.coerce.string(),
+  visitId: zod.coerce.string(),
+});
+
+export const UpdateVisitorVisitBody = zod.object({
+  visitDate: zod.string(),
+  eventId: zod.string().optional(),
+  notes: zod.string().optional(),
+});
+
+export const UpdateVisitorVisitResponse = zod.object({
+  id: zod.string(),
+  visitorId: zod.string(),
+  visitDate: zod.string(),
+  eventId: zod.string().nullish(),
+  eventTitle: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Remove a visit record (visitor must keep ≥1)
+ */
+export const RemoveVisitorVisitParams = zod.object({
+  id: zod.coerce.string(),
+  visitId: zod.coerce.string(),
+});
+
+/**
+ * @summary Convert visitor to member (admin only — destructive)
+ */
+export const ConvertVisitorParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ConvertVisitorBody = zod.object({
+  cpf: zod.string().optional(),
+  dateOfBirth: zod.string().optional(),
+  sex: zod.enum(["masculino", "feminino"]).optional(),
+  phone: zod.string().optional(),
+  email: zod.string().optional(),
+  addressZip: zod.string().optional(),
+  addressStreet: zod.string().optional(),
+  addressNumber: zod.string().optional(),
+  addressComplement: zod.string().optional(),
+  addressNeighborhood: zod.string().optional(),
+  addressCity: zod.string().optional(),
+  addressState: zod.string().optional(),
+  classification: zod.enum(["comungante", "nao_comungante"]),
+  receptionMode: zod
+    .enum([
+      "profissao_fe",
+      "profissao_fe_batismo",
+      "carta_transferencia",
+      "jurisdicao_pedido",
+      "jurisdicao_ex_officio",
+      "restauracao",
+      "batismo_infantil",
+      "transferencia_menor",
+      "arrolamento_menor",
+    ])
+    .optional(),
+  receptionDate: zod.string().optional(),
+  conversionDate: zod.string().optional(),
+  conversionYear: zod.number().optional(),
+  religiousOrigin: zod.string().optional(),
+  infantBaptism: zod.boolean().optional(),
+  infantBaptismChurch: zod.string().optional(),
+  infantBaptismPastor: zod.string().optional(),
+  parentsOrGuardians: zod.string().optional(),
+  maritalStatus: zod
+    .enum(["solteiro", "casado", "viuvo", "divorciado", "uniao_estavel"])
+    .optional(),
+  spouseMemberId: zod.string().optional(),
+  academicEducation: zod.string().optional(),
+  profession: zod.string().optional(),
+});
+
+export const ConvertVisitorResponse = zod.object({
+  id: zod.string(),
+  fullName: zod.string(),
+  cpfMasked: zod.string(),
+  dateOfBirth: zod.string().optional(),
+  sex: zod.enum(["masculino", "feminino"]).optional(),
+  phone: zod.string().optional(),
+  email: zod.string().optional(),
+  addressZip: zod.string().optional(),
+  addressStreet: zod.string().optional(),
+  addressNumber: zod.string().optional(),
+  addressComplement: zod.string().optional(),
+  addressNeighborhood: zod.string().optional(),
+  addressCity: zod.string().optional(),
+  addressState: zod.string().optional(),
+  classification: zod.enum(["comungante", "nao_comungante"]),
+  receptionMode: zod
+    .enum([
+      "profissao_fe",
+      "profissao_fe_batismo",
+      "carta_transferencia",
+      "jurisdicao_pedido",
+      "jurisdicao_ex_officio",
+      "restauracao",
+      "batismo_infantil",
+      "transferencia_menor",
+      "arrolamento_menor",
+    ])
+    .optional(),
+  receptionDate: zod.string().optional(),
+  conversionDate: zod.string().optional(),
+  conversionYear: zod.number().optional(),
+  religiousOrigin: zod.string().optional(),
+  infantBaptism: zod.boolean().optional(),
+  infantBaptismChurch: zod.string().optional(),
+  infantBaptismPastor: zod.string().optional(),
+  parentsOrGuardians: zod.string().optional(),
+  maritalStatus: zod
+    .enum(["solteiro", "casado", "viuvo", "divorciado", "uniao_estavel"])
+    .optional(),
+  spouseMemberId: zod.string().optional(),
+  spouseName: zod.string().optional(),
+  academicEducation: zod.string().optional(),
+  profession: zod.string().optional(),
+  status: zod.enum([
+    "ativo",
+    "disciplina",
+    "rol_apartado",
+    "falecido",
+    "demitido",
+  ]),
+  pipelineStage: zod.enum(["culto", "pequeno_grupo", "ministerio"]).optional(),
+  exclusionReason: zod
+    .enum([
+      "transferencia",
+      "falecimento",
+      "exclusao_pedido",
+      "exclusao_disciplina",
+      "exclusao_abandono",
+      "ordenacao_ministerio",
+      "transferencia_responsaveis",
+      "profissao_fe_migracao",
+      "exclusao_abandono_responsaveis",
+    ])
+    .optional(),
+  exclusionDate: zod.string().optional(),
+  exclusionNotes: zod.string().optional(),
+  exclusionLetterPath: zod.string().optional(),
+  photoPath: zod.string().optional(),
+  children: zod
+    .array(
+      zod.object({
+        id: zod.string(),
+        fullName: zod.string(),
+      }),
+    )
+    .optional(),
+  groups: zod
+    .array(
+      zod.object({
+        id: zod.string(),
+        name: zod.string(),
+      }),
+    )
+    .optional(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
  * @summary Bulk import members via CSV (Admin/Leader only)
  */
 export const ImportMembersCsvBody = zod.object({

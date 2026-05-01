@@ -424,6 +424,145 @@ export interface UpdateMemberGroupRequest {
   description?: string;
 }
 
+export type VisitorStatus = (typeof VisitorStatus)[keyof typeof VisitorStatus];
+
+export const VisitorStatus = {
+  recente: "recente",
+  acompanhando: "acompanhando",
+  sem_retorno: "sem_retorno",
+  nao_interessado: "nao_interessado",
+} as const;
+
+export interface VisitorSummary {
+  id: string;
+  fullName: string;
+  phone?: string | null;
+  email?: string | null;
+  dateOfBirth?: string | null;
+  addressCity?: string | null;
+  addressState?: string | null;
+  howFoundUs?: string | null;
+  firstVisitDate?: string | null;
+  firstVisitEventId?: string | null;
+  status: VisitorStatus;
+  assignedToMemberId?: string | null;
+  assignedToMemberName?: string | null;
+  notes?: string | null;
+  totalVisits: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface VisitorVisit {
+  id: string;
+  visitorId: string;
+  visitDate: string;
+  eventId?: string | null;
+  eventTitle?: string | null;
+  notes?: string | null;
+  createdAt: string;
+}
+
+export type VisitorDetail = VisitorSummary & {
+  visits: VisitorVisit[];
+};
+
+export interface VisitorListResponse {
+  visitors: VisitorSummary[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface CreateVisitorRequest {
+  fullName: string;
+  phone?: string;
+  email?: string;
+  dateOfBirth?: string;
+  addressCity?: string;
+  addressState?: string;
+  howFoundUs?: string;
+  firstVisitDate: string;
+  firstVisitEventId?: string;
+  status?: VisitorStatus;
+  assignedToMemberId?: string;
+  notes?: string;
+}
+
+/**
+ * firstVisitDate e firstVisitEventId são derivados — rejeitados aqui
+ */
+export interface UpdateVisitorRequest {
+  fullName?: string;
+  phone?: string;
+  email?: string;
+  dateOfBirth?: string;
+  addressCity?: string;
+  addressState?: string;
+  howFoundUs?: string;
+  status?: VisitorStatus;
+  assignedToMemberId?: string | null;
+  notes?: string;
+}
+
+export interface AddVisitRequest {
+  visitDate: string;
+  eventId?: string;
+  notes?: string;
+}
+
+export type ConvertVisitorRequestSex =
+  (typeof ConvertVisitorRequestSex)[keyof typeof ConvertVisitorRequestSex];
+
+export const ConvertVisitorRequestSex = {
+  masculino: "masculino",
+  feminino: "feminino",
+} as const;
+
+export interface ConvertVisitorRequest {
+  cpf?: string;
+  dateOfBirth?: string;
+  sex?: ConvertVisitorRequestSex;
+  phone?: string;
+  email?: string;
+  addressZip?: string;
+  addressStreet?: string;
+  addressNumber?: string;
+  addressComplement?: string;
+  addressNeighborhood?: string;
+  addressCity?: string;
+  addressState?: string;
+  classification: MemberClassification;
+  receptionMode?: MemberReceptionMode;
+  receptionDate?: string;
+  conversionDate?: string;
+  conversionYear?: number;
+  religiousOrigin?: string;
+  infantBaptism?: boolean;
+  infantBaptismChurch?: string;
+  infantBaptismPastor?: string;
+  parentsOrGuardians?: string;
+  maritalStatus?: MemberMaritalStatus;
+  spouseMemberId?: string;
+  academicEducation?: string;
+  profession?: string;
+}
+
+export type VisitorSummaryStatsByStatus = {
+  recente?: number;
+  acompanhando?: number;
+  sem_retorno?: number;
+  nao_interessado?: number;
+};
+
+export interface VisitorSummaryStats {
+  total: number;
+  newThisWeek: number;
+  newThisMonth: number;
+  byStatus: VisitorSummaryStatsByStatus;
+  convertedLast30d: number;
+}
+
 export interface RevealCpfResponse {
   cpf: string;
 }
@@ -3113,6 +3252,15 @@ export type GetStagnantMembersParams = {
 
 export type SaveTransferLetter200 = {
   letterPath?: string;
+};
+
+export type ListVisitorsParams = {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: VisitorStatus;
+  dateFrom?: string;
+  dateTo?: string;
 };
 
 export type ListFinanceEntriesParams = {

@@ -123,6 +123,45 @@ async function seed() {
   }
   log("Membros", `✓ ${memberIds.length} membros cadastrados`);
 
+  // ─── 2.5 VISITANTES ──────────────────────────────────────────────────────
+
+  log("Visitantes", "Cadastrando visitantes...");
+
+  const visitorsData = [
+    {
+      fullName: "Bruno Carvalho", phone: "11988776600", email: "bruno.c@email.com",
+      addressCity: "São Paulo", addressState: "SP",
+      howFoundUs: "Indicação", firstVisitDate: pastDate(28),
+      status: "acompanhando",
+      assignedToMemberId: memberIds[2], // Roberto (líder)
+      notes: "Primeira vez no culto. Demonstrou interesse no PG do bairro.",
+    },
+    {
+      fullName: "Camila Ferreira", phone: "11977665533",
+      addressCity: "Guarulhos", addressState: "SP",
+      howFoundUs: "Internet", firstVisitDate: pastDate(7),
+      status: "recente",
+    },
+  ];
+
+  const visitorIds: string[] = [];
+  for (const v of visitorsData) {
+    const res = await api("POST", "/visitors", v);
+    if (res.id) visitorIds.push(res.id);
+  }
+
+  // Bruno volta 2x mais
+  if (visitorIds[0]) {
+    await api("POST", `/visitors/${visitorIds[0]}/visits`, {
+      visitDate: pastDate(21), notes: "Veio com a esposa.",
+    });
+    await api("POST", `/visitors/${visitorIds[0]}/visits`, {
+      visitDate: pastDate(14), notes: "Participou do PG.",
+    });
+  }
+
+  log("Visitantes", `✓ ${visitorIds.length} visitantes cadastrados`);
+
   // ─── 3. FINANCEIRO ───────────────────────────────────────────────────────
 
   log("Financeiro", "Criando entradas e despesas...");
