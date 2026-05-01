@@ -165,7 +165,7 @@ Para cada fase, repetir o ciclo:
 ## Status global
 
 - [x] Fase 1 — Rol de Membros _(commits dfe1866, ac7f0c6, fc9cc82, c9dac3a)_
-- [ ] Fase 2 — Visitantes
+- [x] Fase 2 — Visitantes _(commits incluem hotfix Fase 1 de auth.ts e dashboard.ts)_
 - [ ] Fase 3 — Mapa de Discipulado
 - [ ] Fase 4 — Ensino e Pregação
 - [ ] Fase 5 — Culto
