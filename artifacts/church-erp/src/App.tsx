@@ -24,6 +24,12 @@ import EditMember from "./pages/members/[id]/edit";
 import ImportMembers from "./pages/members/import";
 import MemberGroupsPage from "./pages/members/groups";
 
+// Visitors Module
+import VisitorsList from "./pages/visitors";
+import NewVisitor from "./pages/visitors/new";
+import VisitorDetail from "./pages/visitors/[id]";
+import EditVisitor from "./pages/visitors/[id]/edit";
+
 // Finance Module
 import FinanceDashboard from "./pages/finance";
 import FinanceEntries from "./pages/finance/entries";
@@ -165,6 +171,12 @@ function Router() {
       <Route path="/members/:id/edit" component={EditMember} />
       <Route path="/members/:id" component={MemberProfile} />
       <Route path="/members" component={MembersList} />
+
+      {/* Visitors Module */}
+      <Route path="/visitors/new" component={NewVisitor} />
+      <Route path="/visitors/:id/edit" component={EditVisitor} />
+      <Route path="/visitors/:id" component={VisitorDetail} />
+      <Route path="/visitors" component={VisitorsList} />
 
       {/* Finance Module */}
       <Route path="/finance" component={FinanceDashboard} />

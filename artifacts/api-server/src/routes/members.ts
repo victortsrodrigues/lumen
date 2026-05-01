@@ -4,10 +4,7 @@ import {
   courseEnrollmentsTable, eventRegistrationsTable, ministryMembersTable, ministriesTable,
   assetsTable, eventSchedulesTable, planningInitiativesTable, memberPipelineHistoryTable,
   usersTable, memberChildrenTable, memberGroupsTable, memberGroupMembersTable,
-  COMMUNING_RECEPTION_MODES, NON_COMMUNING_RECEPTION_MODES,
-  COMMUNING_EXCLUSION_REASONS, NON_COMMUNING_EXCLUSION_REASONS,
-  isValidReceptionMode as sharedIsValidReceptionMode,
-  isValidExclusionReason as sharedIsValidExclusionReason,
+  isValidReceptionMode, isValidExclusionReason,
 } from "@workspace/db";
 import { eq, desc, ilike, and, count, isNull, inArray, or } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middlewares/auth.js";
@@ -28,15 +25,6 @@ function getIp(req: Request): string {
 // ─── ENUMS / VALIDATIONS ────────────────────────────────────────────────────
 
 const VALID_PIPELINE_STAGES = ["culto", "pequeno_grupo", "ministerio"] as const;
-
-// Re-export aliased functions for local use (single source of truth in @workspace/db)
-const isValidReceptionMode = sharedIsValidReceptionMode;
-const isValidExclusionReason = sharedIsValidExclusionReason;
-// Re-reference para uso interno (silenciar warnings de unused se houver)
-void COMMUNING_RECEPTION_MODES;
-void NON_COMMUNING_RECEPTION_MODES;
-void COMMUNING_EXCLUSION_REASONS;
-void NON_COMMUNING_EXCLUSION_REASONS;
 
 // Allowlist for PUT /members/me — own profile updates
 const SELF_PROFILE_ALLOWED_FIELDS = new Set([

@@ -4,7 +4,7 @@ import {
   Layers, Shield, ShieldCheck, LogOut,
   ChevronDown, ArrowDownToLine, ArrowUpFromLine, FileBarChart, Lock,
   BookOpen, Library, ClipboardCheck, GraduationCap, User, UsersRound, Package, CalendarCheck, PiggyBank, BarChart3, Target, FileText,
-  HeartHandshake, Music, BookMarked, Newspaper, MessageSquare, Globe, QrCode,
+  HeartHandshake, Music, BookMarked, Newspaper, MessageSquare, Globe, QrCode, UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth-context";
@@ -50,6 +50,7 @@ const MENU_ITEMS = [
       { icon: FileText, label: "Conteúdos", href: "/teaching/contents" },
     ],
   },
+  { icon: UserPlus, label: "Visitantes", href: "/visitors", roles: ["admin", "leader"] },
   { icon: UsersRound, label: "Ministérios", href: "/ministries" },
   { icon: Calendar, label: "Calendário", href: "/events" },
   { icon: HeartHandshake, label: "Acompanhamento", href: "/pastoral", roles: ["admin", "leader"] },

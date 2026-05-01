@@ -15,9 +15,7 @@ import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, UploadCloud, MapPin, User, Save, ShieldCheck } from 'lucide-react';
 
-const COMMUNING_RECEPTION_MODES = ["profissao_fe", "profissao_fe_batismo", "carta_transferencia", "jurisdicao_pedido", "jurisdicao_ex_officio", "restauracao"] as const;
-const NON_COMMUNING_RECEPTION_MODES = ["batismo_infantil", "transferencia_menor", "arrolamento_menor"] as const;
-const ALL_RECEPTION_MODES = [...COMMUNING_RECEPTION_MODES, ...NON_COMMUNING_RECEPTION_MODES] as const;
+import { ALL_RECEPTION_MODES } from "../../../../../../lib/db/src/schema/member-rules";
 
 const formSchema = z.object({
   fullName: z.string().min(3, 'Nome completo é obrigatório'),

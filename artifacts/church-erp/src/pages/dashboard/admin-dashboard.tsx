@@ -67,9 +67,11 @@ export default function AdminDashboard() {
               </div>
               <p className="text-3xl font-bold">{data.members.total}</p>
               <p className="text-sm text-muted-foreground mt-1">Membros ativos</p>
-              <div className="flex gap-3 mt-3 text-xs text-muted-foreground">
-                <span>Inativos: {data.members.byStatus?.inativo || 0}</span>
-                <span>Visitantes: {data.members.byStatus?.visitante || 0}</span>
+              <div className="flex gap-x-3 gap-y-1 mt-3 text-xs text-muted-foreground flex-wrap">
+                <span>Disciplina: {(data.members.byStatus as any)?.disciplina || 0}</span>
+                <span>Rol Apartado: {(data.members.byStatus as any)?.rolApartado || 0}</span>
+                <span>Demitidos: {(data.members.byStatus as any)?.demitido || 0}</span>
+                <span className="text-cyan-600 font-medium">Visitantes: {(data.members.byStatus as any)?.visitantes || 0}</span>
               </div>
             </motion.div>
 
