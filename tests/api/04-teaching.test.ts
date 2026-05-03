@@ -39,11 +39,11 @@ describe("04-teaching", () => {
 
   it("1. Create course", async () => {
     const res = await request("POST", "/teaching/courses", {
-      title: `Curso ${P}`, category: "ebd", teacherId, startDate: "2026-03-01",
+      title: `Curso ${P}`, category: "escola_biblica", teacherId, startDate: "2026-03-01",
     }, adminCk);
     expect(res.status).toBe(201);
     expect(res.body.title).toBe(`Curso ${P}`);
-    expect(res.body.category).toBe("ebd");
+    expect(res.body.category).toBe("escola_biblica");
     expect(res.body.teacherName).toContain("Professor");
     courseId = res.body.id;
   });
@@ -55,7 +55,7 @@ describe("04-teaching", () => {
 
   it("3. Member cannot create → 403", async () => {
     const res = await request("POST", "/teaching/courses", {
-      title: "X", category: "ebd", teacherId,
+      title: "X", category: "escola_biblica", teacherId,
     }, memberCk);
     expect(res.status).toBe(403);
   });
@@ -102,7 +102,7 @@ describe("04-teaching", () => {
   it("9. Soft delete course", async () => {
     // Create disposable course
     const cr = await request("POST", "/teaching/courses", {
-      title: `Del ${P}`, category: "seminario", teacherId,
+      title: `Del ${P}`, category: "cursos_livres", teacherId,
     }, adminCk);
     const res = await request("DELETE", `/teaching/courses/${cr.body.id}`, undefined, adminCk);
     expect(res.status).toBe(200);
@@ -171,7 +171,7 @@ describe("04-teaching", () => {
   it("17. Course full → 409", async () => {
     // Create course with maxSlots=1
     const cr = await request("POST", "/teaching/courses", {
-      title: `Full ${P}`, category: "ebd", teacherId, maxSlots: 1,
+      title: `Full ${P}`, category: "escola_biblica", teacherId, maxSlots: 1,
     }, adminCk);
     await request("POST", `/teaching/courses/${cr.body.id}/enroll`, { memberId: studentId }, adminCk);
     const res = await request("POST", `/teaching/courses/${cr.body.id}/enroll`, { memberId: teacherId }, adminCk);
@@ -187,7 +187,7 @@ describe("04-teaching", () => {
   it("19. Cancel enrollment", async () => {
     // Create new enrollment to cancel
     const cr = await request("POST", "/teaching/courses", {
-      title: `Cancel ${P}`, category: "ebd", teacherId,
+      title: `Cancel ${P}`, category: "escola_biblica", teacherId,
     }, adminCk);
     await request("POST", `/teaching/courses/${cr.body.id}/enroll`, { memberId: studentId }, adminCk);
     const res = await request("DELETE", `/teaching/courses/${cr.body.id}/enroll/${studentId}`, undefined, adminCk);
@@ -235,7 +235,7 @@ describe("04-teaching", () => {
   it("24. Certificate denied (< 75%)", async () => {
     // Create course with 4 lessons, student attends only 1
     const cr = await request("POST", "/teaching/courses", {
-      title: `LowFreq ${P}`, category: "ebd", teacherId,
+      title: `LowFreq ${P}`, category: "escola_biblica", teacherId,
     }, adminCk);
     const cid = cr.body.id;
     const lessons = [];

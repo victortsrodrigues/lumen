@@ -5,12 +5,13 @@
  * Church ERP API
  * OpenAPI spec version: 0.2.0
  */
+import type { MemberStatsProfileAreasItem } from "./memberStatsProfileAreasItem";
 
 export type MemberStatsProfile = {
   id?: string;
   fullName?: string;
   status?: string;
-  pipelineStage?: string | null;
   baptismDate?: string | null;
   conversionDate?: string | null;
+  areas?: MemberStatsProfileAreasItem[];
 } | null;

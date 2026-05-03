@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, pgEnum, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, pgEnum, integer, index } from "drizzle-orm/pg-core";
 
 export const eventRecurrenceEnum = pgEnum("event_recurrence", [
   "unico",
@@ -48,7 +48,10 @@ export const eventsTable = pgTable("events", {
   updatedByUserId: text("updated_by_user_id").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (table) => [
+  index("idx_events_start_date").on(table.startDate),
+  index("idx_events_type").on(table.type),
+]);
 
 // ─── EVENT REGISTRATIONS ─────────────────────────────────────────────────────
 

@@ -1,49 +1,18 @@
 import { useState, useEffect } from 'react';
-import { useListMembers, useRevealMemberCpf, useGetPipelineSummary, ListMembersStatus } from '@workspace/api-client-react';
+import { useListMembers, useRevealMemberCpf, ListMembersStatus } from '@workspace/api-client-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/hooks/use-auth-context';
 import { Link, Redirect } from 'wouter';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { 
-  Users, Search, Plus, Upload, Filter, 
+import {
+  Users, Search, Plus, Upload, Filter,
   ChevronLeft, ChevronRight, Eye, User as UserIcon, Loader2
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-
-const PIPELINE_STAGES = [
-  { key: "culto", label: "Culto", color: "bg-blue-200" },
-  { key: "pequeno_grupo", label: "Pequeno Grupo", color: "bg-green-200" },
-  { key: "ministerio", label: "Ministério", color: "bg-amber-200" },
-];
-
-function PipelineFunnel() {
-  const { data } = useGetPipelineSummary();
-  if (!data?.summary) return null;
-  const maxVal = Math.max(1, ...Object.values(data.summary as Record<string, number>));
-  return (
-    <div className="mb-6 p-4 rounded-xl border bg-card">
-      <h3 className="text-sm font-semibold text-muted-foreground mb-3">Funil de Integração</h3>
-      <div className="space-y-1.5">
-        {PIPELINE_STAGES.map(s => {
-          const val = (data.summary as Record<string, number>)[s.key] || 0;
-          const pct = Math.max(5, (val / maxVal) * 100);
-          return (
-            <div key={s.key} className="flex items-center gap-3">
-              <span className="text-xs text-muted-foreground w-24 text-right">{s.label}</span>
-              <div className="flex-1 h-5 bg-muted rounded-full overflow-hidden">
-                <div className={`h-full rounded-full ${s.color} transition-all`} style={{ width: `${pct}%` }} />
-              </div>
-              <span className="text-xs font-medium w-8">{val}</span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+import { AreaHealthMatrix } from './components/AreaHealthMatrix';
 
 export default function MembersList() {
   const { user } = useAuth();
@@ -201,8 +170,8 @@ export default function MembersList() {
           </div>
         </div>
 
-        {/* Pipeline Funnel */}
-        <PipelineFunnel />
+        {/* Discipleship Area Health Matrix */}
+        <AreaHealthMatrix />
 
         {/* Table */}
         <div className="overflow-x-auto">
@@ -263,15 +232,6 @@ export default function MembersList() {
                       <span className={cn("inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold capitalize border", getStatusStyle(member.status))}>
                         {getStatusLabel(member.status)}
                       </span>
-                      {(member as any).pipelineStage && (
-                        <span className={cn("ml-1.5 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium", {
-                          "bg-blue-100 text-blue-700": (member as any).pipelineStage === "culto",
-                          "bg-green-100 text-green-700": (member as any).pipelineStage === "pequeno_grupo",
-                          "bg-amber-100 text-amber-700": (member as any).pipelineStage === "ministerio",
-                        })}>
-                          {(member as any).pipelineStage === "culto" ? "Culto" : (member as any).pipelineStage === "pequeno_grupo" ? "Pequeno Grupo" : "Ministério"}
-                        </span>
-                      )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center font-mono text-sm">

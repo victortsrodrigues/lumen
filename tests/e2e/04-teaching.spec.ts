@@ -18,20 +18,20 @@ test.describe("04-teaching", () => {
     teacherId = t.id;
     const s = await apiCreateMember(adminCk, { fullName: `Aluno ${P}`, email: `aluno-${P}@t.local` });
     studentId = s.id;
-    const c = await apiCreateCourse(adminCk, { title: `Curso ${P}`, category: "ebd", teacherId });
+    const c = await apiCreateCourse(adminCk, { title: `Curso ${P}`, category: "escola_biblica", teacherId });
     courseId = c.id;
   });
 
   test("1. Teaching dashboard loads", async ({ page }) => {
     await loginAs(page, adminEmail, adminPw);
     await page.goto("/teaching");
-    await expect(page.getByText(/visão geral de ensino/i)).toBeVisible();
+    await expect(page.getByText(/visão geral de ensino e pregação/i)).toBeVisible();
   });
 
   test("2. Create course", async ({ page }) => {
     await loginAs(page, adminEmail, adminPw);
     await page.goto("/teaching/courses");
-    await page.getByText(/novo curso/i).click();
+    await page.getByText(/nova série/i).click();
     await page.waitForTimeout(500);
     const modal = page.locator("div.bg-card").last();
     await modal.locator("input").first().fill(`Novo Curso ${P}`);
@@ -84,7 +84,7 @@ test.describe("04-teaching", () => {
 
   test("8. Delete course", async ({ page }) => {
     // Create a disposable course
-    const c = await apiCreateCourse(adminCk, { title: `Del ${P}`, category: "ebd", teacherId });
+    const c = await apiCreateCourse(adminCk, { title: `Del ${P}`, category: "escola_biblica", teacherId });
     await loginAs(page, adminEmail, adminPw);
     await page.goto("/teaching/courses");
     page.on("dialog", (d) => d.accept());
@@ -98,12 +98,12 @@ test.describe("04-teaching", () => {
   test("9. My Courses page loads", async ({ page }) => {
     await loginAs(page, adminEmail, adminPw);
     await page.goto("/teaching/my-courses");
-    await expect(page.getByText(/meus cursos/i).first()).toBeVisible();
+    await expect(page.getByText(/minhas séries/i).first()).toBeVisible();
   });
 
   test("10. Course full shows error", async ({ page }) => {
     // Create course with 1 slot, fill it via API
-    const c = await apiCreateCourse(adminCk, { title: `Full ${P}`, category: "ebd", teacherId, maxSlots: 1 });
+    const c = await apiCreateCourse(adminCk, { title: `Full ${P}`, category: "escola_biblica", teacherId, maxSlots: 1 });
     // Enroll first student via API
     await fetch(`http://localhost:3000/api/teaching/courses/${c.id}/enroll`, {
       method: "POST", headers: { "Content-Type": "application/json", Cookie: adminCk },

@@ -7,7 +7,7 @@ test.describe("10-media", () => {
   test("1. MediaSection aparece no detalhe do curso", async ({ page }) => {
     const admin = await apiRegisterAdmin(`${P}-1`);
     const course = await apiCreateCourse(admin.cookie, {
-      title: `Curso ${P}`, category: "ebd", teacherId: "x",
+      title: `Curso ${P}`, category: "escola_biblica", teacherId: "x",
       startDate: "2026-01-01", status: "em_andamento",
     });
     await apiCreateMedia(admin.cookie, {
@@ -24,7 +24,7 @@ test.describe("10-media", () => {
   test("2. Adicionar mídia via modal", async ({ page }) => {
     const admin = await apiRegisterAdmin(`${P}-2`);
     const course = await apiCreateCourse(admin.cookie, {
-      title: `Curso2 ${P}`, category: "ebd", teacherId: "x",
+      title: `Curso2 ${P}`, category: "escola_biblica", teacherId: "x",
       startDate: "2026-01-01", status: "em_andamento",
     });
 
@@ -40,7 +40,7 @@ test.describe("10-media", () => {
   test("3. Link genérico aparece como link externo", async ({ page }) => {
     const admin = await apiRegisterAdmin(`${P}-3`);
     const course = await apiCreateCourse(admin.cookie, {
-      title: `Curso3 ${P}`, category: "ebd", teacherId: "x",
+      title: `Curso3 ${P}`, category: "escola_biblica", teacherId: "x",
       startDate: "2026-01-01", status: "em_andamento",
     });
     await apiCreateMedia(admin.cookie, {

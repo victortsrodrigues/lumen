@@ -30,6 +30,15 @@ import NewVisitor from "./pages/visitors/new";
 import VisitorDetail from "./pages/visitors/[id]";
 import EditVisitor from "./pages/visitors/[id]/edit";
 
+// Discipleship Module
+import DiscipleshipPage from "./pages/discipleship";
+
+// Conselho Module
+import ConselhoListPage from "./pages/conselho";
+import NewConselhoPage from "./pages/conselho/new";
+import ConselhoDetailPage from "./pages/conselho/[id]";
+import EditConselhoPage from "./pages/conselho/[id]/edit";
+
 // Finance Module
 import FinanceDashboard from "./pages/finance";
 import FinanceEntries from "./pages/finance/entries";
@@ -82,9 +91,12 @@ import CounselingCaseDetail from "./pages/counseling/case-detail";
 import SongsPage from "./pages/songs";
 import SongDetailPage from "./pages/songs/song-detail";
 
-// Liturgy Module
-import LiturgyPage from "./pages/liturgy";
-import LiturgyDetailPage from "./pages/liturgy/liturgy-detail";
+// Cultos Module
+import CultosListPage from "./pages/cultos";
+import NewCultoPage from "./pages/cultos/new";
+import CultoDetailPage from "./pages/cultos/[id]";
+import EditCultoPage from "./pages/cultos/[id]/edit";
+import CultosReportsPage from "./pages/cultos/reports";
 
 // Articles Module
 import ArticlesPage from "./pages/articles";
@@ -178,6 +190,15 @@ function Router() {
       <Route path="/visitors/:id" component={VisitorDetail} />
       <Route path="/visitors" component={VisitorsList} />
 
+      {/* Discipleship Module */}
+      <Route path="/discipleship" component={DiscipleshipPage} />
+
+      {/* Conselho Module */}
+      <Route path="/conselho/new" component={NewConselhoPage} />
+      <Route path="/conselho/:id/edit" component={EditConselhoPage} />
+      <Route path="/conselho/:id" component={ConselhoDetailPage} />
+      <Route path="/conselho" component={ConselhoListPage} />
+
       {/* Finance Module */}
       <Route path="/finance" component={FinanceDashboard} />
       <Route path="/finance/entries" component={FinanceEntries} />
@@ -220,9 +241,12 @@ function Router() {
       <Route path="/songs/:id" component={SongDetailPage} />
       <Route path="/songs" component={SongsPage} />
 
-      {/* Liturgy Module */}
-      <Route path="/liturgy/:id" component={LiturgyDetailPage} />
-      <Route path="/liturgy" component={LiturgyPage} />
+      {/* Cultos Module */}
+      <Route path="/cultos/new" component={NewCultoPage} />
+      <Route path="/cultos/reports" component={CultosReportsPage} />
+      <Route path="/cultos/:id/edit" component={EditCultoPage} />
+      <Route path="/cultos/:id" component={CultoDetailPage} />
+      <Route path="/cultos" component={CultosListPage} />
 
       {/* Articles Module */}
       <Route path="/articles/new" component={NewArticle} />

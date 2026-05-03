@@ -1,11 +1,10 @@
 import { pgTable, text, timestamp, boolean, pgEnum, integer, date } from "drizzle-orm/pg-core";
 
 export const courseCategoryEnum = pgEnum("course_category", [
-  "ebd",
-  "discipulado",
-  "seminario",
-  "curso_livre",
-  "escola_de_lideres",
+  "pregacao",
+  "escola_biblica",
+  "pequeno_grupo",
+  "cursos_livres",
 ]);
 
 export const courseStatusEnum = pgEnum("course_status", [

@@ -9,6 +9,7 @@ import { generateCsrfToken, validateCsrfToken } from "../lib/csrf.js";
 import { createAuditLog } from "../lib/audit.js";
 import { checkLoginRateLimit, resetLoginRateLimit } from "../lib/rateLimit.js";
 import { requireAuth } from "../middlewares/auth.js";
+import { ensureMemberAreas } from "./members.js";
 
 const router: IRouter = Router();
 
@@ -77,10 +78,11 @@ router.post("/register", async (req: Request, res: Response) => {
     fullName: name,
     email: email.toLowerCase(),
     status: "ativo" as const, // público registra como ativo; visitor é módulo separado
-    pipelineStage: "culto" as const,
     createdByUserId: user.id,
     updatedByUserId: user.id,
   }).returning();
+
+  await ensureMemberAreas(newMember.id, user.id);
 
   await db.insert(memberHistoryTable).values({
     memberId: newMember.id,

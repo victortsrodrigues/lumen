@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import { db, usersTable, membersTable, memberHistoryTable, consentRecordsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { logger } from "./logger.js";
+import { ensureMemberAreas } from "../routes/members.js";
 
 /**
  * Ensures a bootstrap admin user exists on startup.
@@ -50,10 +51,11 @@ export async function ensureBootstrapAdmin(): Promise<void> {
       fullName: name,
       email,
       status: "ativo" as const,
-      pipelineStage: "ministerio" as const,
       createdByUserId: user.id,
       updatedByUserId: user.id,
     }).returning();
+
+    await ensureMemberAreas(member.id, user.id);
 
     await db.insert(memberHistoryTable).values({
       memberId: member.id,

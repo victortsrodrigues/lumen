@@ -70,7 +70,7 @@ export default function ContentsPage() {
   const total = data?.total || 0;
 
   return (
-    <AppLayout breadcrumbs={[{ label: "Ensino", href: "/teaching" }, { label: "Conteúdos" }]}>
+    <AppLayout breadcrumbs={[{ label: "Ensino e Pregação", href: "/teaching" }, { label: "Conteúdos" }]}>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">

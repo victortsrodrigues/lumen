@@ -49,7 +49,7 @@ function detectMediaType(url: string): "youtube" | "vimeo" | "drive" | "link" | 
   return "outro";
 }
 
-const VALID_ENTITY_TYPES = ["course_lesson", "course", "ministry", "event", "asset", "content"];
+const VALID_ENTITY_TYPES = ["course_lesson", "course", "ministry", "event", "asset", "content", "council_meeting"];
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MEDIA CRUD

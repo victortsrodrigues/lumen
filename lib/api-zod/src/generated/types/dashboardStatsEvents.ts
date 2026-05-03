@@ -9,5 +9,6 @@ import type { DashboardStatsEventsUpcomingItem } from "./dashboardStatsEventsUpc
 
 export type DashboardStatsEvents = {
   upcomingCount?: number;
+  nextMonthCount?: number;
   upcoming?: DashboardStatsEventsUpcomingItem[];
 };

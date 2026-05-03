@@ -10,9 +10,8 @@ export type CreateCourseRequestCategory =
   (typeof CreateCourseRequestCategory)[keyof typeof CreateCourseRequestCategory];
 
 export const CreateCourseRequestCategory = {
-  ebd: "ebd",
-  discipulado: "discipulado",
-  seminario: "seminario",
-  curso_livre: "curso_livre",
-  escola_de_lideres: "escola_de_lideres",
+  pregacao: "pregacao",
+  escola_biblica: "escola_biblica",
+  pequeno_grupo: "pequeno_grupo",
+  cursos_livres: "cursos_livres",
 } as const;

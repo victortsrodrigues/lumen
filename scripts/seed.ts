@@ -123,6 +123,35 @@ async function seed() {
   }
   log("Membros", `✓ ${memberIds.length} membros cadastrados`);
 
+  // ─── 2.1 DISCIPLESHIP — atribuir cores e líderes ───────────────────────
+  log("Discipulado", "Configurando áreas de discipulado...");
+
+  const robertoId = memberIds[2]; // Roberto dos Santos (líder)
+  const anaId = memberIds[3];     // Ana Paula (referência EBD)
+
+  const discipleshipUpdates: Array<{ id: string; area: string; data: any }> = [
+    // Carlos (0): tudo verde — control case (default já é verde, mas vamos linkar líder PG)
+    { id: memberIds[0], area: "pequeno_grupo", data: { healthStatus: "verde", leaderMemberId: robertoId } },
+    // Maria (1): líder PG = Roberto
+    { id: memberIds[1], area: "pequeno_grupo", data: { healthStatus: "verde", leaderMemberId: robertoId } },
+    // João (4): pequeno_grupo amarelo
+    { id: memberIds[4], area: "pequeno_grupo", data: { healthStatus: "amarelo", leaderMemberId: robertoId, notes: "Frequência irregular" } },
+    // Juliana (5): EBD com Ana
+    { id: memberIds[5], area: "ebd", data: { healthStatus: "verde", leaderMemberId: anaId } },
+    // Pedro (6): culto vermelho — caso "em risco"
+    { id: memberIds[6], area: "culto", data: { healthStatus: "vermelho", reason: "Ausente há mais de 4 semanas" } },
+    { id: memberIds[6], area: "ebd", data: { healthStatus: "verde", leaderMemberId: anaId } },
+  ];
+
+  for (const upd of discipleshipUpdates) {
+    try {
+      await api("PUT", `/discipleship/members/${upd.id}/areas/${upd.area}`, upd.data);
+    } catch (e) {
+      log("Discipulado", `⚠ falha ao atualizar área ${upd.area} de ${upd.id}`);
+    }
+  }
+  log("Discipulado", `✓ áreas configuradas`);
+
   // ─── 2.5 VISITANTES ──────────────────────────────────────────────────────
 
   log("Visitantes", "Cadastrando visitantes...");
@@ -197,15 +226,15 @@ async function seed() {
   }
   log("Financeiro", "✓ 10 entradas + 6 despesas criadas");
 
-  // ─── 4. ENSINO ───────────────────────────────────────────────────────────
+  // ─── 4. ENSINO E PREGAÇÃO ────────────────────────────────────────────────
 
-  log("Ensino", "Criando cursos, aulas e inscrições...");
+  log("Ensino e Pregação", "Criando séries, aulas e inscrições...");
 
-  // Curso 1 — Discipulado
+  // Série 1 — Pequeno Grupo (era Discipulado)
   const curso1 = await api("POST", "/teaching/courses", {
     title: "Discipulado para Novos Convertidos",
-    description: "Curso fundamental de 12 semanas para novos na fé. Cobre fundamentos bíblicos, oração, vida em comunidade.",
-    category: "discipulado", teacherId: memberIds[0], startDate: pastDate(60), endDate: futureDate(30),
+    description: "Série fundamental de 12 semanas para novos na fé. Cobre fundamentos bíblicos, oração, vida em comunidade.",
+    category: "pequeno_grupo", teacherId: memberIds[0], startDate: pastDate(60), endDate: futureDate(30),
     dayOfWeek: "Quarta-feira", timeSlot: "19:30", location: "Sala 1", maxSlots: 30, status: "em_andamento",
   });
 
@@ -239,11 +268,11 @@ async function seed() {
     });
   }
 
-  // Curso 2 — EBD
+  // Série 2 — Escola Bíblica
   const curso2 = await api("POST", "/teaching/courses", {
     title: "Escola Bíblica Dominical — Romanos",
     description: "Estudo expositivo da carta de Paulo aos Romanos. 16 semanas de estudo profundo.",
-    category: "ebd", teacherId: memberIds[2], startDate: pastDate(30),
+    category: "escola_biblica", teacherId: memberIds[2], startDate: pastDate(30),
     dayOfWeek: "Domingo", timeSlot: "09:00", location: "Salão Principal", maxSlots: 100, status: "em_andamento",
   });
 
@@ -256,26 +285,61 @@ async function seed() {
     await api("POST", `/teaching/courses/${curso2.id}/enroll`, { memberId: mid });
   }
 
-  // Curso 3 — Líderes
+  // Série 3 — Cursos Livres (era Escola de Líderes)
   await api("POST", "/teaching/courses", {
     title: "Formação de Líderes de Célula",
     description: "Capacitação para líderes de células e pequenos grupos.",
-    category: "escola_de_lideres", teacherId: memberIds[0], startDate: futureDate(14),
+    category: "cursos_livres", teacherId: memberIds[0], startDate: futureDate(14),
     dayOfWeek: "Sábado", timeSlot: "14:00", location: "Sala 2", maxSlots: 20, status: "aberto",
   });
 
-  log("Ensino", "✓ 3 cursos, 13 aulas, 10 inscrições, presença registrada");
-
-  // ─── 5. EVENTOS ──────────────────────────────────────────────────────────
-
-  log("Eventos", "Criando eventos...");
-
-  // Eventos passados
-  const cultoDomingo = await api("POST", "/events", {
-    title: "Culto de Domingo", type: "culto", startDate: pastDate(3) + "T10:00:00Z",
-    endDate: pastDate(3) + "T12:00:00Z", location: "Templo Principal",
-    recurrence: "semanal", maxSlots: 300, status: "encerrado",
+  // Série 4 — Pregação (nova categoria)
+  await api("POST", "/teaching/courses", {
+    title: "Sermões em Romanos 2026",
+    description: "Série anual de pregações expositivas na carta de Paulo aos Romanos.",
+    category: "pregacao", teacherId: memberIds[0], startDate: pastDate(15),
+    dayOfWeek: "Domingo", timeSlot: "19:00", location: "Templo", status: "em_andamento",
   });
+
+  log("Ensino e Pregação", "✓ 4 séries, 13 aulas, 10 inscrições, presença registrada");
+
+  // ─── 4.5 MÚSICAS ──────────────────────────────────────────────────────────
+
+  log("Músicas", "Criando biblioteca de músicas...");
+  const songsData = [
+    { title: "Em Espírito, Em Verdade", author: "Mim. Diante do Trono", category: "adoracao", youtubeUrl: "https://www.youtube.com/watch?v=example1" },
+    { title: "Grandioso És Tu", author: "Stuart K. Hine", category: "hino", youtubeUrl: "https://www.youtube.com/watch?v=example2" },
+    { title: "Quão Grande É o Meu Deus", author: "Chris Tomlin", category: "louvor", youtubeUrl: "https://www.youtube.com/watch?v=example3" },
+    { title: "Tudo Posso", author: "Celina Borges", category: "louvor", youtubeUrl: "https://www.youtube.com/watch?v=example4" },
+    { title: "Aclame ao Senhor", author: "Hillsong", category: "louvor", youtubeUrl: "https://www.youtube.com/watch?v=example5" },
+  ];
+  const songIds: string[] = [];
+  for (const s of songsData) {
+    const r = await api("POST", "/songs", s);
+    if (r.id) songIds.push(r.id);
+  }
+  log("Músicas", `✓ ${songIds.length} músicas cadastradas`);
+
+  // ─── 5. EVENTOS + CULTOS ──────────────────────────────────────────────────
+
+  log("Eventos", "Criando eventos e cultos...");
+
+  // Culto dominical (passado) — via /cultos para criar event + culto
+  const cultoDomingo = await api("POST", "/cultos", {
+    title: "Culto de Domingo", startDate: pastDate(3) + "T10:00:00Z",
+    endDate: pastDate(3) + "T12:00:00Z", location: "Templo Principal",
+    responsibleId: memberIds[2],
+    openingText: "Bem-vindos à casa do Senhor! Salmo 100:1-5",
+    sermonTitle: "Graça que transforma",
+    sermonReference: "Romanos 8:28-39",
+    sermonNotes: "1. A providência divina | 2. O propósito eterno | 3. Mais que vencedores",
+    hasCommunion: true,
+    status: "encerrado",
+  });
+  // Adicionar 3 músicas
+  for (const sid of songIds.slice(0, 3)) {
+    await api("POST", `/cultos/${cultoDomingo.id}/songs`, { songId: sid });
+  }
 
   await api("POST", "/events", {
     title: "Reunião de Oração", type: "reuniao", startDate: pastDate(2) + "T19:30:00Z",
@@ -283,12 +347,21 @@ async function seed() {
     recurrence: "semanal", status: "encerrado",
   });
 
-  // Evento futuro próximo
-  const cultoQuarta = await api("POST", "/events", {
-    title: "Culto de Quarta-Feira", type: "culto", startDate: futureDate(1),
+  // Culto de quarta (futuro) — via /cultos
+  const cultoQuarta = await api("POST", "/cultos", {
+    title: "Culto de Quarta-Feira", startDate: futureDate(1),
     endDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString(),
-    location: "Templo Principal", recurrence: "semanal", maxSlots: 200,
+    location: "Templo Principal",
+    responsibleId: memberIds[0],
+    openingText: "Vamos juntos diante do Senhor.",
+    sermonTitle: "Quem Tem Sede Venha",
+    sermonReference: "Apocalipse 22:17",
+    hasBaptism: true,
+    hasMemberReception: true,
   });
+  for (const sid of songIds.slice(2, 5)) {
+    await api("POST", `/cultos/${cultoQuarta.id}/songs`, { songId: sid });
+  }
 
   const conferencia = await api("POST", "/events", {
     title: "Conferência de Missões 2026", type: "conferencia", startDate: futureDate(15),
@@ -317,12 +390,12 @@ async function seed() {
     await api("POST", `/events/${encontroJovens.id}/register`, { memberId: mid });
   }
 
-  // Presença no culto passado
-  await api("POST", `/events/${cultoDomingo.id}/attendance`, {
+  // Presença no culto passado (cultoDomingo.eventId vem do POST /cultos)
+  await api("POST", `/events/${cultoDomingo.eventId}/attendance`, {
     records: memberIds.slice(0, 8).map(mid => ({ memberId: mid, present: true })),
   });
 
-  log("Eventos", "✓ 6 eventos, inscrições e presença registradas");
+  log("Eventos", "✓ 2 cultos + 4 eventos, inscrições e presença registradas");
 
   // ─── 6. MINISTÉRIOS ──────────────────────────────────────────────────────
 
@@ -448,15 +521,16 @@ async function seed() {
   const roleProjecao = await api("POST", "/schedules/roles", { name: "Projeção", description: "Projeção de slides e letras" });
   const roleInfantil = await api("POST", "/schedules/roles", { name: "Ministério Infantil", description: "Cuidado das crianças durante o culto" });
 
-  // Escala do culto de quarta
-  if (cultoQuarta.id) {
-    await api("POST", `/events/${cultoQuarta.id}/schedule`, { serviceRoleId: roleLouvor.id, memberId: memberIds[4] });
-    await api("POST", `/events/${cultoQuarta.id}/schedule`, { serviceRoleId: roleLouvor.id, memberId: memberIds[7] });
-    await api("POST", `/events/${cultoQuarta.id}/schedule`, { serviceRoleId: roleSom.id, memberId: memberIds[6] });
-    await api("POST", `/events/${cultoQuarta.id}/schedule`, { serviceRoleId: roleRecepcao.id, memberId: memberIds[1] });
-    await api("POST", `/events/${cultoQuarta.id}/schedule`, { serviceRoleId: roleRecepcao.id, memberId: memberIds[9] });
-    await api("POST", `/events/${cultoQuarta.id}/schedule`, { serviceRoleId: roleProjecao.id, memberId: memberIds[8] });
-    await api("POST", `/events/${cultoQuarta.id}/schedule`, { serviceRoleId: roleInfantil.id, memberId: memberIds[5] });
+  // Escala do culto de quarta (usa eventId do culto)
+  const cultoQuartaEventId = cultoQuarta.eventId;
+  if (cultoQuartaEventId) {
+    await api("POST", `/events/${cultoQuartaEventId}/schedule`, { serviceRoleId: roleLouvor.id, memberId: memberIds[4] });
+    await api("POST", `/events/${cultoQuartaEventId}/schedule`, { serviceRoleId: roleLouvor.id, memberId: memberIds[7] });
+    await api("POST", `/events/${cultoQuartaEventId}/schedule`, { serviceRoleId: roleSom.id, memberId: memberIds[6] });
+    await api("POST", `/events/${cultoQuartaEventId}/schedule`, { serviceRoleId: roleRecepcao.id, memberId: memberIds[1] });
+    await api("POST", `/events/${cultoQuartaEventId}/schedule`, { serviceRoleId: roleRecepcao.id, memberId: memberIds[9] });
+    await api("POST", `/events/${cultoQuartaEventId}/schedule`, { serviceRoleId: roleProjecao.id, memberId: memberIds[8] });
+    await api("POST", `/events/${cultoQuartaEventId}/schedule`, { serviceRoleId: roleInfantil.id, memberId: memberIds[5] });
   }
 
   // Escala da conferência
@@ -468,6 +542,44 @@ async function seed() {
   }
 
   log("Escalas", "✓ 5 funções, 11 escalas em 2 eventos");
+
+  // ─── 9.5 CONSELHO ────────────────────────────────────────────────────────
+
+  log("Conselho", "Criando reuniões do conselho...");
+
+  const reuniao1 = await api("POST", "/council", {
+    meetingDate: pastDate(30),
+    title: "Reunião Ordinária — Janeiro 2026",
+    agenda: "1. Aprovação da ata anterior\n2. Relatório financeiro\n3. Avaliação ministerial",
+    summary: "Aprovada por unanimidade. Ministério de Louvor recebe nova líder.",
+    status: "realizada",
+  });
+  if (reuniao1.id) {
+    await api("POST", `/council/${reuniao1.id}/items`, {
+      title: "Aprovação da ata anterior",
+      status: "decidida",
+      resolution: "Aprovada por unanimidade.",
+    });
+    await api("POST", `/council/${reuniao1.id}/items`, {
+      title: "Relatório financeiro 2025",
+      description: "Apresentação do tesoureiro com balanço anual.",
+      status: "discutida",
+    });
+    await api("POST", `/council/${reuniao1.id}/items`, {
+      title: "Avaliação ministerial",
+      status: "decidida",
+      resolution: "Roberto Santos aprovado como líder do Louvor.",
+    });
+  }
+
+  await api("POST", "/council", {
+    meetingDate: futureDate(15),
+    title: "Reunião Ordinária — Fevereiro 2026",
+    agenda: "1. Planejamento orçamentário do trimestre\n2. Conferência de Missões",
+    status: "agendada",
+  });
+
+  log("Conselho", "✓ 2 reuniões criadas");
 
   // ─── 10. LGPD ────────────────────────────────────────────────────────────
 

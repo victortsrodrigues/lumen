@@ -15,6 +15,7 @@ import {
   articlesTable,
   eventRegistrationsTable,
   visitorsTable,
+  memberAreasTable,
 } from "@workspace/db";
 import { eq, and, isNull, gte, lte, count, sql, sum, desc, or, inArray } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth.js";
@@ -130,11 +131,20 @@ router.get("/stats", requireAuth, async (req: Request, res: Response) => {
 
   // ─── Events ────────────────────────────────────────────────────────────
   const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const nextMonth = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
   const [upcomingCount] = await db.select({ total: count() }).from(eventsTable)
     .where(and(
       isNull(eventsTable.deletedAt),
       gte(eventsTable.startDate, now),
       lte(eventsTable.startDate, nextWeek),
+    ));
+
+  const [nextMonthCount] = await db.select({ total: count() }).from(eventsTable)
+    .where(and(
+      isNull(eventsTable.deletedAt),
+      gte(eventsTable.startDate, now),
+      lte(eventsTable.startDate, nextMonth),
     ));
 
   const upcomingEvents = await db.select().from(eventsTable)
@@ -159,6 +169,25 @@ router.get("/stats", requireAuth, async (req: Request, res: Response) => {
   const [ministryMembersTotal] = await db.select({ total: count() }).from(ministryMembersTable)
     .where(isNull(ministryMembersTable.leftAt));
 
+  // ─── Small Groups (PG) ─────────────────────────────────────────────────
+  const pgRows = await db.select({
+    leaderMemberId: memberAreasTable.leaderMemberId,
+    healthStatus: memberAreasTable.healthStatus,
+  }).from(memberAreasTable)
+    .where(eq(memberAreasTable.area, "pequeno_grupo"));
+
+  const distinctLeaders = new Set(
+    pgRows.filter(r => r.leaderMemberId).map(r => r.leaderMemberId!),
+  );
+  const verde = pgRows.filter(r => r.healthStatus === "verde").length;
+  const amarelo = pgRows.filter(r => r.healthStatus === "amarelo").length;
+  const vermelho = pgRows.filter(r => r.healthStatus === "vermelho").length;
+  const smallGroupsPayload = {
+    groupCount: distinctLeaders.size,
+    activeMemberCount: verde + amarelo,
+    healthBreakdown: { verde, amarelo, vermelho },
+  };
+
   // ─── Response ──────────────────────────────────────────────────────────
   res.json({
     members: {
@@ -176,6 +205,7 @@ router.get("/stats", requireAuth, async (req: Request, res: Response) => {
     finance: financePayload,
     events: {
       upcomingCount: Number(upcomingCount.total),
+      nextMonthCount: Number(nextMonthCount.total),
       upcoming: upcomingEvents.map(e => ({
         id: e.id,
         title: e.title,
@@ -192,6 +222,7 @@ router.get("/stats", requireAuth, async (req: Request, res: Response) => {
       total: Number(ministriesTotal.total),
       totalMembers: Number(ministryMembersTotal.total),
     },
+    smallGroups: smallGroupsPayload,
     planning: await (async () => {
       const initiatives = await db.select().from(planningInitiativesTable)
         .where(isNull(planningInitiativesTable.deletedAt));
@@ -347,16 +378,22 @@ router.get("/member-stats", requireAuth, async (req: Request, res: Response) => 
     .orderBy(desc(articlesTable.publishedAt))
     .limit(5);
 
+  const memberAreas = await db.select({
+    area: memberAreasTable.area,
+    healthStatus: memberAreasTable.healthStatus,
+    leaderMemberName: memberAreasTable.leaderMemberName,
+  }).from(memberAreasTable).where(eq(memberAreasTable.memberId, linkedMember.id));
+
   res.json({
     profile: {
       id: linkedMember.id,
       fullName: linkedMember.fullName,
       status: linkedMember.status,
-      pipelineStage: linkedMember.pipelineStage,
       receptionDate: linkedMember.receptionDate,
       conversionDate: linkedMember.conversionDate,
       classification: linkedMember.classification,
       receptionMode: linkedMember.receptionMode,
+      areas: memberAreas,
     },
     enrolledCourses: enrollments.length,
     upcomingRegisteredEvents: upcomingRegistered,

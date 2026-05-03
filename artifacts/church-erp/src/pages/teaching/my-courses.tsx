@@ -5,8 +5,10 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 
 const CATEGORIES: Record<string, string> = {
-  ebd: "EBD", discipulado: "Discipulado", seminario: "Seminário",
-  curso_livre: "Curso Livre", escola_de_lideres: "Escola de Líderes",
+  pregacao: "Pregação",
+  escola_biblica: "Escola Bíblica",
+  pequeno_grupo: "Pequeno Grupo",
+  cursos_livres: "Cursos Livres",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -79,13 +81,13 @@ export default function MyCoursesPage() {
   const courses = data?.courses || [];
 
   return (
-    <AppLayout breadcrumbs={[{ label: "Ensino", href: "/teaching" }, { label: "Meus Cursos" }]}>
+    <AppLayout breadcrumbs={[{ label: "Ensino e Pregação", href: "/teaching" }, { label: "Minhas Séries" }]}>
       <div className="mb-8">
         <h1 className="text-2xl font-bold flex items-center gap-2">
-          <BookOpen className="h-6 w-6 text-blue-500" /> Meus Cursos
+          <BookOpen className="h-6 w-6 text-blue-500" /> Minhas Séries
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
-          {courses.length} curso(s) {categoryFilter || statusFilter ? "filtrado(s)" : "disponíve(is)"}
+          {courses.length} série(s) {categoryFilter || statusFilter ? "filtrada(s)" : "disponíve(is)"}
         </p>
       </div>
 
@@ -131,7 +133,7 @@ export default function MyCoursesPage() {
       ) : courses.length === 0 ? (
         <div className="text-center py-20 text-muted-foreground border rounded-2xl">
           <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-30" />
-          <p>Nenhum curso encontrado com os filtros selecionados.</p>
+          <p>Nenhuma série encontrada com os filtros selecionados.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

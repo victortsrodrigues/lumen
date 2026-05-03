@@ -16,16 +16,16 @@ export default function TeachingDashboard() {
     query: { retry: 1, refetchOnWindowFocus: false, enabled: !isMember },
   });
 
-  // Members go directly to "Meus Cursos"
+  // Members go directly to "Minhas Séries"
   if (isMember) return <Redirect to="/teaching/my-courses" />;
 
   if (isLoading) {
     return (
-      <AppLayout breadcrumbs={[{ label: "Ensino" }]}>
+      <AppLayout breadcrumbs={[{ label: "Ensino e Pregação" }]}>
         <div className="flex h-[60vh] items-center justify-center">
           <div className="flex flex-col items-center gap-4 text-muted-foreground">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <p className="font-medium animate-pulse">Carregando dados de ensino...</p>
+            <p className="font-medium animate-pulse">Carregando dados de ensino e pregação...</p>
           </div>
         </div>
       </AppLayout>
@@ -34,11 +34,11 @@ export default function TeachingDashboard() {
 
   if (isError || !data) {
     return (
-      <AppLayout breadcrumbs={[{ label: "Ensino" }]}>
+      <AppLayout breadcrumbs={[{ label: "Ensino e Pregação" }]}>
         <div className="flex h-[60vh] items-center justify-center">
           <div className="flex flex-col items-center gap-4 text-destructive">
             <AlertCircle className="h-12 w-12" />
-            <p className="text-lg font-medium">Erro ao carregar o dashboard de ensino.</p>
+            <p className="text-lg font-medium">Erro ao carregar o dashboard de ensino e pregação.</p>
           </div>
         </div>
       </AppLayout>
@@ -46,16 +46,16 @@ export default function TeachingDashboard() {
   }
 
   const cards = [
-    { label: "Cursos Ativos", value: data.activeCourses, icon: BookOpen, color: "text-blue-500" },
+    { label: "Séries Ativas", value: data.activeCourses, icon: BookOpen, color: "text-blue-500" },
     { label: "Total de Inscritos", value: data.totalEnrollments, icon: Users, color: "text-green-500" },
     { label: "Frequência Média", value: `${data.avgAttendance}%`, icon: BarChart3, color: "text-purple-500" },
   ];
 
   return (
-    <AppLayout breadcrumbs={[{ label: "Ensino" }]}>
+    <AppLayout breadcrumbs={[{ label: "Ensino e Pregação" }]}>
       <div className="mb-8 rounded-3xl p-8 border bg-card">
-        <h2 className="text-3xl font-bold mb-2">Visão Geral de Ensino</h2>
-        <p className="text-muted-foreground">Acompanhe cursos, frequência e desempenho dos alunos</p>
+        <h2 className="text-3xl font-bold mb-2">Visão Geral de Ensino e Pregação</h2>
+        <p className="text-muted-foreground">Acompanhe séries, frequência e desempenho dos alunos</p>
       </div>
 
       <motion.div

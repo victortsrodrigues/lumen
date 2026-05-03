@@ -35,4 +35,31 @@ test.describe("14-dashboard", () => {
     await expect(page.getByText("Arrecadação do mês")).toBeVisible({ timeout: 10000 });
     await expect(page.getByText("R$").first()).toBeVisible();
   });
+
+  test("4. Card Pequenos Grupos visível para admin", async ({ page }) => {
+    await loginAsNewAdmin(page, `${P}-4`);
+    await page.goto("/");
+    await expect(page.getByText(/PG/i).first()).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/membro\(s\) ativo\(s\)/i).first()).toBeVisible();
+  });
+
+  test("5. Card Próximo Mês visível", async ({ page }) => {
+    await loginAsNewAdmin(page, `${P}-5`);
+    await page.goto("/");
+    await expect(page.getByText(/eventos no próximo mês/i)).toBeVisible({ timeout: 10000 });
+  });
+
+  test("6. Card 'Séries em andamento' (renamed from Cursos)", async ({ page }) => {
+    await loginAsNewAdmin(page, `${P}-6`);
+    await page.goto("/");
+    await expect(page.getByText(/séries em andamento/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/cursos em andamento/i)).not.toBeVisible();
+  });
+
+  test("7. Card Membros é clicável e leva para /members", async ({ page }) => {
+    await loginAsNewAdmin(page, `${P}-7`);
+    await page.goto("/");
+    await page.getByText("Membros ativos").click();
+    await expect(page).toHaveURL(/\/members/);
+  });
 });

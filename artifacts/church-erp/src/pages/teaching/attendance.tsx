@@ -87,24 +87,24 @@ export default function AttendancePage() {
   const presentCount = Object.values(effective).filter(Boolean).length;
 
   return (
-    <AppLayout breadcrumbs={[{ label: "Ensino", href: "/teaching" }, { label: "Frequência" }]}>
+    <AppLayout breadcrumbs={[{ label: "Ensino e Pregação", href: "/teaching" }, { label: "Frequência" }]}>
       <div className="mb-8">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <ClipboardCheck className="h-6 w-6 text-purple-500" /> Registro de Frequência
         </h1>
-        <p className="text-muted-foreground text-sm mt-1">Selecione o curso e a aula para registrar presença</p>
+        <p className="text-muted-foreground text-sm mt-1">Selecione a série e a aula para registrar presença</p>
       </div>
 
       {/* Selectors */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <div>
-          <label className="text-sm font-medium">Curso</label>
+          <label className="text-sm font-medium">Série</label>
           <select
             value={selectedCourseId}
             onChange={e => { setSelectedCourseId(e.target.value); setSelectedLessonId(""); setAttendanceMap({}); }}
             className="w-full mt-1 px-3 py-2 border rounded-lg bg-background"
           >
-            <option value="">Selecione um curso...</option>
+            <option value="">Selecione uma série...</option>
             {(coursesData?.courses || []).map((c: Record<string, unknown>) => (
               <option key={c.id as string} value={c.id as string}>{c.title as string}</option>
             ))}

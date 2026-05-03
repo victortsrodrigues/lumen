@@ -55,7 +55,7 @@ export default function ContentDetailPage() {
 
   if (isLoading) {
     return (
-      <AppLayout breadcrumbs={[{ label: "Ensino", href: "/teaching" }, { label: "Conteúdos", href: "/teaching/contents" }, { label: "Carregando..." }]}>
+      <AppLayout breadcrumbs={[{ label: "Ensino e Pregação", href: "/teaching" }, { label: "Conteúdos", href: "/teaching/contents" }, { label: "Carregando..." }]}>
         <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
       </AppLayout>
     );
@@ -63,14 +63,14 @@ export default function ContentDetailPage() {
 
   if (isError || !data) {
     return (
-      <AppLayout breadcrumbs={[{ label: "Ensino", href: "/teaching" }, { label: "Conteúdos", href: "/teaching/contents" }, { label: "Erro" }]}>
+      <AppLayout breadcrumbs={[{ label: "Ensino e Pregação", href: "/teaching" }, { label: "Conteúdos", href: "/teaching/contents" }, { label: "Erro" }]}>
         <div className="text-center py-12 text-muted-foreground">Conteúdo não encontrado.</div>
       </AppLayout>
     );
   }
 
   return (
-    <AppLayout breadcrumbs={[{ label: "Ensino", href: "/teaching" }, { label: "Conteúdos", href: "/teaching/contents" }, { label: data.title }]}>
+    <AppLayout breadcrumbs={[{ label: "Ensino e Pregação", href: "/teaching" }, { label: "Conteúdos", href: "/teaching/contents" }, { label: data.title }]}>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>

@@ -21,8 +21,10 @@ import { MediaSection } from "@/components/MediaSection";
 import { MemberSelect } from "@/components/MemberSelect";
 
 const CATEGORIES: Record<string, string> = {
-  ebd: "EBD", discipulado: "Discipulado", seminario: "Seminário",
-  curso_livre: "Curso Livre", escola_de_lideres: "Escola de Líderes",
+  pregacao: "Pregação",
+  escola_biblica: "Escola Bíblica",
+  pequeno_grupo: "Pequeno Grupo",
+  cursos_livres: "Cursos Livres",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -119,16 +121,16 @@ export default function CourseDetailPage() {
   const deleteCourseMutation = useDeleteCourse({
     mutation: {
       onSuccess: () => {
-        toast({ title: "Sucesso", description: "Curso excluído." });
+        toast({ title: "Sucesso", description: "Série excluída." });
         setLocation("/teaching/courses");
       },
-      onError: () => toast({ title: "Erro", description: "Falha ao excluir curso.", variant: "destructive" }),
+      onError: () => toast({ title: "Erro", description: "Falha ao excluir série.", variant: "destructive" }),
     },
   });
 
   if (isLoading) {
     return (
-      <AppLayout breadcrumbs={[{ label: "Ensino", href: "/teaching" }, { label: "Cursos", href: "/teaching/courses" }, { label: "Carregando..." }]}>
+      <AppLayout breadcrumbs={[{ label: "Ensino e Pregação", href: "/teaching" }, { label: "Séries", href: "/teaching/courses" }, { label: "Carregando..." }]}>
         <div className="flex h-[60vh] items-center justify-center">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
         </div>
@@ -138,8 +140,8 @@ export default function CourseDetailPage() {
 
   if (isError || !data) {
     return (
-      <AppLayout breadcrumbs={[{ label: "Ensino", href: "/teaching" }, { label: "Cursos", href: "/teaching/courses" }, { label: "Erro" }]}>
-        <div className="text-center py-12 text-destructive">Curso não encontrado.</div>
+      <AppLayout breadcrumbs={[{ label: "Ensino e Pregação", href: "/teaching" }, { label: "Séries", href: "/teaching/courses" }, { label: "Erro" }]}>
+        <div className="text-center py-12 text-destructive">Série não encontrada.</div>
       </AppLayout>
     );
   }
@@ -167,8 +169,8 @@ export default function CourseDetailPage() {
 
   const embedUrl = getYouTubeEmbed(data.introVideoUrl);
   const breadcrumbsPath = canManage
-    ? [{ label: "Ensino", href: "/teaching" }, { label: "Cursos", href: "/teaching/courses" }, { label: data.title }]
-    : [{ label: "Ensino", href: "/teaching" }, { label: "Meus Cursos", href: "/teaching/my-courses" }, { label: data.title }];
+    ? [{ label: "Ensino e Pregação", href: "/teaching" }, { label: "Séries", href: "/teaching/courses" }, { label: data.title }]
+    : [{ label: "Ensino e Pregação", href: "/teaching" }, { label: "Minhas Séries", href: "/teaching/my-courses" }, { label: data.title }];
 
   // Enrollment state for member self-enroll
   const enrollments = (data.enrollments || []) as any[];
@@ -185,7 +187,7 @@ export default function CourseDetailPage() {
 
   function handleSelfUnenroll() {
     if (!myMemberId) return;
-    if (confirm("Deseja cancelar sua inscrição neste curso?")) {
+    if (confirm("Deseja cancelar sua inscrição nesta série?")) {
       unenrollMutation.mutate({ courseId: params.id!, memberId: myMemberId });
     }
   }
@@ -207,14 +209,14 @@ export default function CourseDetailPage() {
             onClick={handleEditCourse}
             className="flex items-center gap-2 px-4 py-2 border rounded-xl text-sm hover:bg-muted"
           >
-            <Edit2 className="h-4 w-4" /> Editar curso
+            <Edit2 className="h-4 w-4" /> Editar série
           </button>
           {isAdmin && (
             <button
               onClick={() => setShowDeleteConfirm(true)}
               className="flex items-center gap-2 px-4 py-2 border border-destructive/30 text-destructive rounded-xl text-sm hover:bg-destructive/10"
             >
-              <Trash2 className="h-4 w-4" /> Excluir curso
+              <Trash2 className="h-4 w-4" /> Excluir série
             </button>
           )}
         </div>
@@ -246,7 +248,7 @@ export default function CourseDetailPage() {
               <div className="flex items-center justify-between gap-3 rounded-xl border border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-900/50 p-3">
                 <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
                   <CheckCircle2 className="h-5 w-5" />
-                  <span className="text-sm font-medium">Você está inscrito neste curso</span>
+                  <span className="text-sm font-medium">Você está inscrito nesta série</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -270,12 +272,12 @@ export default function CourseDetailPage() {
                 className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
               >
                 {enrollMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
-                Inscrever-se neste curso
+                Inscrever-se nesta série
               </button>
             ) : !isCourseOpen ? (
-              <p className="text-sm text-muted-foreground italic">Este curso não está aberto para inscrições.</p>
+              <p className="text-sm text-muted-foreground italic">Esta série não está aberta para inscrições.</p>
             ) : !hasSlots ? (
-              <p className="text-sm text-muted-foreground italic">Todas as vagas deste curso foram preenchidas.</p>
+              <p className="text-sm text-muted-foreground italic">Todas as vagas desta série foram preenchidas.</p>
             ) : null}
           </div>
         )}
@@ -284,12 +286,12 @@ export default function CourseDetailPage() {
         {embedUrl && (
           <div className="mt-6">
             <div className="flex items-center gap-2 text-sm font-medium mb-2">
-              <Video className="h-4 w-4" /> Apresentação do curso
+              <Video className="h-4 w-4" /> Apresentação da série
             </div>
             <div className="rounded-xl overflow-hidden aspect-video border bg-black">
               <iframe
                 src={embedUrl}
-                title="Apresentação do curso"
+                title="Apresentação da série"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
                 className="w-full h-full"
@@ -459,10 +461,10 @@ export default function CourseDetailPage() {
           <div className="bg-card rounded-2xl border shadow-xl w-full max-w-sm mx-4 p-6" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 rounded-full bg-red-100"><AlertTriangle className="h-5 w-5 text-red-600" /></div>
-              <h3 className="font-semibold text-lg">Excluir Curso</h3>
+              <h3 className="font-semibold text-lg">Excluir Série</h3>
             </div>
             <p className="text-sm text-muted-foreground mb-6">
-              Tem certeza que deseja excluir o curso <strong>"{data.title}"</strong>? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir a série <strong>"{data.title}"</strong>? Esta ação não pode ser desfeita.
             </p>
             <div className="flex justify-end gap-3">
               <button onClick={() => setShowDeleteConfirm(false)} className="px-4 py-2 border rounded-xl text-sm hover:bg-muted">

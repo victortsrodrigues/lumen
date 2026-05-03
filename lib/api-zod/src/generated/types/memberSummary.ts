@@ -8,7 +8,6 @@
 import type { MemberClassification } from "./memberClassification";
 import type { MemberReceptionMode } from "./memberReceptionMode";
 import type { MemberStatus } from "./memberStatus";
-import type { MemberSummaryPipelineStage } from "./memberSummaryPipelineStage";
 
 export interface MemberSummary {
   id: string;
@@ -17,7 +16,6 @@ export interface MemberSummary {
   email?: string;
   classification?: MemberClassification;
   status: MemberStatus;
-  pipelineStage?: MemberSummaryPipelineStage;
   receptionMode?: MemberReceptionMode;
   photoPath?: string;
   createdAt: Date;

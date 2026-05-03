@@ -10,6 +10,7 @@ import type { DashboardStatsFinance } from "./dashboardStatsFinance";
 import type { DashboardStatsMembers } from "./dashboardStatsMembers";
 import type { DashboardStatsMinistries } from "./dashboardStatsMinistries";
 import type { DashboardStatsPlanning } from "./dashboardStatsPlanning";
+import type { DashboardStatsSmallGroups } from "./dashboardStatsSmallGroups";
 import type { DashboardStatsTeaching } from "./dashboardStatsTeaching";
 
 export interface DashboardStats {
@@ -19,4 +20,5 @@ export interface DashboardStats {
   teaching: DashboardStatsTeaching;
   ministries: DashboardStatsMinistries;
   planning?: DashboardStatsPlanning;
+  smallGroups?: DashboardStatsSmallGroups;
 }

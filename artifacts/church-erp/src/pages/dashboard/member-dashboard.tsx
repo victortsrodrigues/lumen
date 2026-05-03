@@ -18,10 +18,17 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-const PIPELINE_LABELS: Record<string, string> = {
+const AREA_LABELS: Record<string, string> = {
   culto: "Culto",
-  pequeno_grupo: "Pequeno Grupo",
+  pequeno_grupo: "PG",
   ministerio: "Ministério",
+  ebd: "EBD",
+};
+
+const HEALTH_COLORS: Record<string, string> = {
+  verde: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  amarelo: "bg-amber-100 text-amber-700 border-amber-200",
+  vermelho: "bg-red-100 text-red-700 border-red-200",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -71,16 +78,24 @@ export default function MemberDashboard() {
                 </div>
                 <div className="flex-1">
                   <h3 className="font-display font-bold text-xl">{data.profile.fullName}</h3>
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
                     <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary font-medium">
                       {STATUS_LABELS[data.profile.status] || data.profile.status}
                     </span>
-                    {data.profile.pipelineStage && (
-                      <span className="text-xs text-muted-foreground">
-                        Etapa: <span className="font-medium text-foreground">{PIPELINE_LABELS[data.profile.pipelineStage] || data.profile.pipelineStage}</span>
-                      </span>
-                    )}
                   </div>
+                  {Array.isArray((data.profile as any).areas) && (data.profile as any).areas.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {(data.profile as any).areas.map((a: any) => (
+                        <span
+                          key={a.area}
+                          className={`text-xs px-2 py-0.5 rounded-full border font-medium ${HEALTH_COLORS[a.healthStatus] ?? ""}`}
+                          title={a.leaderMemberName ? `Referência: ${a.leaderMemberName}` : undefined}
+                        >
+                          {AREA_LABELS[a.area] ?? a.area}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   {((data.profile as any).receptionDate || data.profile.conversionDate) && (
                     <p className="text-xs text-muted-foreground mt-2">
                       {(data.profile as any).receptionDate && (

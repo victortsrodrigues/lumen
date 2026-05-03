@@ -330,7 +330,7 @@ export default function MyCourseContentPage() {
 
   if (isLoading) {
     return (
-      <AppLayout breadcrumbs={[{ label: "Ensino", href: "/teaching" }, { label: "Meus Cursos", href: "/teaching/my-courses" }, { label: "Carregando..." }]}>
+      <AppLayout breadcrumbs={[{ label: "Ensino e Pregação", href: "/teaching" }, { label: "Minhas Séries", href: "/teaching/my-courses" }, { label: "Carregando..." }]}>
         <div className="flex h-[60vh] items-center justify-center">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
         </div>
@@ -340,8 +340,8 @@ export default function MyCourseContentPage() {
 
   if (isError || !data) {
     return (
-      <AppLayout breadcrumbs={[{ label: "Ensino", href: "/teaching" }, { label: "Meus Cursos", href: "/teaching/my-courses" }, { label: "Erro" }]}>
-        <div className="text-center py-12 text-destructive">Curso não encontrado.</div>
+      <AppLayout breadcrumbs={[{ label: "Ensino e Pregação", href: "/teaching" }, { label: "Minhas Séries", href: "/teaching/my-courses" }, { label: "Erro" }]}>
+        <div className="text-center py-12 text-destructive">Série não encontrada.</div>
       </AppLayout>
     );
   }
@@ -349,7 +349,7 @@ export default function MyCourseContentPage() {
   const lessons = (data.lessons || []).slice().sort((a: any, b: any) => a.lessonOrder - b.lessonOrder);
 
   return (
-    <AppLayout breadcrumbs={[{ label: "Ensino", href: "/teaching" }, { label: "Meus Cursos", href: "/teaching/my-courses" }, { label: data.title }]}>
+    <AppLayout breadcrumbs={[{ label: "Ensino e Pregação", href: "/teaching" }, { label: "Minhas Séries", href: "/teaching/my-courses" }, { label: data.title }]}>
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="rounded-2xl border bg-gradient-to-br from-primary/5 to-primary/10 p-6 mb-6">

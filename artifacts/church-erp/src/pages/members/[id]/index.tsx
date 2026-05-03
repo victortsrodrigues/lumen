@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/hooks/use-auth-context';
-import { useGetMember, useGetMemberHistory, useRevealMemberCpf, useDeleteMember, useMoveMemberPipeline, useGetMemberPipelineHistory, useRevertMemberExclusion } from '@workspace/api-client-react';
+import { useGetMember, useGetMemberHistory, useRevealMemberCpf, useDeleteMember, useRevertMemberExclusion } from '@workspace/api-client-react';
 import { ExclusionModal } from '../components/ExclusionModal';
 import { TransferLetterModal } from '../components/TransferLetterModal';
+import { MemberAreasTab } from '../components/MemberAreasTab';
 import { Redirect, useParams, Link, useLocation } from 'wouter';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -22,14 +23,11 @@ export default function MemberProfile() {
   const params = useParams();
   const id = params.id as string;
 
-  const [activeTab, setActiveTab] = useState<'details' | 'history'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'history' | 'areas'>('details');
   const [revealedCpf, setRevealedCpf] = useState<string | null>(null);
   const [isRevealing, setIsRevealing] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [showPipelineModal, setShowPipelineModal] = useState(false);
-  const [newStage, setNewStage] = useState("");
-  const [stageReason, setStageReason] = useState("");
   const [showExclusionModal, setShowExclusionModal] = useState(false);
   const [showTransferLetterModal, setShowTransferLetterModal] = useState(false);
 
@@ -45,23 +43,6 @@ export default function MemberProfile() {
 
   const { mutateAsync: revealCpf } = useRevealMemberCpf();
   const { mutateAsync: deleteMember } = useDeleteMember();
-
-  const { data: pipelineData } = useGetMemberPipelineHistory(id, { query: { enabled: !!id } });
-  const movePipelineMut = useMoveMemberPipeline({
-    mutation: {
-      onSuccess: () => {
-        toast({ title: "Sucesso", description: "Etapa atualizada." });
-        setShowPipelineModal(false);
-        setNewStage("");
-        setStageReason("");
-        // Refresh member data
-        window.location.reload();
-      },
-      onError: (err: any) => {
-        toast({ title: "Erro", description: err?.response?.data?.error || "Falha.", variant: "destructive" });
-      },
-    },
-  });
 
   if (user?.role === 'member' && user.id !== id) {
     // Membros só podem ver o próprio perfil
@@ -255,7 +236,14 @@ export default function MemberProfile() {
           Visão Geral
           {activeTab === 'details' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-t-full"></span>}
         </button>
-        <button 
+        <button
+          onClick={() => setActiveTab('areas')}
+          className={cn("pb-4 text-sm font-semibold transition-colors relative", activeTab === 'areas' ? "text-primary" : "text-muted-foreground hover:text-foreground")}
+        >
+          Áreas
+          {activeTab === 'areas' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-t-full"></span>}
+        </button>
+        <button
           onClick={() => setActiveTab('history')}
           className={cn("pb-4 text-sm font-semibold transition-colors relative", activeTab === 'history' ? "text-primary" : "text-muted-foreground hover:text-foreground")}
         >
@@ -265,7 +253,16 @@ export default function MemberProfile() {
       </div>
 
       {/* Content */}
-      {activeTab === 'details' ? (
+      {activeTab === 'areas' && (
+        canEdit ? (
+          <MemberAreasTab memberId={id} memberName={member.fullName} />
+        ) : (
+          <div className="bg-card rounded-2xl border border-border shadow-sm p-6 text-center text-muted-foreground">
+            Sem permissão para editar áreas deste membro.
+          </div>
+        )
+      )}
+      {activeTab === 'details' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Col - Data */}
           <div className="lg:col-span-2 space-y-6">
@@ -380,7 +377,8 @@ export default function MemberProfile() {
             </div>
           </div>
         </div>
-      ) : (
+      )}
+      {activeTab === 'history' && (
         <div className="bg-card rounded-2xl border border-border shadow-sm p-6 sm:p-8">
           <h3 className="text-xl font-display font-bold mb-8">Trilha de Auditoria do Membro</h3>
           
@@ -434,85 +432,6 @@ export default function MemberProfile() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Pipeline Section - below tabs content */}
-      {canEdit && (
-        <div className="mt-8 rounded-2xl border bg-card p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Activity className="h-5 w-5" /> Funil de Integração
-            </h3>
-            <button onClick={() => { setNewStage((member as any).pipelineStage || "culto"); setShowPipelineModal(true); }} className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90">
-              Mover Etapa
-            </button>
-          </div>
-          <div className="flex items-center gap-4 mb-4">
-            {["culto", "pequeno_grupo", "ministerio"].map((stage, i) => {
-              const labels: Record<string, string> = { culto: "Culto", pequeno_grupo: "Pequeno Grupo", ministerio: "Ministério" };
-              const isCurrent = (member as any).pipelineStage === stage;
-              const isPast = ["culto", "pequeno_grupo", "ministerio"].indexOf((member as any).pipelineStage) > i;
-              return (
-                <div key={stage} className="flex items-center gap-2">
-                  {i > 0 && <div className={`w-8 h-0.5 ${isPast || isCurrent ? "bg-primary" : "bg-border"}`} />}
-                  <div className={`px-3 py-1.5 rounded-full text-sm font-medium ${isCurrent ? "bg-primary text-primary-foreground" : isPast ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
-                    {labels[stage]}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          {pipelineData?.history && pipelineData.history.length > 0 && (
-            <div className="border-t pt-4 space-y-2">
-              <p className="text-sm font-medium text-muted-foreground mb-2">Histórico</p>
-              {(pipelineData.history as any[]).slice(0, 5).map((h: any) => {
-                const labels: Record<string, string> = { culto: "Culto", pequeno_grupo: "Pequeno Grupo", ministerio: "Ministério" };
-                return (
-                  <div key={h.id} className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>{labels[h.fromStage] || h.fromStage || "—"}</span>
-                    <span>→</span>
-                    <span className="font-medium text-foreground">{labels[h.toStage] || h.toStage}</span>
-                    {h.reason && <span className="text-muted-foreground">— {h.reason}</span>}
-                    <span className="ml-auto">{h.createdAt ? new Date(h.createdAt).toLocaleDateString("pt-BR") : ""}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Move Pipeline Modal */}
-      {showPipelineModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowPipelineModal(false)}>
-          <div className="bg-card rounded-2xl border shadow-xl w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
-            <div className="p-6 border-b"><h2 className="text-lg font-bold">Mover Etapa</h2></div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="text-sm font-medium">Nova Etapa</label>
-                <select value={newStage} onChange={e => setNewStage(e.target.value)} className="w-full mt-1 px-3 py-2 border rounded-lg bg-background text-sm">
-                  <option value="culto">Culto</option>
-                  <option value="pequeno_grupo">Pequeno Grupo</option>
-                  <option value="ministerio">Ministério</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Motivo (opcional)</label>
-                <input value={stageReason} onChange={e => setStageReason(e.target.value)} className="w-full mt-1 px-3 py-2 border rounded-lg bg-background text-sm" placeholder="Ex: Entrou no grupo de jovens" />
-              </div>
-            </div>
-            <div className="p-6 border-t flex justify-end gap-3">
-              <button onClick={() => setShowPipelineModal(false)} className="px-4 py-2 border rounded-lg text-sm">Cancelar</button>
-              <button
-                onClick={() => movePipelineMut.mutate({ id, data: { stage: newStage, reason: stageReason || undefined } as any })}
-                disabled={movePipelineMut.isPending}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm flex items-center gap-2 disabled:opacity-50"
-              >
-                {movePipelineMut.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Mover
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showExclusionModal && (
         <ExclusionModal

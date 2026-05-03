@@ -163,15 +163,6 @@ export const MemberExclusionReason = {
   exclusao_abandono_responsaveis: "exclusao_abandono_responsaveis",
 } as const;
 
-export type MemberSummaryPipelineStage =
-  (typeof MemberSummaryPipelineStage)[keyof typeof MemberSummaryPipelineStage];
-
-export const MemberSummaryPipelineStage = {
-  culto: "culto",
-  pequeno_grupo: "pequeno_grupo",
-  ministerio: "ministerio",
-} as const;
-
 export interface MemberSummary {
   id: string;
   fullName: string;
@@ -179,7 +170,6 @@ export interface MemberSummary {
   email?: string;
   classification?: MemberClassification;
   status: MemberStatus;
-  pipelineStage?: MemberSummaryPipelineStage;
   receptionMode?: MemberReceptionMode;
   photoPath?: string;
   createdAt: string;
@@ -201,15 +191,6 @@ export type MemberDetailSex =
 export const MemberDetailSex = {
   masculino: "masculino",
   feminino: "feminino",
-} as const;
-
-export type MemberDetailPipelineStage =
-  (typeof MemberDetailPipelineStage)[keyof typeof MemberDetailPipelineStage];
-
-export const MemberDetailPipelineStage = {
-  culto: "culto",
-  pequeno_grupo: "pequeno_grupo",
-  ministerio: "ministerio",
 } as const;
 
 export interface MemberDetail {
@@ -243,7 +224,6 @@ export interface MemberDetail {
   academicEducation?: string;
   profession?: string;
   status: MemberStatus;
-  pipelineStage?: MemberDetailPipelineStage;
   exclusionReason?: MemberExclusionReason;
   exclusionDate?: string;
   exclusionNotes?: string;
@@ -1022,11 +1002,10 @@ export type CourseCategory =
   (typeof CourseCategory)[keyof typeof CourseCategory];
 
 export const CourseCategory = {
-  ebd: "ebd",
-  discipulado: "discipulado",
-  seminario: "seminario",
-  curso_livre: "curso_livre",
-  escola_de_lideres: "escola_de_lideres",
+  pregacao: "pregacao",
+  escola_biblica: "escola_biblica",
+  pequeno_grupo: "pequeno_grupo",
+  cursos_livres: "cursos_livres",
 } as const;
 
 export type CourseStatus = (typeof CourseStatus)[keyof typeof CourseStatus];
@@ -1064,11 +1043,10 @@ export type CreateCourseRequestCategory =
   (typeof CreateCourseRequestCategory)[keyof typeof CreateCourseRequestCategory];
 
 export const CreateCourseRequestCategory = {
-  ebd: "ebd",
-  discipulado: "discipulado",
-  seminario: "seminario",
-  curso_livre: "curso_livre",
-  escola_de_lideres: "escola_de_lideres",
+  pregacao: "pregacao",
+  escola_biblica: "escola_biblica",
+  pequeno_grupo: "pequeno_grupo",
+  cursos_livres: "cursos_livres",
 } as const;
 
 export type CreateCourseRequestStatus =
@@ -1935,6 +1913,7 @@ export type DashboardStatsEventsUpcomingItem = {
 
 export type DashboardStatsEvents = {
   upcomingCount?: number;
+  nextMonthCount?: number;
   upcoming?: DashboardStatsEventsUpcomingItem[];
 };
 
@@ -1953,6 +1932,18 @@ export type DashboardStatsPlanning = {
   overdueInitiatives?: number;
 };
 
+export type DashboardStatsSmallGroupsHealthBreakdown = {
+  verde?: number;
+  amarelo?: number;
+  vermelho?: number;
+};
+
+export type DashboardStatsSmallGroups = {
+  groupCount?: number;
+  activeMemberCount?: number;
+  healthBreakdown?: DashboardStatsSmallGroupsHealthBreakdown;
+};
+
 export interface DashboardStats {
   members: DashboardStatsMembers;
   finance?: DashboardStatsFinance;
@@ -1960,6 +1951,7 @@ export interface DashboardStats {
   teaching: DashboardStatsTeaching;
   ministries: DashboardStatsMinistries;
   planning?: DashboardStatsPlanning;
+  smallGroups?: DashboardStatsSmallGroups;
 }
 
 export type LeaderWidgetsPastoral = {
@@ -1982,13 +1974,37 @@ export interface LeaderWidgets {
   articles?: LeaderWidgetsArticles;
 }
 
+export type MemberArea = (typeof MemberArea)[keyof typeof MemberArea];
+
+export const MemberArea = {
+  culto: "culto",
+  pequeno_grupo: "pequeno_grupo",
+  ministerio: "ministerio",
+  ebd: "ebd",
+} as const;
+
+export type MemberAreaHealth =
+  (typeof MemberAreaHealth)[keyof typeof MemberAreaHealth];
+
+export const MemberAreaHealth = {
+  verde: "verde",
+  amarelo: "amarelo",
+  vermelho: "vermelho",
+} as const;
+
+export type MemberStatsProfileAreasItem = {
+  area?: MemberArea;
+  healthStatus?: MemberAreaHealth;
+  leaderMemberName?: string | null;
+};
+
 export type MemberStatsProfile = {
   id?: string;
   fullName?: string;
   status?: string;
-  pipelineStage?: string | null;
   baptismDate?: string | null;
   conversionDate?: string | null;
+  areas?: MemberStatsProfileAreasItem[];
 } | null;
 
 export type MemberStatsUpcomingRegisteredEventsItem = {
@@ -2263,58 +2279,74 @@ export interface PlanningSummary {
   totalRealizedCost?: string;
 }
 
-export type PipelineSummarySummary = { [key: string]: unknown };
-
-export interface PipelineSummary {
-  summary: PipelineSummarySummary;
-  total: number;
-}
-
-export type StagnantMembersResponseStagnantItem = {
-  id?: string;
-  fullName?: string;
-  pipelineStage?: string;
-  daysSinceChange?: number;
-  lastChangeAt?: string;
+export type DiscipleshipSummaryMatrix = {
+  [key: string]: { [key: string]: number };
 };
 
-export interface StagnantMembersResponse {
-  stagnant: StagnantMembersResponseStagnantItem[];
+export interface DiscipleshipSummary {
+  matrix: DiscipleshipSummaryMatrix;
+}
+
+export interface AtRiskItem {
+  memberId: string;
+  memberName: string;
+  area: MemberArea;
+  areaLabel: string;
+  healthStatus: MemberAreaHealth;
+  leaderMemberName?: string | null;
+}
+
+export interface AtRiskResponse {
+  items: AtRiskItem[];
   total: number;
-  thresholdDays?: number;
 }
 
-export type MovePipelineRequestStage =
-  (typeof MovePipelineRequestStage)[keyof typeof MovePipelineRequestStage];
-
-export const MovePipelineRequestStage = {
-  culto: "culto",
-  pequeno_grupo: "pequeno_grupo",
-  ministerio: "ministerio",
-} as const;
-
-export interface MovePipelineRequest {
-  stage: MovePipelineRequestStage;
-  reason?: string;
+export interface DiscipleshipLeaderItem {
+  leaderMemberId?: string | null;
+  leaderMemberName?: string | null;
+  total: number;
 }
 
-export interface MovePipelineResponse {
-  message: string;
-  fromStage: string;
-  toStage: string;
+export interface DiscipleshipLeadersResponse {
+  items: DiscipleshipLeaderItem[];
 }
 
-export type MemberPipelineResponseHistoryItem = {
-  id?: string;
-  fromStage?: string | null;
-  toStage?: string;
+export interface MemberAreaEntry {
+  id: string;
+  area: MemberArea;
+  areaLabel: string;
+  healthStatus: MemberAreaHealth;
+  leaderMemberId?: string | null;
+  leaderMemberName?: string | null;
+  notes?: string | null;
+  lastUpdatedAt?: string;
+}
+
+export interface MemberAreasResponse {
+  memberId: string;
+  memberName?: string;
+  areas: MemberAreaEntry[];
+}
+
+export interface UpdateMemberAreaRequest {
+  healthStatus?: MemberAreaHealth;
+  leaderMemberId?: string | null;
+  notes?: string | null;
   reason?: string | null;
-  createdAt?: string;
-};
+}
 
-export interface MemberPipelineResponse {
-  currentStage: string;
-  history: MemberPipelineResponseHistoryItem[];
+export interface MemberAreaHistoryItem {
+  id: string;
+  area: MemberArea;
+  areaLabel: string;
+  fromHealth?: MemberAreaHealth | null;
+  toHealth: MemberAreaHealth;
+  reason?: string | null;
+  createdAt: string;
+}
+
+export interface MemberAreaHistoryResponse {
+  items: MemberAreaHistoryItem[];
 }
 
 export type MinistryGoalStatus =
@@ -2714,165 +2746,287 @@ export interface ReviewSongSuggestionRequest {
   reviewNote?: string;
 }
 
-export type LiturgyType = (typeof LiturgyType)[keyof typeof LiturgyType];
-
-export const LiturgyType = {
-  culto_dominical: "culto_dominical",
-  culto_especial: "culto_especial",
-  santa_ceia: "santa_ceia",
-  culto_oracao: "culto_oracao",
-} as const;
-
-export type LiturgyStatus = (typeof LiturgyStatus)[keyof typeof LiturgyStatus];
-
-export const LiturgyStatus = {
-  rascunho: "rascunho",
-  aprovada: "aprovada",
-} as const;
-
-export interface Liturgy {
+export interface Culto {
   id: string;
+  eventId: string;
   title: string;
-  date: string;
-  type: LiturgyType;
-  eventId?: string | null;
-  status: LiturgyStatus;
-  notes?: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export type LiturgyItemType =
-  (typeof LiturgyItemType)[keyof typeof LiturgyItemType];
-
-export const LiturgyItemType = {
-  louvor: "louvor",
-  oracao: "oracao",
-  leitura: "leitura",
-  pregacao: "pregacao",
-  ofertorio: "ofertorio",
-  avisos: "avisos",
-  santa_ceia: "santa_ceia",
-  outro: "outro",
-} as const;
-
-export interface LiturgyItem {
-  id: string;
-  liturgyId: string;
-  order: number;
-  type: LiturgyItemType;
-  title: string;
-  description?: string | null;
+  startDate: string;
+  endDate?: string | null;
+  location?: string | null;
+  responsibleId?: string | null;
   responsibleName?: string | null;
-  durationMinutes?: number | null;
-  songId?: string | null;
-  createdAt: string;
+  status: string;
+  openingText?: string | null;
+  sermonTitle?: string | null;
+  sermonReference?: string | null;
+  sermonNotes?: string | null;
+  hasCommunion?: boolean;
+  hasBaptism?: boolean;
+  hasMemberReception?: boolean;
+  notes?: string | null;
+  songCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-export type LiturgyDetail = Liturgy & {
-  items: LiturgyItem[];
+export interface CultoSong {
+  id: string;
+  cultoId: string;
+  songId: string;
+  songTitle: string;
+  order: number;
+  notes?: string | null;
+  createdAt?: string;
+}
+
+export type CultoDetail = Culto & {
+  description?: string | null;
+  songs: CultoSong[];
 };
 
-export interface LiturgiesListResponse {
-  liturgies: Liturgy[];
+export interface CultosListResponse {
+  cultos: Culto[];
   total: number;
   page?: number;
   limit?: number;
 }
 
-export type CreateLiturgyRequestType =
-  (typeof CreateLiturgyRequestType)[keyof typeof CreateLiturgyRequestType];
+export type CreateCultoRequestRecurrence =
+  (typeof CreateCultoRequestRecurrence)[keyof typeof CreateCultoRequestRecurrence];
 
-export const CreateLiturgyRequestType = {
-  culto_dominical: "culto_dominical",
-  culto_especial: "culto_especial",
-  santa_ceia: "santa_ceia",
-  culto_oracao: "culto_oracao",
+export const CreateCultoRequestRecurrence = {
+  unico: "unico",
+  semanal: "semanal",
+  quinzenal: "quinzenal",
+  mensal: "mensal",
 } as const;
 
-export interface CreateLiturgyRequest {
+export type CreateCultoRequestStatus =
+  (typeof CreateCultoRequestStatus)[keyof typeof CreateCultoRequestStatus];
+
+export const CreateCultoRequestStatus = {
+  agendado: "agendado",
+  em_andamento: "em_andamento",
+  encerrado: "encerrado",
+  cancelado: "cancelado",
+} as const;
+
+export interface CreateCultoRequest {
   title: string;
-  date: string;
-  type: CreateLiturgyRequestType;
-  eventId?: string;
+  description?: string;
+  startDate: string;
+  endDate: string;
+  location?: string;
+  responsibleId?: string;
+  recurrence?: CreateCultoRequestRecurrence;
+  maxSlots?: number;
+  status?: CreateCultoRequestStatus;
+  openingText?: string;
+  sermonTitle?: string;
+  sermonReference?: string;
+  sermonNotes?: string;
+  hasCommunion?: boolean;
+  hasBaptism?: boolean;
+  hasMemberReception?: boolean;
   notes?: string;
 }
 
-export type UpdateLiturgyRequestType =
-  (typeof UpdateLiturgyRequestType)[keyof typeof UpdateLiturgyRequestType];
+export type UpdateCultoRequestRecurrence =
+  (typeof UpdateCultoRequestRecurrence)[keyof typeof UpdateCultoRequestRecurrence];
 
-export const UpdateLiturgyRequestType = {
-  culto_dominical: "culto_dominical",
-  culto_especial: "culto_especial",
-  santa_ceia: "santa_ceia",
-  culto_oracao: "culto_oracao",
+export const UpdateCultoRequestRecurrence = {
+  unico: "unico",
+  semanal: "semanal",
+  quinzenal: "quinzenal",
+  mensal: "mensal",
 } as const;
 
-export type UpdateLiturgyRequestStatus =
-  (typeof UpdateLiturgyRequestStatus)[keyof typeof UpdateLiturgyRequestStatus];
+export type UpdateCultoRequestStatus =
+  (typeof UpdateCultoRequestStatus)[keyof typeof UpdateCultoRequestStatus];
 
-export const UpdateLiturgyRequestStatus = {
-  rascunho: "rascunho",
-  aprovada: "aprovada",
+export const UpdateCultoRequestStatus = {
+  agendado: "agendado",
+  em_andamento: "em_andamento",
+  encerrado: "encerrado",
+  cancelado: "cancelado",
 } as const;
 
-export interface UpdateLiturgyRequest {
+export interface UpdateCultoRequest {
   title?: string;
-  date?: string;
-  type?: UpdateLiturgyRequestType;
-  eventId?: string;
-  status?: UpdateLiturgyRequestStatus;
+  description?: string;
+  startDate?: string;
+  endDate?: string;
+  location?: string;
+  responsibleId?: string | null;
+  recurrence?: UpdateCultoRequestRecurrence;
+  maxSlots?: number | null;
+  status?: UpdateCultoRequestStatus;
+  openingText?: string | null;
+  sermonTitle?: string | null;
+  sermonReference?: string | null;
+  sermonNotes?: string | null;
+  hasCommunion?: boolean;
+  hasBaptism?: boolean;
+  hasMemberReception?: boolean;
+  notes?: string | null;
+}
+
+export interface AddCultoSongRequest {
+  songId: string;
   notes?: string;
 }
 
-export type AddLiturgyItemRequestType =
-  (typeof AddLiturgyItemRequestType)[keyof typeof AddLiturgyItemRequestType];
+export interface UpdateCultoSongRequest {
+  notes?: string | null;
+}
 
-export const AddLiturgyItemRequestType = {
-  louvor: "louvor",
-  oracao: "oracao",
-  leitura: "leitura",
-  pregacao: "pregacao",
-  ofertorio: "ofertorio",
-  avisos: "avisos",
-  santa_ceia: "santa_ceia",
-  outro: "outro",
+export interface ReorderCultoSongsRequest {
+  songIds: string[];
+}
+
+export interface CultoSongsReorderResponse {
+  songs: CultoSong[];
+}
+
+export interface UpcomingCultoItem {
+  cultoId: string;
+  eventId: string;
+  title: string;
+  startDate: string;
+  location?: string | null;
+  hasCommunion?: boolean;
+}
+
+export interface UpcomingCultosResponse {
+  items: UpcomingCultoItem[];
+}
+
+export interface AnnualCultoReportItem {
+  cultoId: string;
+  eventId: string;
+  title: string;
+  startDate: string;
+  hasCommunion?: boolean;
+  hasBaptism?: boolean;
+  hasMemberReception?: boolean;
+  attendanceCount?: number;
+  scheduledCount?: number;
+}
+
+export type AnnualCultoReportTotals = {
+  cultos?: number;
+  communions?: number;
+  baptisms?: number;
+  memberReceptions?: number;
+};
+
+export interface AnnualCultoReport {
+  year: number;
+  totals: AnnualCultoReportTotals;
+  items: AnnualCultoReportItem[];
+}
+
+export type CouncilMeetingStatus =
+  (typeof CouncilMeetingStatus)[keyof typeof CouncilMeetingStatus];
+
+export const CouncilMeetingStatus = {
+  agendada: "agendada",
+  realizada: "realizada",
+  cancelada: "cancelada",
 } as const;
 
-export interface AddLiturgyItemRequest {
-  type: AddLiturgyItemRequestType;
+export type CouncilMeetingItemStatus =
+  (typeof CouncilMeetingItemStatus)[keyof typeof CouncilMeetingItemStatus];
+
+export const CouncilMeetingItemStatus = {
+  pendente: "pendente",
+  discutida: "discutida",
+  decidida: "decidida",
+} as const;
+
+export interface CouncilMeeting {
+  id: string;
+  meetingDate: string;
+  title: string;
+  agenda?: string | null;
+  summary?: string | null;
+  status: CouncilMeetingStatus;
+  notes?: string | null;
+  ataMediaId?: string | null;
+  ataTitle?: string | null;
+  ataUrl?: string | null;
+  itemCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CouncilMeetingItem {
+  id: string;
+  meetingId: string;
+  order: number;
+  title: string;
+  description?: string | null;
+  status: CouncilMeetingItemStatus;
+  resolution?: string | null;
+  resolvedAt?: string | null;
+  createdAt?: string;
+}
+
+export type CouncilMeetingDetail = CouncilMeeting & {
+  items: CouncilMeetingItem[];
+};
+
+export interface CouncilMeetingsListResponse {
+  meetings: CouncilMeeting[];
+  total: number;
+  page?: number;
+  limit?: number;
+}
+
+export interface UpcomingCouncilMeetingsResponse {
+  items: CouncilMeeting[];
+}
+
+export interface CreateCouncilMeetingRequest {
+  meetingDate: string;
+  title: string;
+  agenda?: string;
+  summary?: string;
+  ataMediaId?: string;
+  status?: CouncilMeetingStatus;
+  notes?: string;
+}
+
+export interface UpdateCouncilMeetingRequest {
+  meetingDate?: string;
+  title?: string;
+  agenda?: string | null;
+  summary?: string | null;
+  ataMediaId?: string | null;
+  status?: CouncilMeetingStatus;
+  notes?: string | null;
+}
+
+export interface AddCouncilMeetingItemRequest {
   title: string;
   description?: string;
-  responsibleMemberId?: string;
-  durationMinutes?: number;
-  songId?: string;
+  status?: CouncilMeetingItemStatus;
+  resolution?: string;
 }
 
-export type UpdateLiturgyItemRequestType =
-  (typeof UpdateLiturgyItemRequestType)[keyof typeof UpdateLiturgyItemRequestType];
-
-export const UpdateLiturgyItemRequestType = {
-  louvor: "louvor",
-  oracao: "oracao",
-  leitura: "leitura",
-  pregacao: "pregacao",
-  ofertorio: "ofertorio",
-  avisos: "avisos",
-  santa_ceia: "santa_ceia",
-  outro: "outro",
-} as const;
-
-export interface UpdateLiturgyItemRequest {
-  type?: UpdateLiturgyItemRequestType;
+export interface UpdateCouncilMeetingItemRequest {
   title?: string;
-  description?: string;
-  responsibleMemberId?: string;
-  durationMinutes?: number;
-  songId?: string;
+  description?: string | null;
+  status?: CouncilMeetingItemStatus;
+  resolution?: string | null;
 }
 
-export interface ReorderLiturgyItemsRequest {
+export interface ReorderCouncilMeetingItemsRequest {
   itemIds: string[];
+}
+
+export interface CouncilMeetingItemsResponse {
+  items: CouncilMeetingItem[];
 }
 
 export type ArticleCategory =
@@ -3246,8 +3400,8 @@ export const ListMembersStatus = {
   falecido: "falecido",
 } as const;
 
-export type GetStagnantMembersParams = {
-  days?: number;
+export type GetDiscipleshipAtRiskParams = {
+  area?: MemberArea;
 };
 
 export type SaveTransferLetter200 = {
@@ -3372,6 +3526,14 @@ export type ListEventsParams = {
   status?: string;
   dateFrom?: string;
   dateTo?: string;
+};
+
+export type GetUpcomingEventsParams = {
+  /**
+   * @minimum 1
+   * @maximum 365
+   */
+  days?: number;
 };
 
 export type GetEventsCalendarParams = {
@@ -3549,10 +3711,23 @@ export type ListSongsParams = {
   limit?: number;
 };
 
-export type ListLiturgiesParams = {
-  type?: string;
+export type GetAnnualCultoReportParams = {
+  year?: number;
+};
+
+export type ListCultosParams = {
+  year?: number;
+  month?: number;
+  hasCommunion?: boolean;
+  hasBaptism?: boolean;
+  page?: number;
+  limit?: number;
+};
+
+export type ListCouncilMeetingsParams = {
+  year?: number;
   status?: string;
-  date?: string;
+  search?: string;
   page?: number;
   limit?: number;
 };

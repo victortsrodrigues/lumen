@@ -94,4 +94,21 @@ describe("13-dashboard", () => {
     const res = await request("GET", "/dashboard/stats");
     expect(res.status).toBe(401);
   });
+
+  it("9. Payload inclui events.nextMonthCount (>= upcomingCount)", async () => {
+    const res = await request("GET", "/dashboard/stats", undefined, adminCk);
+    expect(typeof res.body.events.nextMonthCount).toBe("number");
+    expect(res.body.events.nextMonthCount).toBeGreaterThanOrEqual(res.body.events.upcomingCount);
+  });
+
+  it("10. Payload inclui smallGroups com healthBreakdown", async () => {
+    const res = await request("GET", "/dashboard/stats", undefined, adminCk);
+    expect(res.body.smallGroups).toBeDefined();
+    expect(typeof res.body.smallGroups.groupCount).toBe("number");
+    expect(typeof res.body.smallGroups.activeMemberCount).toBe("number");
+    expect(res.body.smallGroups.healthBreakdown).toBeDefined();
+    expect(typeof res.body.smallGroups.healthBreakdown.verde).toBe("number");
+    expect(typeof res.body.smallGroups.healthBreakdown.amarelo).toBe("number");
+    expect(typeof res.body.smallGroups.healthBreakdown.vermelho).toBe("number");
+  });
 });

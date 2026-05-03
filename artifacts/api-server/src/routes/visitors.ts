@@ -9,6 +9,7 @@ import { requireAuth, requireRole } from "../middlewares/auth.js";
 import { createAuditLog } from "../lib/audit.js";
 import { notifyMember } from "../lib/notifications.js";
 import { encrypt, encryptIfPresent, decryptIfPresent, hashForSearch } from "../lib/crypto.js";
+import { ensureMemberAreas } from "./members.js";
 
 const router: IRouter = Router();
 
@@ -569,10 +570,11 @@ router.post("/:id/convert", requireAuth, requireRole("admin"), async (req: Reque
     academicEducation: academicEducation || null,
     profession: profession || null,
     status: "ativo" as const,
-    pipelineStage: "culto" as const,
     createdByUserId: userId,
     updatedByUserId: userId,
   }).returning();
+
+  await ensureMemberAreas(member.id, userId);
 
   // 2 entradas em member_history
   await db.insert(memberHistoryTable).values([

@@ -45,8 +45,8 @@ tags:
     description: Confidential pastoral counseling cases and sessions
   - name: songs
     description: Song library and suggestions
-  - name: liturgy
-    description: Worship service planning
+  - name: cultos
+    description: Worship service planning (cultos)
   - name: articles
     description: Articles with approval workflow
   - name: forum
@@ -57,6 +57,8 @@ tags:
     description: PIX donations
   - name: notifications
     description: In-app notifications
+  - name: council
+    description: Conselho da igreja (atas e reuniões — admin only)
   - name: utils
     description: Utility endpoints
 paths:
@@ -473,11 +475,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /members/pipeline/summary:
+  /discipleship/summary:
     get:
-      operationId: getPipelineSummary
-      tags: [members]
-      summary: Pipeline funnel summary
+      operationId: getDiscipleshipSummary
+      tags: [discipleship]
+      summary: Discipleship 4x3 health matrix (active members only)
       security: [{ cookieAuth: [] }]
       responses:
         "200":
@@ -485,29 +487,59 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PipelineSummary"
+                $ref: "#/components/schemas/DiscipleshipSummary"
 
-  /members/pipeline/stagnant:
+  /discipleship/at-risk:
     get:
-      operationId: getStagnantMembers
-      tags: [members]
-      summary: Members stagnant in pipeline
+      operationId: getDiscipleshipAtRisk
+      tags: [discipleship]
+      summary: Members with red health in any area
       security: [{ cookieAuth: [] }]
       parameters:
-        - { in: query, name: days, schema: { type: integer, default: 90 } }
+        - { in: query, name: area, required: false, schema: { $ref: "#/components/schemas/MemberArea" } }
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/StagnantMembersResponse"
+                $ref: "#/components/schemas/AtRiskResponse"
 
-  /members/{id}/pipeline:
+  /discipleship/leaders:
     get:
-      operationId: getMemberPipelineHistory
-      tags: [members]
-      summary: Member pipeline history
+      operationId: getDiscipleshipLeaders
+      tags: [discipleship]
+      summary: Members who are leaders in any area
+      security: [{ cookieAuth: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscipleshipLeadersResponse"
+
+  /discipleship/by-leader/{leaderId}:
+    get:
+      operationId: getDiscipleshipByLeader
+      tags: [discipleship]
+      summary: Members under this leader (group by area)
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: leaderId, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AtRiskResponse"
+
+  /discipleship/members/{id}/areas:
+    get:
+      operationId: getMemberAreas
+      tags: [discipleship]
+      summary: List 4 discipleship areas for a member
       security: [{ cookieAuth: [] }]
       parameters:
         - { in: path, name: id, required: true, schema: { type: string } }
@@ -517,27 +549,46 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/MemberPipelineResponse"
+                $ref: "#/components/schemas/MemberAreasResponse"
+
+  /discipleship/members/{id}/areas/{area}:
     put:
-      operationId: moveMemberPipeline
-      tags: [members]
-      summary: Move member to new pipeline stage
+      operationId: updateMemberArea
+      tags: [discipleship]
+      summary: Update one discipleship area for a member
       security: [{ cookieAuth: [] }]
       parameters:
         - { in: path, name: id, required: true, schema: { type: string } }
+        - { in: path, name: area, required: true, schema: { $ref: "#/components/schemas/MemberArea" } }
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/MovePipelineRequest"
+              $ref: "#/components/schemas/UpdateMemberAreaRequest"
       responses:
         "200":
-          description: Moved
+          description: Updated
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/MovePipelineResponse"
+                $ref: "#/components/schemas/MemberAreaEntry"
+
+  /discipleship/members/{id}/history:
+    get:
+      operationId: getMemberAreaHistory
+      tags: [discipleship]
+      summary: Discipleship area transition history
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberAreaHistoryResponse"
 
   /members/me:
     get:
@@ -2091,9 +2142,11 @@ paths:
     get:
       operationId: getUpcomingEvents
       tags: [events]
-      summary: Get upcoming events (next 7 days)
+      summary: Get upcoming events (default 7 days, max 365 with silent clamp)
       security:
         - cookieAuth: []
+      parameters:
+        - { in: query, name: days, schema: { type: integer, default: 7, minimum: 1, maximum: 365 } }
       responses:
         "200":
           description: OK
@@ -4425,18 +4478,49 @@ paths:
               schema:
                 $ref: "#/components/schemas/SongSuggestion"
 
-  # ─── LITURGY ────────────────────────────────────────────────────────────
+  # ─── CULTOS ─────────────────────────────────────────────────────────────
 
-  /liturgy:
+  /cultos/reports/annual:
     get:
-      operationId: listLiturgies
-      tags: [liturgy]
-      summary: List liturgies
+      operationId: getAnnualCultoReport
+      tags: [cultos]
+      summary: Annual culto report
       security: [{ cookieAuth: [] }]
       parameters:
-        - { in: query, name: type, schema: { type: string } }
-        - { in: query, name: status, schema: { type: string } }
-        - { in: query, name: date, schema: { type: string } }
+        - { in: query, name: year, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnnualCultoReport"
+
+  /cultos/upcoming:
+    get:
+      operationId: getUpcomingCultos
+      tags: [cultos]
+      summary: Next 5 upcoming cultos
+      security: [{ cookieAuth: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpcomingCultosResponse"
+
+  /cultos:
+    get:
+      operationId: listCultos
+      tags: [cultos]
+      summary: List cultos with filters
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: query, name: year, schema: { type: integer } }
+        - { in: query, name: month, schema: { type: integer } }
+        - { in: query, name: hasCommunion, schema: { type: boolean } }
+        - { in: query, name: hasBaptism, schema: { type: boolean } }
         - { in: query, name: page, schema: { type: integer } }
         - { in: query, name: limit, schema: { type: integer } }
       responses:
@@ -4445,31 +4529,31 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LiturgiesListResponse"
+                $ref: "#/components/schemas/CultosListResponse"
     post:
-      operationId: createLiturgy
-      tags: [liturgy]
-      summary: Create a liturgy
+      operationId: createCulto
+      tags: [cultos]
+      summary: Create a culto (event + culto in transaction)
       security: [{ cookieAuth: [] }]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateLiturgyRequest"
+              $ref: "#/components/schemas/CreateCultoRequest"
       responses:
         "201":
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Liturgy"
+                $ref: "#/components/schemas/Culto"
 
-  /liturgy/{id}:
+  /cultos/{id}:
     get:
-      operationId: getLiturgyDetail
-      tags: [liturgy]
-      summary: Get liturgy detail with items
+      operationId: getCultoDetail
+      tags: [cultos]
+      summary: Get culto detail with songs
       security: [{ cookieAuth: [] }]
       parameters:
         - { in: path, name: id, required: true, schema: { type: string } }
@@ -4479,11 +4563,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LiturgyDetail"
+                $ref: "#/components/schemas/CultoDetail"
     put:
-      operationId: updateLiturgy
-      tags: [liturgy]
-      summary: Update a liturgy
+      operationId: updateCulto
+      tags: [cultos]
+      summary: Update a culto
       security: [{ cookieAuth: [] }]
       parameters:
         - { in: path, name: id, required: true, schema: { type: string } }
@@ -4492,18 +4576,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateLiturgyRequest"
+              $ref: "#/components/schemas/UpdateCultoRequest"
       responses:
         "200":
           description: Updated
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Liturgy"
+                $ref: "#/components/schemas/Culto"
     delete:
-      operationId: deleteLiturgy
-      tags: [liturgy]
-      summary: Delete a liturgy
+      operationId: deleteCulto
+      tags: [cultos]
+      summary: Delete a culto (soft delete via event.deletedAt)
       security: [{ cookieAuth: [] }]
       parameters:
         - { in: path, name: id, required: true, schema: { type: string } }
@@ -4515,11 +4599,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/MessageResponse"
 
-  /liturgy/{id}/items:
+  /cultos/{id}/songs:
     post:
-      operationId: addLiturgyItem
-      tags: [liturgy]
-      summary: Add item to liturgy
+      operationId: addCultoSong
+      tags: [cultos]
+      summary: Add song to culto
       security: [{ cookieAuth: [] }]
       parameters:
         - { in: path, name: id, required: true, schema: { type: string } }
@@ -4528,45 +4612,171 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AddLiturgyItemRequest"
+              $ref: "#/components/schemas/AddCultoSongRequest"
       responses:
         "201":
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LiturgyItem"
+                $ref: "#/components/schemas/CultoSong"
 
-  /liturgy/{id}/items/{itemId}:
+  /cultos/{id}/songs/reorder:
     put:
-      operationId: updateLiturgyItem
-      tags: [liturgy]
-      summary: Update a liturgy item
+      operationId: reorderCultoSongs
+      tags: [cultos]
+      summary: Reorder culto songs
       security: [{ cookieAuth: [] }]
       parameters:
         - { in: path, name: id, required: true, schema: { type: string } }
-        - { in: path, name: itemId, required: true, schema: { type: string } }
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateLiturgyItemRequest"
+              $ref: "#/components/schemas/ReorderCultoSongsRequest"
+      responses:
+        "200":
+          description: Reordered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CultoSongsReorderResponse"
+
+  /cultos/{id}/songs/{songEntryId}:
+    put:
+      operationId: updateCultoSong
+      tags: [cultos]
+      summary: Update song notes
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+        - { in: path, name: songEntryId, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCultoSongRequest"
       responses:
         "200":
           description: Updated
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LiturgyItem"
+                $ref: "#/components/schemas/CultoSong"
     delete:
-      operationId: deleteLiturgyItem
-      tags: [liturgy]
-      summary: Delete a liturgy item
+      operationId: deleteCultoSong
+      tags: [cultos]
+      summary: Remove song from culto
       security: [{ cookieAuth: [] }]
       parameters:
         - { in: path, name: id, required: true, schema: { type: string } }
-        - { in: path, name: itemId, required: true, schema: { type: string } }
+        - { in: path, name: songEntryId, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # ─── COUNCIL ────────────────────────────────────────────────────────────
+
+  /council/upcoming:
+    get:
+      operationId: getUpcomingCouncilMeetings
+      tags: [council]
+      summary: Upcoming scheduled council meetings
+      security: [{ cookieAuth: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpcomingCouncilMeetingsResponse"
+
+  /council:
+    get:
+      operationId: listCouncilMeetings
+      tags: [council]
+      summary: List council meetings with filters
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: query, name: year, schema: { type: integer } }
+        - { in: query, name: status, schema: { type: string } }
+        - { in: query, name: search, schema: { type: string } }
+        - { in: query, name: page, schema: { type: integer } }
+        - { in: query, name: limit, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CouncilMeetingsListResponse"
+    post:
+      operationId: createCouncilMeeting
+      tags: [council]
+      summary: Create a council meeting (admin only)
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCouncilMeetingRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CouncilMeeting"
+
+  /council/{id}:
+    get:
+      operationId: getCouncilMeetingDetail
+      tags: [council]
+      summary: Get council meeting detail with items
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CouncilMeetingDetail"
+    put:
+      operationId: updateCouncilMeeting
+      tags: [council]
+      summary: Update council meeting
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCouncilMeetingRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CouncilMeeting"
+    delete:
+      operationId: deleteCouncilMeeting
+      tags: [council]
+      summary: Soft-delete council meeting
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
       responses:
         "200":
           description: Deleted
@@ -4575,11 +4785,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/MessageResponse"
 
-  /liturgy/{id}/items/reorder:
-    put:
-      operationId: reorderLiturgyItems
-      tags: [liturgy]
-      summary: Reorder liturgy items
+  /council/{id}/items:
+    post:
+      operationId: addCouncilMeetingItem
+      tags: [council]
+      summary: Add agenda item to meeting
       security: [{ cookieAuth: [] }]
       parameters:
         - { in: path, name: id, required: true, schema: { type: string } }
@@ -4588,10 +4798,70 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ReorderLiturgyItemsRequest"
+              $ref: "#/components/schemas/AddCouncilMeetingItemRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CouncilMeetingItem"
+
+  /council/{id}/items/reorder:
+    put:
+      operationId: reorderCouncilMeetingItems
+      tags: [council]
+      summary: Reorder agenda items
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReorderCouncilMeetingItemsRequest"
       responses:
         "200":
           description: Reordered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CouncilMeetingItemsResponse"
+
+  /council/{id}/items/{itemId}:
+    put:
+      operationId: updateCouncilMeetingItem
+      tags: [council]
+      summary: Update agenda item (status lifecycle)
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+        - { in: path, name: itemId, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCouncilMeetingItemRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CouncilMeetingItem"
+    delete:
+      operationId: deleteCouncilMeetingItem
+      tags: [council]
+      summary: Remove agenda item
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+        - { in: path, name: itemId, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Removed
           content:
             application/json:
               schema:
@@ -5526,9 +5796,6 @@ components:
           $ref: "#/components/schemas/MemberClassification"
         status:
           $ref: "#/components/schemas/MemberStatus"
-        pipelineStage:
-          type: string
-          enum: [culto, pequeno_grupo, ministerio]
         receptionMode:
           $ref: "#/components/schemas/MemberReceptionMode"
         photoPath: { type: string }
@@ -5594,9 +5861,6 @@ components:
         # Status / exclusão
         status:
           $ref: "#/components/schemas/MemberStatus"
-        pipelineStage:
-          type: string
-          enum: [culto, pequeno_grupo, ministerio]
         exclusionReason:
           $ref: "#/components/schemas/MemberExclusionReason"
         exclusionDate: { type: string }
@@ -6735,7 +6999,7 @@ components:
           nullable: true
         category:
           type: string
-          enum: [ebd, discipulado, seminario, curso_livre, escola_de_lideres]
+          enum: [pregacao, escola_biblica, pequeno_grupo, cursos_livres]
         status:
           type: string
           enum: [aberto, em_andamento, encerrado]
@@ -6791,7 +7055,7 @@ components:
           type: string
         category:
           type: string
-          enum: [ebd, discipulado, seminario, curso_livre, escola_de_lideres]
+          enum: [pregacao, escola_biblica, pequeno_grupo, cursos_livres]
         status:
           type: string
           enum: [aberto, em_andamento, encerrado]
@@ -8145,6 +8409,8 @@ components:
           properties:
             upcomingCount:
               type: integer
+            nextMonthCount:
+              type: integer
             upcoming:
               type: array
               items:
@@ -8182,6 +8448,19 @@ components:
               type: integer
             overdueInitiatives:
               type: integer
+        smallGroups:
+          type: object
+          properties:
+            groupCount:
+              type: integer
+            activeMemberCount:
+              type: integer
+            healthBreakdown:
+              type: object
+              properties:
+                verde: { type: integer }
+                amarelo: { type: integer }
+                vermelho: { type: integer }
       required:
         - members
         - events
@@ -8216,9 +8495,16 @@ components:
             id: { type: string }
             fullName: { type: string }
             status: { type: string }
-            pipelineStage: { type: string, nullable: true }
             baptismDate: { type: string, nullable: true }
             conversionDate: { type: string, nullable: true }
+            areas:
+              type: array
+              items:
+                type: object
+                properties:
+                  area: { $ref: "#/components/schemas/MemberArea" }
+                  healthStatus: { $ref: "#/components/schemas/MemberAreaHealth" }
+                  leaderMemberName: { type: string, nullable: true }
         enrolledCourses: { type: integer }
         upcomingRegisteredEvents:
           type: array
@@ -8469,67 +8755,114 @@ components:
         totalRealizedCost: { type: string }
       required: [totalInitiatives, activeInitiatives, overdueInitiatives]
 
-    # ─── PIPELINE SCHEMAS ──────────────────────────────────────────────────
+    # ─── DISCIPLESHIP SCHEMAS ──────────────────────────────────────────────
 
-    PipelineSummary:
+    MemberArea:
+      type: string
+      enum: [culto, pequeno_grupo, ministerio, ebd]
+
+    MemberAreaHealth:
+      type: string
+      enum: [verde, amarelo, vermelho]
+
+    DiscipleshipSummary:
       type: object
       properties:
-        summary:
+        matrix:
           type: object
-        total:
-          type: integer
-      required: [summary, total]
+          additionalProperties:
+            type: object
+            additionalProperties: { type: integer }
+      required: [matrix]
 
-    StagnantMembersResponse:
+    AtRiskItem:
       type: object
       properties:
-        stagnant:
+        memberId: { type: string }
+        memberName: { type: string }
+        area: { $ref: "#/components/schemas/MemberArea" }
+        areaLabel: { type: string }
+        healthStatus: { $ref: "#/components/schemas/MemberAreaHealth" }
+        leaderMemberName: { type: string, nullable: true }
+      required: [memberId, memberName, area, areaLabel, healthStatus]
+
+    AtRiskResponse:
+      type: object
+      properties:
+        items:
           type: array
-          items:
-            type: object
-            properties:
-              id: { type: string }
-              fullName: { type: string }
-              pipelineStage: { type: string }
-              daysSinceChange: { type: integer }
-              lastChangeAt: { type: string }
+          items: { $ref: "#/components/schemas/AtRiskItem" }
         total: { type: integer }
-        thresholdDays: { type: integer }
-      required: [stagnant, total]
+      required: [items, total]
 
-    MovePipelineRequest:
+    DiscipleshipLeaderItem:
       type: object
       properties:
-        stage:
-          type: string
-          enum: [culto, pequeno_grupo, ministerio]
-        reason:
-          type: string
-      required: [stage]
+        leaderMemberId: { type: string, nullable: true }
+        leaderMemberName: { type: string, nullable: true }
+        total: { type: integer }
+      required: [total]
 
-    MovePipelineResponse:
+    DiscipleshipLeadersResponse:
       type: object
       properties:
-        message: { type: string }
-        fromStage: { type: string }
-        toStage: { type: string }
-      required: [message, fromStage, toStage]
-
-    MemberPipelineResponse:
-      type: object
-      properties:
-        currentStage: { type: string }
-        history:
+        items:
           type: array
-          items:
-            type: object
-            properties:
-              id: { type: string }
-              fromStage: { type: string, nullable: true }
-              toStage: { type: string }
-              reason: { type: string, nullable: true }
-              createdAt: { type: string }
-      required: [currentStage, history]
+          items: { $ref: "#/components/schemas/DiscipleshipLeaderItem" }
+      required: [items]
+
+    MemberAreaEntry:
+      type: object
+      properties:
+        id: { type: string }
+        area: { $ref: "#/components/schemas/MemberArea" }
+        areaLabel: { type: string }
+        healthStatus: { $ref: "#/components/schemas/MemberAreaHealth" }
+        leaderMemberId: { type: string, nullable: true }
+        leaderMemberName: { type: string, nullable: true }
+        notes: { type: string, nullable: true }
+        lastUpdatedAt: { type: string }
+      required: [id, area, areaLabel, healthStatus]
+
+    MemberAreasResponse:
+      type: object
+      properties:
+        memberId: { type: string }
+        memberName: { type: string }
+        areas:
+          type: array
+          items: { $ref: "#/components/schemas/MemberAreaEntry" }
+      required: [memberId, areas]
+
+    UpdateMemberAreaRequest:
+      type: object
+      properties:
+        healthStatus: { $ref: "#/components/schemas/MemberAreaHealth" }
+        leaderMemberId: { type: string, nullable: true }
+        notes: { type: string, nullable: true }
+        reason: { type: string, nullable: true }
+
+    MemberAreaHistoryItem:
+      type: object
+      properties:
+        id: { type: string }
+        area: { $ref: "#/components/schemas/MemberArea" }
+        areaLabel: { type: string }
+        fromHealth:
+          allOf: [{ $ref: "#/components/schemas/MemberAreaHealth" }]
+          nullable: true
+        toHealth: { $ref: "#/components/schemas/MemberAreaHealth" }
+        reason: { type: string, nullable: true }
+        createdAt: { type: string }
+      required: [id, area, areaLabel, toHealth, createdAt]
+
+    MemberAreaHistoryResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/MemberAreaHistoryItem" }
+      required: [items]
 
     # ─── MINISTRY GOAL SCHEMAS ─────────────────────────────────────────────
 
@@ -8892,109 +9225,315 @@ components:
         reviewNote: { type: string }
       required: [status]
 
-    # ─── LITURGY ────────────────────────────────────────────────────────────
+    # ─── CULTOS ─────────────────────────────────────────────────────────────
 
-    Liturgy:
+    Culto:
       type: object
       properties:
         id: { type: string }
+        eventId: { type: string }
         title: { type: string }
-        date: { type: string }
-        type: { type: string, enum: [culto_dominical, culto_especial, santa_ceia, culto_oracao] }
-        eventId: { type: string, nullable: true }
-        status: { type: string, enum: [rascunho, aprovada] }
+        startDate: { type: string }
+        endDate: { type: string, nullable: true }
+        location: { type: string, nullable: true }
+        responsibleId: { type: string, nullable: true }
+        responsibleName: { type: string, nullable: true }
+        status: { type: string }
+        openingText: { type: string, nullable: true }
+        sermonTitle: { type: string, nullable: true }
+        sermonReference: { type: string, nullable: true }
+        sermonNotes: { type: string, nullable: true }
+        hasCommunion: { type: boolean }
+        hasBaptism: { type: boolean }
+        hasMemberReception: { type: boolean }
         notes: { type: string, nullable: true }
+        songCount: { type: integer }
         createdAt: { type: string }
         updatedAt: { type: string }
-      required: [id, title, date, type, status, createdAt, updatedAt]
+      required: [id, eventId, title, startDate, status]
 
-    LiturgyItem:
+    CultoSong:
       type: object
       properties:
         id: { type: string }
-        liturgyId: { type: string }
+        cultoId: { type: string }
+        songId: { type: string }
+        songTitle: { type: string }
         order: { type: integer }
-        type: { type: string, enum: [louvor, oracao, leitura, pregacao, ofertorio, avisos, santa_ceia, outro] }
+        notes: { type: string, nullable: true }
+        createdAt: { type: string }
+      required: [id, cultoId, songId, songTitle, order]
+
+    CultoDetail:
+      allOf:
+        - $ref: "#/components/schemas/Culto"
+        - type: object
+          properties:
+            description: { type: string, nullable: true }
+            songs:
+              type: array
+              items:
+                $ref: "#/components/schemas/CultoSong"
+          required: [songs]
+
+    CultosListResponse:
+      type: object
+      properties:
+        cultos:
+          type: array
+          items:
+            $ref: "#/components/schemas/Culto"
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+      required: [cultos, total]
+
+    CreateCultoRequest:
+      type: object
+      properties:
+        title: { type: string }
+        description: { type: string }
+        startDate: { type: string }
+        endDate: { type: string }
+        location: { type: string }
+        responsibleId: { type: string }
+        recurrence: { type: string, enum: [unico, semanal, quinzenal, mensal] }
+        maxSlots: { type: integer }
+        status: { type: string, enum: [agendado, em_andamento, encerrado, cancelado] }
+        openingText: { type: string }
+        sermonTitle: { type: string }
+        sermonReference: { type: string }
+        sermonNotes: { type: string }
+        hasCommunion: { type: boolean }
+        hasBaptism: { type: boolean }
+        hasMemberReception: { type: boolean }
+        notes: { type: string }
+      required: [title, startDate, endDate]
+
+    UpdateCultoRequest:
+      type: object
+      properties:
+        title: { type: string }
+        description: { type: string }
+        startDate: { type: string }
+        endDate: { type: string }
+        location: { type: string }
+        responsibleId: { type: string, nullable: true }
+        recurrence: { type: string, enum: [unico, semanal, quinzenal, mensal] }
+        maxSlots: { type: integer, nullable: true }
+        status: { type: string, enum: [agendado, em_andamento, encerrado, cancelado] }
+        openingText: { type: string, nullable: true }
+        sermonTitle: { type: string, nullable: true }
+        sermonReference: { type: string, nullable: true }
+        sermonNotes: { type: string, nullable: true }
+        hasCommunion: { type: boolean }
+        hasBaptism: { type: boolean }
+        hasMemberReception: { type: boolean }
+        notes: { type: string, nullable: true }
+
+    AddCultoSongRequest:
+      type: object
+      properties:
+        songId: { type: string }
+        notes: { type: string }
+      required: [songId]
+
+    UpdateCultoSongRequest:
+      type: object
+      properties:
+        notes: { type: string, nullable: true }
+
+    ReorderCultoSongsRequest:
+      type: object
+      properties:
+        songIds:
+          type: array
+          items: { type: string }
+      required: [songIds]
+
+    CultoSongsReorderResponse:
+      type: object
+      properties:
+        songs:
+          type: array
+          items: { $ref: "#/components/schemas/CultoSong" }
+      required: [songs]
+
+    UpcomingCultoItem:
+      type: object
+      properties:
+        cultoId: { type: string }
+        eventId: { type: string }
+        title: { type: string }
+        startDate: { type: string }
+        location: { type: string, nullable: true }
+        hasCommunion: { type: boolean }
+      required: [cultoId, eventId, title, startDate]
+
+    UpcomingCultosResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/UpcomingCultoItem" }
+      required: [items]
+
+    AnnualCultoReportItem:
+      type: object
+      properties:
+        cultoId: { type: string }
+        eventId: { type: string }
+        title: { type: string }
+        startDate: { type: string }
+        hasCommunion: { type: boolean }
+        hasBaptism: { type: boolean }
+        hasMemberReception: { type: boolean }
+        attendanceCount: { type: integer }
+        scheduledCount: { type: integer }
+      required: [cultoId, eventId, title, startDate]
+
+    AnnualCultoReport:
+      type: object
+      properties:
+        year: { type: integer }
+        totals:
+          type: object
+          properties:
+            cultos: { type: integer }
+            communions: { type: integer }
+            baptisms: { type: integer }
+            memberReceptions: { type: integer }
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/AnnualCultoReportItem" }
+      required: [year, totals, items]
+
+    # ─── COUNCIL ────────────────────────────────────────────────────────────
+
+    CouncilMeetingStatus:
+      type: string
+      enum: [agendada, realizada, cancelada]
+
+    CouncilMeetingItemStatus:
+      type: string
+      enum: [pendente, discutida, decidida]
+
+    CouncilMeeting:
+      type: object
+      properties:
+        id: { type: string }
+        meetingDate: { type: string }
+        title: { type: string }
+        agenda: { type: string, nullable: true }
+        summary: { type: string, nullable: true }
+        status: { $ref: "#/components/schemas/CouncilMeetingStatus" }
+        notes: { type: string, nullable: true }
+        ataMediaId: { type: string, nullable: true }
+        ataTitle: { type: string, nullable: true }
+        ataUrl: { type: string, nullable: true }
+        itemCount: { type: integer }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+      required: [id, meetingDate, title, status]
+
+    CouncilMeetingItem:
+      type: object
+      properties:
+        id: { type: string }
+        meetingId: { type: string }
+        order: { type: integer }
         title: { type: string }
         description: { type: string, nullable: true }
-        responsibleName: { type: string, nullable: true }
-        durationMinutes: { type: integer, nullable: true }
-        songId: { type: string, nullable: true }
+        status: { $ref: "#/components/schemas/CouncilMeetingItemStatus" }
+        resolution: { type: string, nullable: true }
+        resolvedAt: { type: string, nullable: true }
         createdAt: { type: string }
-      required: [id, liturgyId, order, type, title, createdAt]
+      required: [id, meetingId, order, title, status]
 
-    LiturgyDetail:
+    CouncilMeetingDetail:
       allOf:
-        - $ref: "#/components/schemas/Liturgy"
+        - $ref: "#/components/schemas/CouncilMeeting"
         - type: object
           properties:
             items:
               type: array
-              items:
-                $ref: "#/components/schemas/LiturgyItem"
+              items: { $ref: "#/components/schemas/CouncilMeetingItem" }
           required: [items]
 
-    LiturgiesListResponse:
+    CouncilMeetingsListResponse:
       type: object
       properties:
-        liturgies:
+        meetings:
           type: array
-          items:
-            $ref: "#/components/schemas/Liturgy"
+          items: { $ref: "#/components/schemas/CouncilMeeting" }
         total: { type: integer }
         page: { type: integer }
         limit: { type: integer }
-      required: [liturgies, total]
+      required: [meetings, total]
 
-    CreateLiturgyRequest:
+    UpcomingCouncilMeetingsResponse:
       type: object
       properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/CouncilMeeting" }
+      required: [items]
+
+    CreateCouncilMeetingRequest:
+      type: object
+      properties:
+        meetingDate: { type: string }
         title: { type: string }
-        date: { type: string }
-        type: { type: string, enum: [culto_dominical, culto_especial, santa_ceia, culto_oracao] }
-        eventId: { type: string }
+        agenda: { type: string }
+        summary: { type: string }
+        ataMediaId: { type: string }
+        status: { $ref: "#/components/schemas/CouncilMeetingStatus" }
         notes: { type: string }
-      required: [title, date, type]
+      required: [meetingDate, title]
 
-    UpdateLiturgyRequest:
+    UpdateCouncilMeetingRequest:
       type: object
       properties:
+        meetingDate: { type: string }
         title: { type: string }
-        date: { type: string }
-        type: { type: string, enum: [culto_dominical, culto_especial, santa_ceia, culto_oracao] }
-        eventId: { type: string }
-        status: { type: string, enum: [rascunho, aprovada] }
-        notes: { type: string }
+        agenda: { type: string, nullable: true }
+        summary: { type: string, nullable: true }
+        ataMediaId: { type: string, nullable: true }
+        status: { $ref: "#/components/schemas/CouncilMeetingStatus" }
+        notes: { type: string, nullable: true }
 
-    AddLiturgyItemRequest:
+    AddCouncilMeetingItemRequest:
       type: object
       properties:
-        type: { type: string, enum: [louvor, oracao, leitura, pregacao, ofertorio, avisos, santa_ceia, outro] }
         title: { type: string }
         description: { type: string }
-        responsibleMemberId: { type: string }
-        durationMinutes: { type: integer }
-        songId: { type: string }
-      required: [type, title]
+        status: { $ref: "#/components/schemas/CouncilMeetingItemStatus" }
+        resolution: { type: string }
+      required: [title]
 
-    UpdateLiturgyItemRequest:
+    UpdateCouncilMeetingItemRequest:
       type: object
       properties:
-        type: { type: string, enum: [louvor, oracao, leitura, pregacao, ofertorio, avisos, santa_ceia, outro] }
         title: { type: string }
-        description: { type: string }
-        responsibleMemberId: { type: string }
-        durationMinutes: { type: integer }
-        songId: { type: string }
+        description: { type: string, nullable: true }
+        status: { $ref: "#/components/schemas/CouncilMeetingItemStatus" }
+        resolution: { type: string, nullable: true }
 
-    ReorderLiturgyItemsRequest:
+    ReorderCouncilMeetingItemsRequest:
       type: object
       properties:
         itemIds:
           type: array
-          items:
-            type: string
+          items: { type: string }
       required: [itemIds]
+
+    CouncilMeetingItemsResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/CouncilMeetingItem" }
+      required: [items]
 
     # ─── ARTICLES ───────────────────────────────────────────────────────────
 

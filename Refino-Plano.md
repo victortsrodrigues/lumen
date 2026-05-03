@@ -166,8 +166,10 @@ Para cada fase, repetir o ciclo:
 
 - [x] Fase 1 — Rol de Membros _(commits dfe1866, ac7f0c6, fc9cc82, c9dac3a)_
 - [x] Fase 2 — Visitantes _(commits incluem hotfix Fase 1 de auth.ts e dashboard.ts)_
-- [ ] Fase 3 — Mapa de Discipulado
-- [ ] Fase 4 — Ensino e Pregação
-- [ ] Fase 5 — Culto
-- [ ] Fase 6 — Conselho
-- [ ] Fase 7 — Dashboard
+- [x] Fase 3 — Mapa de Discipulado _(member_areas + member_area_history; PG/EBD/culto/ministério com cores; drop pipelineStage)_
+- [x] Fase 4 — Ensino e Pregação _(course_category novo enum: pregacao/escola_biblica/pequeno_grupo/cursos_livres; UI "Cursos"→"Séries")_
+- [x] Fase 5 — Culto _(novo módulo /cultos substituindo Liturgia; tabelas cultos + culto_songs; relatório anual + 3 abas no detalhe)_
+- [x] Fase 6 — Conselho _(novo módulo /conselho admin-only; council_meetings + council_meeting_items com lifecycle pendente/discutida/decidida; upload de ata via media)_
+- [x] Fase 7 — Dashboard _(widgets PG + Próximo Mês; rename Cursos→Séries; todos os cards clicáveis)_
+
+**🎉 Refino completo — todas as 7 fases implementadas.**

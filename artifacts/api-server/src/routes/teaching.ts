@@ -21,6 +21,8 @@ function getIp(req: Request): string {
   return req.socket?.remoteAddress ?? "unknown";
 }
 
+const VALID_CATEGORIES = ["pregacao", "escola_biblica", "pequeno_grupo", "cursos_livres"] as const;
+
 function serializeCourse(c: typeof coursesTable.$inferSelect) {
   return {
     id: c.id,
@@ -107,7 +109,7 @@ router.get("/courses", requireAuth, async (req: Request, res: Response) => {
 
   const conditions = [isNull(coursesTable.deletedAt)];
   if (status) conditions.push(eq(coursesTable.status, status as "aberto"));
-  if (category) conditions.push(eq(coursesTable.category, category as "ebd"));
+  if (category) conditions.push(eq(coursesTable.category, category as "pregacao"));
 
   // Filter to only courses the current user is enrolled in
   if (mine) {
@@ -206,6 +208,13 @@ router.post("/courses", requireAuth, requireRole("admin"), async (req: Request, 
     res.status(400).json({ error: "VALIDATION_ERROR", message: "Campos obrigatórios: título, professor, categoria" });
     return;
   }
+  if (!(VALID_CATEGORIES as readonly string[]).includes(category)) {
+    res.status(400).json({
+      error: "VALIDATION_ERROR",
+      message: `Categoria inválida. Aceitas: ${VALID_CATEGORIES.join(", ")}`,
+    });
+    return;
+  }
 
   // Get teacher name snapshot
   let teacherName: string | null = null;
@@ -220,7 +229,7 @@ router.post("/courses", requireAuth, requireRole("admin"), async (req: Request, 
     introVideoUrl: introVideoUrl ?? null,
     teacherId,
     teacherName,
-    category: category as "ebd",
+    category: category as "pregacao",
     status: (status ?? "aberto") as "aberto",
     startDate: startDate ?? null,
     endDate: endDate ?? null,
@@ -271,6 +280,14 @@ router.put("/courses/:id", requireAuth, async (req: Request, res: Response) => {
   }
 
   const { title, description, syllabus, introVideoUrl, teacherId, category, status, startDate, endDate, dayOfWeek, timeSlot, location, lessonDurationMinutes, totalWeeks, maxSlots } = req.body;
+
+  if (category !== undefined && !(VALID_CATEGORIES as readonly string[]).includes(category)) {
+    res.status(400).json({
+      error: "VALIDATION_ERROR",
+      message: `Categoria inválida. Aceitas: ${VALID_CATEGORIES.join(", ")}`,
+    });
+    return;
+  }
 
   let teacherName = existing.teacherName;
   if (teacherId && teacherId !== existing.teacherId) {

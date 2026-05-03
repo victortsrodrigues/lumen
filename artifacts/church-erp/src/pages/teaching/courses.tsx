@@ -16,11 +16,10 @@ import {
 } from "lucide-react";
 
 const CATEGORIES: Record<string, string> = {
-  ebd: "EBD",
-  discipulado: "Discipulado",
-  seminario: "Seminário",
-  curso_livre: "Curso Livre",
-  escola_de_lideres: "Escola de Líderes",
+  pregacao: "Pregação",
+  escola_biblica: "Escola Bíblica",
+  pequeno_grupo: "Pequeno Grupo",
+  cursos_livres: "Cursos Livres",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -46,7 +45,7 @@ const courseSchema = z.object({
   syllabus: z.string().min(1, "Ementa é obrigatória"),
   introVideoUrl: z.string().optional(),
   teacherId: z.string().min(1, "Professor é obrigatório"),
-  category: z.enum(["ebd", "discipulado", "seminario", "curso_livre", "escola_de_lideres"], {
+  category: z.enum(["pregacao", "escola_biblica", "pequeno_grupo", "cursos_livres"], {
     errorMap: () => ({ message: "Categoria é obrigatória" }),
   }),
   status: z.enum(["aberto", "em_andamento", "encerrado"], {
@@ -85,42 +84,42 @@ export default function CoursesPage() {
 
   const form = useForm<CourseForm>({
     resolver: zodResolver(courseSchema),
-    defaultValues: { category: "ebd", status: "aberto" },
+    defaultValues: { category: "escola_biblica", status: "aberto" },
   });
 
   const createMutation = useCreateCourse({
     mutation: {
       onSuccess: () => {
-        toast({ title: "Sucesso", description: "Curso criado com sucesso." });
+        toast({ title: "Sucesso", description: "Série criada com sucesso." });
         closeModal();
       },
-      onError: () => toast({ title: "Erro", description: "Falha ao criar curso.", variant: "destructive" }),
+      onError: () => toast({ title: "Erro", description: "Falha ao criar série.", variant: "destructive" }),
     },
   });
 
   const updateMutation = useUpdateCourse({
     mutation: {
       onSuccess: () => {
-        toast({ title: "Sucesso", description: "Curso atualizado com sucesso." });
+        toast({ title: "Sucesso", description: "Série atualizada com sucesso." });
         closeModal();
       },
-      onError: () => toast({ title: "Erro", description: "Falha ao atualizar curso.", variant: "destructive" }),
+      onError: () => toast({ title: "Erro", description: "Falha ao atualizar série.", variant: "destructive" }),
     },
   });
 
   const deleteMutation = useDeleteCourse({
     mutation: {
       onSuccess: () => {
-        toast({ title: "Sucesso", description: "Curso excluído com sucesso." });
+        toast({ title: "Sucesso", description: "Série excluída com sucesso." });
       },
-      onError: () => toast({ title: "Erro", description: "Falha ao excluir curso.", variant: "destructive" }),
+      onError: () => toast({ title: "Erro", description: "Falha ao excluir série.", variant: "destructive" }),
     },
   });
 
   function closeModal() {
     setIsModalOpen(false);
     setEditingId(null);
-    form.reset({ category: "ebd", status: "aberto" });
+    form.reset({ category: "escola_biblica", status: "aberto" });
   }
 
   function openEdit(course: Record<string, unknown>) {
@@ -157,7 +156,7 @@ export default function CoursesPage() {
   }
 
   function handleDelete(id: string, title: string) {
-    if (confirm(`Deseja realmente excluir o curso "${title}"?`)) {
+    if (confirm(`Deseja realmente excluir a série "${title}"?`)) {
       deleteMutation.mutate({ id });
     }
   }
@@ -183,20 +182,20 @@ export default function CoursesPage() {
   }, [courses]);
 
   return (
-    <AppLayout breadcrumbs={[{ label: "Ensino", href: "/teaching" }, { label: "Cursos" }]}>
+    <AppLayout breadcrumbs={[{ label: "Ensino e Pregação", href: "/teaching" }, { label: "Séries" }]}>
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <BookOpen className="h-6 w-6 text-blue-500" /> Cursos
+            <BookOpen className="h-6 w-6 text-blue-500" /> Séries
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">{total} curso(s) encontrado(s)</p>
+          <p className="text-muted-foreground text-sm mt-1">{total} série(s) encontrada(s)</p>
         </div>
         {canManage && (
           <button
-            onClick={() => { form.reset({ category: "ebd", status: "aberto" }); setIsModalOpen(true); }}
+            onClick={() => { form.reset({ category: "escola_biblica", status: "aberto" }); setIsModalOpen(true); }}
             className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90"
           >
-            <Plus className="h-4 w-4" /> Novo Curso
+            <Plus className="h-4 w-4" /> Nova Série
           </button>
         )}
       </div>
@@ -258,7 +257,7 @@ export default function CoursesPage() {
               {courses.length === 0 && (
                 <tr>
                   <td colSpan={canManage ? 6 : 5} className="px-6 py-12 text-center text-muted-foreground">
-                    Nenhum curso encontrado.
+                    Nenhuma série encontrada.
                   </td>
                 </tr>
               )}
@@ -326,7 +325,7 @@ export default function CoursesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={closeModal}>
           <div className="bg-card rounded-2xl border shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b">
-              <h2 className="text-lg font-bold">{editingId ? "Editar Curso" : "Novo Curso"}</h2>
+              <h2 className="text-lg font-bold">{editingId ? "Editar Série" : "Nova Série"}</h2>
             </div>
             <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} noValidate className="p-6 space-y-4">
               <FormErrorSummary errors={form.formState.errors} />

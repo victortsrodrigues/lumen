@@ -2,7 +2,8 @@ import { Router, type IRouter, Request, Response } from "express";
 import {
   db, membersTable, memberHistoryTable, consentRecordsTable, financeEntriesTable,
   courseEnrollmentsTable, eventRegistrationsTable, ministryMembersTable, ministriesTable,
-  assetsTable, eventSchedulesTable, planningInitiativesTable, memberPipelineHistoryTable,
+  assetsTable, eventSchedulesTable, planningInitiativesTable,
+  memberAreasTable,
   usersTable, memberChildrenTable, memberGroupsTable, memberGroupMembersTable,
   isValidReceptionMode, isValidExclusionReason,
 } from "@workspace/db";
@@ -24,8 +25,6 @@ function getIp(req: Request): string {
 
 // ─── ENUMS / VALIDATIONS ────────────────────────────────────────────────────
 
-const VALID_PIPELINE_STAGES = ["culto", "pequeno_grupo", "ministerio"] as const;
-
 // Allowlist for PUT /members/me — own profile updates
 const SELF_PROFILE_ALLOWED_FIELDS = new Set([
   "fullName", "dateOfBirth", "sex", "phone",
@@ -33,6 +32,28 @@ const SELF_PROFILE_ALLOWED_FIELDS = new Set([
   "addressNeighborhood", "addressCity", "addressState",
   "photoPath", "maritalStatus", "academicEducation", "profession",
 ]);
+
+// ─── DISCIPLESHIP AREAS ─────────────────────────────────────────────────────
+
+const MEMBER_AREAS = ["culto", "pequeno_grupo", "ministerio", "ebd"] as const;
+
+/**
+ * Auto-create the 4 discipleship areas for a member, idempotent.
+ * Called from every member-creation path (POST /, /me auto-create, CSV import,
+ * /visitors/:id/convert, /auth/register, bootstrap).
+ */
+export async function ensureMemberAreas(memberId: string, userId: string): Promise<void> {
+  await db.insert(memberAreasTable).values(
+    MEMBER_AREAS.map(area => ({
+      memberId,
+      area: area as typeof MEMBER_AREAS[number],
+      healthStatus: "verde" as const,
+      lastUpdatedByUserId: userId,
+    }))
+  ).onConflictDoNothing({
+    target: [memberAreasTable.memberId, memberAreasTable.area],
+  });
+}
 
 // ─── SERIALIZATION ──────────────────────────────────────────────────────────
 
@@ -45,7 +66,6 @@ function serializeMemberSummary(m: typeof membersTable.$inferSelect) {
     email: m.email,
     classification: m.classification,
     status: m.status,
-    pipelineStage: m.pipelineStage,
     receptionMode: m.receptionMode,
     photoPath: m.photoPath,
     createdAt: m.createdAt,
@@ -92,7 +112,6 @@ function serializeMemberDetail(m: typeof membersTable.$inferSelect, extras?: {
     profession: m.profession,
     // Status / exclusão
     status: m.status,
-    pipelineStage: m.pipelineStage,
     exclusionReason: m.exclusionReason,
     exclusionDate: m.exclusionDate,
     exclusionNotes: m.exclusionNotes,
@@ -113,7 +132,7 @@ function buildHistoryDiff(before: Record<string, unknown>, after: Record<string,
     "conversionYear", "religiousOrigin", "infantBaptism", "infantBaptismChurch",
     "infantBaptismPastor", "parentsOrGuardians", "classification", "receptionMode",
     "maritalStatus", "spouseMemberId", "academicEducation", "profession",
-    "status", "pipelineStage", "photoPath",
+    "status", "photoPath",
   ];
   for (const field of safeFields) {
     if (before[field] !== after[field]) {
@@ -280,7 +299,7 @@ router.post("/", requireAuth, requireRole("admin", "leader"), async (req: Reques
     classification, receptionMode, receptionDate, conversionDate, conversionYear,
     religiousOrigin, infantBaptism, infantBaptismChurch, infantBaptismPastor, parentsOrGuardians,
     maritalStatus, spouseMemberId, academicEducation, profession,
-    status, pipelineStage, photoPath, lgpdConsentAccepted,
+    status, photoPath, lgpdConsentAccepted,
   } = req.body;
 
   if (!fullName) {
@@ -304,7 +323,7 @@ router.post("/", requireAuth, requireRole("admin", "leader"), async (req: Reques
     });
     return;
   }
-  if (spouseMemberId === req.params.id) {
+  if (spouseMemberId && req.params.id && spouseMemberId === req.params.id) {
     res.status(400).json({ error: "VALIDATION_ERROR", message: "Cônjuge não pode ser o próprio membro" });
     return;
   }
@@ -342,7 +361,6 @@ router.post("/", requireAuth, requireRole("admin", "leader"), async (req: Reques
     academicEducation: academicEducation || null,
     profession: profession || null,
     status: (status || "ativo") as any,
-    pipelineStage: (pipelineStage || "culto") as any,
     photoPath: photoPath || null,
     createdByUserId: userId,
     updatedByUserId: userId,
@@ -351,6 +369,8 @@ router.post("/", requireAuth, requireRole("admin", "leader"), async (req: Reques
   if (spouseMemberId) {
     await setSpouse(member.id, spouseMemberId, userId);
   }
+
+  await ensureMemberAreas(member.id, userId);
 
   await db.insert(consentRecordsTable).values({
     userId,
@@ -448,6 +468,8 @@ router.post("/import/csv", requireAuth, requireRole("admin", "leader"), async (r
         fieldChanges: { source: "csv_import", fullName },
       });
 
+      await ensureMemberAreas(member.id, userId);
+
       results.push({ row, success: true, memberId: member.id, fullName });
       succeeded++;
     } catch (err: unknown) {
@@ -476,52 +498,6 @@ router.post("/import/csv", requireAuth, requireRole("admin", "leader"), async (r
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// PIPELINE — Static routes BEFORE /:id to avoid Express collision
-// ═══════════════════════════════════════════════════════════════════════════════
-
-router.get("/pipeline/summary", requireAuth, requireRole("admin", "leader"), async (_req: Request, res: Response) => {
-  const members = await db.select({ stage: membersTable.pipelineStage, total: count() })
-    .from(membersTable)
-    .where(eq(membersTable.status, "ativo"))
-    .groupBy(membersTable.pipelineStage);
-
-  const summary: Record<string, number> = {};
-  for (const stage of VALID_PIPELINE_STAGES) summary[stage] = 0;
-  for (const m of members) summary[m.stage] = Number(m.total);
-
-  res.json({ summary, total: Object.values(summary).reduce((a, b) => a + b, 0) });
-});
-
-router.get("/pipeline/stagnant", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
-  const days = Math.max(1, parseInt(req.query.days as string) || 90);
-  const threshold = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-
-  const allActive = await db.select().from(membersTable)
-    .where(eq(membersTable.status, "ativo"));
-
-  const stagnant = [];
-  for (const m of allActive) {
-    const [latest] = await db.select().from(memberPipelineHistoryTable)
-      .where(eq(memberPipelineHistoryTable.memberId, m.id))
-      .orderBy(desc(memberPipelineHistoryTable.createdAt))
-      .limit(1);
-
-    const lastChange = latest?.createdAt || m.createdAt;
-    if (lastChange < threshold) {
-      stagnant.push({
-        id: m.id,
-        fullName: m.fullName,
-        pipelineStage: m.pipelineStage,
-        daysSinceChange: Math.floor((Date.now() - lastChange.getTime()) / (24 * 60 * 60 * 1000)),
-        lastChangeAt: lastChange.toISOString(),
-      });
-    }
-  }
-
-  res.json({ stagnant, total: stagnant.length, thresholdDays: days });
-});
-
-// ═══════════════════════════════════════════════════════════════════════════════
 // SELF PROFILE (/me) — allowlist enforcement
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -542,10 +518,11 @@ router.get("/me", requireAuth, async (req: Request, res: Response) => {
       email,
       classification: "comungante",
       status: "ativo" as const,
-      pipelineStage: "culto" as const,
       createdByUserId: userId,
       updatedByUserId: userId,
     }).returning();
+
+    await ensureMemberAreas(created.id, userId);
 
     await db.insert(memberHistoryTable).values({
       memberId: created.id,
@@ -901,6 +878,13 @@ router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request, re
   await db.update(planningInitiativesTable).set({ responsibleId: null, responsibleName: "[anonimizado]" })
     .where(eq(planningInitiativesTable.responsibleId, existing.id));
 
+  // Discipleship: remove areas + clear leader refs where this member led
+  await db.delete(memberAreasTable).where(eq(memberAreasTable.memberId, existing.id));
+  await db.update(memberAreasTable).set({
+    leaderMemberId: null,
+    leaderMemberName: null,
+  }).where(eq(memberAreasTable.leaderMemberId, existing.id));
+
   await db.insert(memberHistoryTable).values({
     memberId: existing.id,
     changedByUserId: userId,
@@ -1001,87 +985,6 @@ router.get("/:id/ministries", requireAuth, async (req: Request, res: Response) =
       ministryStatus: m.ministryStatus,
       role: m.role,
       joinedAt: m.joinedAt?.toISOString(),
-    })),
-  });
-});
-
-// PUT /members/:id/pipeline
-router.put("/:id/pipeline", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const user = req.user!;
-  const ip = getIp(req);
-
-  const [member] = await db.select().from(membersTable).where(eq(membersTable.id, id)).limit(1);
-  if (!member) {
-    res.status(404).json({ error: "Membro nao encontrado" });
-    return;
-  }
-
-  const { stage, reason } = req.body;
-  if (!stage || !VALID_PIPELINE_STAGES.includes(stage)) {
-    res.status(400).json({ error: `Etapa invalida. Valores aceitos: ${VALID_PIPELINE_STAGES.join(", ")}` });
-    return;
-  }
-
-  const fromStage = member.pipelineStage;
-
-  await db.update(membersTable).set({
-    pipelineStage: stage as any,
-    updatedByUserId: user.userId,
-    updatedAt: new Date(),
-  }).where(eq(membersTable.id, id));
-
-  await db.insert(memberPipelineHistoryTable).values({
-    memberId: id,
-    fromStage,
-    toStage: stage,
-    changedByUserId: user.userId,
-    reason: reason || null,
-  });
-
-  await createAuditLog({
-    userId: user.userId,
-    action: "MEMBER_PIPELINE_CHANGED",
-    resourceType: "member",
-    resourceId: id,
-    details: { fromStage, toStage: stage, reason },
-    ipAddress: ip,
-  });
-
-  res.json({ message: "Etapa atualizada", fromStage, toStage: stage });
-});
-
-// GET /members/:id/pipeline
-router.get("/:id/pipeline", requireAuth, async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const user = req.user!;
-
-  if (user.role === "member") {
-    const [self] = await db.select().from(membersTable).where(eq(membersTable.email, user.email)).limit(1);
-    if (!self || self.id !== id) {
-      res.status(403).json({ error: "Sem permissao para ver historico deste membro" });
-      return;
-    }
-  }
-
-  const [member] = await db.select().from(membersTable).where(eq(membersTable.id, id)).limit(1);
-  if (!member) {
-    res.status(404).json({ error: "Membro nao encontrado" });
-    return;
-  }
-
-  const history = await db.select().from(memberPipelineHistoryTable)
-    .where(eq(memberPipelineHistoryTable.memberId, id))
-    .orderBy(desc(memberPipelineHistoryTable.createdAt));
-
-  res.json({
-    currentStage: member.pipelineStage,
-    history: history.map(h => ({
-      id: h.id,
-      fromStage: h.fromStage,
-      toStage: h.toStage,
-      reason: h.reason,
-      createdAt: h.createdAt?.toISOString(),
     })),
   });
 });

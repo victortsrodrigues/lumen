@@ -83,6 +83,17 @@ describe("05-events", () => {
     expect(res.body).toHaveProperty("events");
   });
 
+  it("6.1. Upcoming with ?days=30 returns 30-day window", async () => {
+    const res = await request("GET", "/events/upcoming?days=30", undefined, adminCk);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body.events)).toBe(true);
+  });
+
+  it("6.2. Upcoming with ?days=999 silently clamps to 365 (no 400)", async () => {
+    const res = await request("GET", "/events/upcoming?days=999", undefined, adminCk);
+    expect(res.status).toBe(200);
+  });
+
   it("7. Upcoming returns empty array (no error)", async () => {
     // Create event in the past
     await request("POST", "/events", {

@@ -19,16 +19,19 @@ import type {
 import type {
   AddBudgetItems201,
   AddChildRequest,
+  AddCouncilMeetingItemRequest,
+  AddCultoSongRequest,
   AddInitiativeStepBody,
-  AddLiturgyItemRequest,
   AddMinistryMemberRequest,
   AddToScheduleRequest,
   AddVisitRequest,
+  AnnualCultoReport,
   Article,
   ArticlesListResponse,
   Asset,
   AssetsListResponse,
   AssetsSummary,
+  AtRiskResponse,
   AttendanceListResponse,
   AuditLogListResponse,
   AuthResponse,
@@ -47,6 +50,11 @@ import type {
   ContentItem,
   ContentsListResponse,
   ConvertVisitorRequest,
+  CouncilMeeting,
+  CouncilMeetingDetail,
+  CouncilMeetingItem,
+  CouncilMeetingItemsResponse,
+  CouncilMeetingsListResponse,
   CounselingCase,
   CounselingCaseDetail,
   CounselingCasesListResponse,
@@ -62,9 +70,11 @@ import type {
   CreateAssetRequest,
   CreateBudgetRequest,
   CreateContentRequest,
+  CreateCouncilMeetingRequest,
   CreateCounselingCaseRequest,
   CreateCounselingSessionRequest,
   CreateCourseRequest,
+  CreateCultoRequest,
   CreateDirectiveRequest,
   CreateEventRequest,
   CreateFinanceEntryRequest,
@@ -75,7 +85,6 @@ import type {
   CreateLessonDiscussionRequest,
   CreateLessonRequest,
   CreateLgpdRequestBody,
-  CreateLiturgyRequest,
   CreateMediaRequest,
   CreateMemberGroupRequest,
   CreateMemberRequest,
@@ -91,10 +100,17 @@ import type {
   CreateSongSuggestionRequest,
   CreateVisitorRequest,
   CsrfTokenResponse,
+  Culto,
+  CultoDetail,
+  CultoSong,
+  CultoSongsReorderResponse,
+  CultosListResponse,
   DashboardStats,
   Directive,
   DirectiveDetail,
   DirectivesListResponse,
+  DiscipleshipLeadersResponse,
+  DiscipleshipSummary,
   EnrollInCourseBody,
   EnrollmentsListResponse,
   ErrorResponse,
@@ -120,12 +136,14 @@ import type {
   ForumTopic,
   ForumTopicDetail,
   ForumTopicsListResponse,
+  GetAnnualCultoReportParams,
   GetAuditLogsParams,
+  GetDiscipleshipAtRiskParams,
   GetEventsCalendarParams,
   GetExpenseReceiptUrl200,
   GetFinanceReportParams,
   GetFinanceSummaryParams,
-  GetStagnantMembersParams,
+  GetUpcomingEventsParams,
   HealthStatus,
   ImportCsvRequest,
   ImportCsvResponse,
@@ -144,7 +162,9 @@ import type {
   ListAssetsParams,
   ListBudgetsParams,
   ListContentsParams,
+  ListCouncilMeetingsParams,
   ListCounselingCasesParams,
+  ListCultosParams,
   ListEventsParams,
   ListFinanceClosings200,
   ListFinanceEntriesParams,
@@ -152,7 +172,6 @@ import type {
   ListForumTopicsParams,
   ListInitiativesParams,
   ListLgpdRequestsParams,
-  ListLiturgiesParams,
   ListMediaParams,
   ListMembersParams,
   ListMinistriesParams,
@@ -162,13 +181,13 @@ import type {
   ListSongsParams,
   ListTeachingCoursesParams,
   ListVisitorsParams,
-  LiturgiesListResponse,
-  Liturgy,
-  LiturgyDetail,
-  LiturgyItem,
   LoginRequest,
   MediaLink,
   MediaListResponse,
+  MemberArea,
+  MemberAreaEntry,
+  MemberAreaHistoryResponse,
+  MemberAreasResponse,
   MemberDetail,
   MemberGroup,
   MemberGroupDetail,
@@ -176,7 +195,6 @@ import type {
   MemberHistoryResponse,
   MemberListResponse,
   MemberMinistriesResponse,
-  MemberPipelineResponse,
   MemberStats,
   MessageResponse,
   MfaSetupResponse,
@@ -187,8 +205,6 @@ import type {
   MinistryGoal,
   MinistryGoalsListResponse,
   MinistryMember,
-  MovePipelineRequest,
-  MovePipelineResponse,
   MyDataResponse,
   Notification,
   NotificationsListResponse,
@@ -198,7 +214,6 @@ import type {
   PastoralVisit,
   PastoralVisitsHistoryResponse,
   PastoralVisitsListResponse,
-  PipelineSummary,
   PixConfig,
   PixDonateInfo,
   PixDonation,
@@ -212,7 +227,8 @@ import type {
   RegisterExclusionRequest,
   RegisterForEventBody,
   RegisterRequest,
-  ReorderLiturgyItemsRequest,
+  ReorderCouncilMeetingItemsRequest,
+  ReorderCultoSongsRequest,
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
   ResetPasswordRequest,
@@ -226,18 +242,23 @@ import type {
   SongSuggestion,
   SongSuggestionsListResponse,
   SongsListResponse,
-  StagnantMembersResponse,
   StudentProgress,
   TeachingDashboard,
   TransferLetterRequest,
   UnreadCountResponse,
+  UpcomingCouncilMeetingsResponse,
+  UpcomingCultosResponse,
   UpcomingEventsResponse,
   UpdateArticleRequest,
   UpdateAssetRequest,
   UpdateBudgetItemBody,
   UpdateBudgetRequest,
   UpdateContentRequest,
+  UpdateCouncilMeetingItemRequest,
+  UpdateCouncilMeetingRequest,
   UpdateCounselingCaseRequest,
+  UpdateCultoRequest,
+  UpdateCultoSongRequest,
   UpdateDirectiveRequest,
   UpdateFinanceEntryRequest,
   UpdateFinanceExpenseRequest,
@@ -246,9 +267,8 @@ import type {
   UpdateInitiativeRequest,
   UpdateInitiativeStepBody,
   UpdateLessonDiscussionRequest,
-  UpdateLiturgyItemRequest,
-  UpdateLiturgyRequest,
   UpdateMediaRequest,
+  UpdateMemberAreaRequest,
   UpdateMemberGroupRequest,
   UpdateMemberRequest,
   UpdateMinistryGoalRequest,
@@ -1585,31 +1605,31 @@ export const useCreateMember = <
 };
 
 /**
- * @summary Pipeline funnel summary
+ * @summary Discipleship 4x3 health matrix (active members only)
  */
-export const getGetPipelineSummaryUrl = () => {
-  return `/api/members/pipeline/summary`;
+export const getGetDiscipleshipSummaryUrl = () => {
+  return `/api/discipleship/summary`;
 };
 
-export const getPipelineSummary = async (
+export const getDiscipleshipSummary = async (
   options?: RequestInit,
-): Promise<PipelineSummary> => {
-  return customFetch<PipelineSummary>(getGetPipelineSummaryUrl(), {
+): Promise<DiscipleshipSummary> => {
+  return customFetch<DiscipleshipSummary>(getGetDiscipleshipSummaryUrl(), {
     ...options,
     method: "GET",
   });
 };
 
-export const getGetPipelineSummaryQueryKey = () => {
-  return [`/api/members/pipeline/summary`] as const;
+export const getGetDiscipleshipSummaryQueryKey = () => {
+  return [`/api/discipleship/summary`] as const;
 };
 
-export const getGetPipelineSummaryQueryOptions = <
-  TData = Awaited<ReturnType<typeof getPipelineSummary>>,
+export const getGetDiscipleshipSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDiscipleshipSummary>>,
   TError = ErrorType<unknown>,
 >(options?: {
   query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getPipelineSummary>>,
+    Awaited<ReturnType<typeof getDiscipleshipSummary>>,
     TError,
     TData
   >;
@@ -1617,40 +1637,41 @@ export const getGetPipelineSummaryQueryOptions = <
 }) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetPipelineSummaryQueryKey();
+  const queryKey =
+    queryOptions?.queryKey ?? getGetDiscipleshipSummaryQueryKey();
 
   const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof getPipelineSummary>>
-  > = ({ signal }) => getPipelineSummary({ signal, ...requestOptions });
+    Awaited<ReturnType<typeof getDiscipleshipSummary>>
+  > = ({ signal }) => getDiscipleshipSummary({ signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getPipelineSummary>>,
+    Awaited<ReturnType<typeof getDiscipleshipSummary>>,
     TError,
     TData
   > & { queryKey: QueryKey };
 };
 
-export type GetPipelineSummaryQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getPipelineSummary>>
+export type GetDiscipleshipSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDiscipleshipSummary>>
 >;
-export type GetPipelineSummaryQueryError = ErrorType<unknown>;
+export type GetDiscipleshipSummaryQueryError = ErrorType<unknown>;
 
 /**
- * @summary Pipeline funnel summary
+ * @summary Discipleship 4x3 health matrix (active members only)
  */
 
-export function useGetPipelineSummary<
-  TData = Awaited<ReturnType<typeof getPipelineSummary>>,
+export function useGetDiscipleshipSummary<
+  TData = Awaited<ReturnType<typeof getDiscipleshipSummary>>,
   TError = ErrorType<unknown>,
 >(options?: {
   query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getPipelineSummary>>,
+    Awaited<ReturnType<typeof getDiscipleshipSummary>>,
     TError,
     TData
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetPipelineSummaryQueryOptions(options);
+  const queryOptions = getGetDiscipleshipSummaryQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -1660,9 +1681,11 @@ export function useGetPipelineSummary<
 }
 
 /**
- * @summary Members stagnant in pipeline
+ * @summary Members with red health in any area
  */
-export const getGetStagnantMembersUrl = (params?: GetStagnantMembersParams) => {
+export const getGetDiscipleshipAtRiskUrl = (
+  params?: GetDiscipleshipAtRiskParams,
+) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -1674,40 +1697,34 @@ export const getGetStagnantMembersUrl = (params?: GetStagnantMembersParams) => {
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/members/pipeline/stagnant?${stringifiedParams}`
-    : `/api/members/pipeline/stagnant`;
+    ? `/api/discipleship/at-risk?${stringifiedParams}`
+    : `/api/discipleship/at-risk`;
 };
 
-export const getStagnantMembers = async (
-  params?: GetStagnantMembersParams,
+export const getDiscipleshipAtRisk = async (
+  params?: GetDiscipleshipAtRiskParams,
   options?: RequestInit,
-): Promise<StagnantMembersResponse> => {
-  return customFetch<StagnantMembersResponse>(
-    getGetStagnantMembersUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+): Promise<AtRiskResponse> => {
+  return customFetch<AtRiskResponse>(getGetDiscipleshipAtRiskUrl(params), {
+    ...options,
+    method: "GET",
+  });
 };
 
-export const getGetStagnantMembersQueryKey = (
-  params?: GetStagnantMembersParams,
+export const getGetDiscipleshipAtRiskQueryKey = (
+  params?: GetDiscipleshipAtRiskParams,
 ) => {
-  return [
-    `/api/members/pipeline/stagnant`,
-    ...(params ? [params] : []),
-  ] as const;
+  return [`/api/discipleship/at-risk`, ...(params ? [params] : [])] as const;
 };
 
-export const getGetStagnantMembersQueryOptions = <
-  TData = Awaited<ReturnType<typeof getStagnantMembers>>,
+export const getGetDiscipleshipAtRiskQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDiscipleshipAtRisk>>,
   TError = ErrorType<unknown>,
 >(
-  params?: GetStagnantMembersParams,
+  params?: GetDiscipleshipAtRiskParams,
   options?: {
     query?: UseQueryOptions<
-      Awaited<ReturnType<typeof getStagnantMembers>>,
+      Awaited<ReturnType<typeof getDiscipleshipAtRisk>>,
       TError,
       TData
     >;
@@ -1717,43 +1734,44 @@ export const getGetStagnantMembersQueryOptions = <
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
   const queryKey =
-    queryOptions?.queryKey ?? getGetStagnantMembersQueryKey(params);
+    queryOptions?.queryKey ?? getGetDiscipleshipAtRiskQueryKey(params);
 
   const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof getStagnantMembers>>
-  > = ({ signal }) => getStagnantMembers(params, { signal, ...requestOptions });
+    Awaited<ReturnType<typeof getDiscipleshipAtRisk>>
+  > = ({ signal }) =>
+    getDiscipleshipAtRisk(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getStagnantMembers>>,
+    Awaited<ReturnType<typeof getDiscipleshipAtRisk>>,
     TError,
     TData
   > & { queryKey: QueryKey };
 };
 
-export type GetStagnantMembersQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getStagnantMembers>>
+export type GetDiscipleshipAtRiskQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDiscipleshipAtRisk>>
 >;
-export type GetStagnantMembersQueryError = ErrorType<unknown>;
+export type GetDiscipleshipAtRiskQueryError = ErrorType<unknown>;
 
 /**
- * @summary Members stagnant in pipeline
+ * @summary Members with red health in any area
  */
 
-export function useGetStagnantMembers<
-  TData = Awaited<ReturnType<typeof getStagnantMembers>>,
+export function useGetDiscipleshipAtRisk<
+  TData = Awaited<ReturnType<typeof getDiscipleshipAtRisk>>,
   TError = ErrorType<unknown>,
 >(
-  params?: GetStagnantMembersParams,
+  params?: GetDiscipleshipAtRiskParams,
   options?: {
     query?: UseQueryOptions<
-      Awaited<ReturnType<typeof getStagnantMembers>>,
+      Awaited<ReturnType<typeof getDiscipleshipAtRisk>>,
       TError,
       TData
     >;
     request?: SecondParameter<typeof customFetch>;
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetStagnantMembersQueryOptions(params, options);
+  const queryOptions = getGetDiscipleshipAtRiskQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -1763,18 +1781,17 @@ export function useGetStagnantMembers<
 }
 
 /**
- * @summary Member pipeline history
+ * @summary Members who are leaders in any area
  */
-export const getGetMemberPipelineHistoryUrl = (id: string) => {
-  return `/api/members/${id}/pipeline`;
+export const getGetDiscipleshipLeadersUrl = () => {
+  return `/api/discipleship/leaders`;
 };
 
-export const getMemberPipelineHistory = async (
-  id: string,
+export const getDiscipleshipLeaders = async (
   options?: RequestInit,
-): Promise<MemberPipelineResponse> => {
-  return customFetch<MemberPipelineResponse>(
-    getGetMemberPipelineHistoryUrl(id),
+): Promise<DiscipleshipLeadersResponse> => {
+  return customFetch<DiscipleshipLeadersResponse>(
+    getGetDiscipleshipLeadersUrl(),
     {
       ...options,
       method: "GET",
@@ -1782,18 +1799,95 @@ export const getMemberPipelineHistory = async (
   );
 };
 
-export const getGetMemberPipelineHistoryQueryKey = (id: string) => {
-  return [`/api/members/${id}/pipeline`] as const;
+export const getGetDiscipleshipLeadersQueryKey = () => {
+  return [`/api/discipleship/leaders`] as const;
 };
 
-export const getGetMemberPipelineHistoryQueryOptions = <
-  TData = Awaited<ReturnType<typeof getMemberPipelineHistory>>,
+export const getGetDiscipleshipLeadersQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDiscipleshipLeaders>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDiscipleshipLeaders>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetDiscipleshipLeadersQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDiscipleshipLeaders>>
+  > = ({ signal }) => getDiscipleshipLeaders({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDiscipleshipLeaders>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDiscipleshipLeadersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDiscipleshipLeaders>>
+>;
+export type GetDiscipleshipLeadersQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Members who are leaders in any area
+ */
+
+export function useGetDiscipleshipLeaders<
+  TData = Awaited<ReturnType<typeof getDiscipleshipLeaders>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDiscipleshipLeaders>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDiscipleshipLeadersQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Members under this leader (group by area)
+ */
+export const getGetDiscipleshipByLeaderUrl = (leaderId: string) => {
+  return `/api/discipleship/by-leader/${leaderId}`;
+};
+
+export const getDiscipleshipByLeader = async (
+  leaderId: string,
+  options?: RequestInit,
+): Promise<AtRiskResponse> => {
+  return customFetch<AtRiskResponse>(getGetDiscipleshipByLeaderUrl(leaderId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDiscipleshipByLeaderQueryKey = (leaderId: string) => {
+  return [`/api/discipleship/by-leader/${leaderId}`] as const;
+};
+
+export const getGetDiscipleshipByLeaderQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDiscipleshipByLeader>>,
   TError = ErrorType<unknown>,
 >(
-  id: string,
+  leaderId: string,
   options?: {
     query?: UseQueryOptions<
-      Awaited<ReturnType<typeof getMemberPipelineHistory>>,
+      Awaited<ReturnType<typeof getDiscipleshipByLeader>>,
       TError,
       TData
     >;
@@ -1803,12 +1897,102 @@ export const getGetMemberPipelineHistoryQueryOptions = <
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
   const queryKey =
-    queryOptions?.queryKey ?? getGetMemberPipelineHistoryQueryKey(id);
+    queryOptions?.queryKey ?? getGetDiscipleshipByLeaderQueryKey(leaderId);
 
   const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof getMemberPipelineHistory>>
+    Awaited<ReturnType<typeof getDiscipleshipByLeader>>
   > = ({ signal }) =>
-    getMemberPipelineHistory(id, { signal, ...requestOptions });
+    getDiscipleshipByLeader(leaderId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!leaderId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDiscipleshipByLeader>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDiscipleshipByLeaderQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDiscipleshipByLeader>>
+>;
+export type GetDiscipleshipByLeaderQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Members under this leader (group by area)
+ */
+
+export function useGetDiscipleshipByLeader<
+  TData = Awaited<ReturnType<typeof getDiscipleshipByLeader>>,
+  TError = ErrorType<unknown>,
+>(
+  leaderId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDiscipleshipByLeader>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDiscipleshipByLeaderQueryOptions(
+    leaderId,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List 4 discipleship areas for a member
+ */
+export const getGetMemberAreasUrl = (id: string) => {
+  return `/api/discipleship/members/${id}/areas`;
+};
+
+export const getMemberAreas = async (
+  id: string,
+  options?: RequestInit,
+): Promise<MemberAreasResponse> => {
+  return customFetch<MemberAreasResponse>(getGetMemberAreasUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMemberAreasQueryKey = (id: string) => {
+  return [`/api/discipleship/members/${id}/areas`] as const;
+};
+
+export const getGetMemberAreasQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMemberAreas>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMemberAreas>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMemberAreasQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMemberAreas>>> = ({
+    signal,
+  }) => getMemberAreas(id, { signal, ...requestOptions });
 
   return {
     queryKey,
@@ -1816,36 +2000,36 @@ export const getGetMemberPipelineHistoryQueryOptions = <
     enabled: !!id,
     ...queryOptions,
   } as UseQueryOptions<
-    Awaited<ReturnType<typeof getMemberPipelineHistory>>,
+    Awaited<ReturnType<typeof getMemberAreas>>,
     TError,
     TData
   > & { queryKey: QueryKey };
 };
 
-export type GetMemberPipelineHistoryQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getMemberPipelineHistory>>
+export type GetMemberAreasQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMemberAreas>>
 >;
-export type GetMemberPipelineHistoryQueryError = ErrorType<unknown>;
+export type GetMemberAreasQueryError = ErrorType<unknown>;
 
 /**
- * @summary Member pipeline history
+ * @summary List 4 discipleship areas for a member
  */
 
-export function useGetMemberPipelineHistory<
-  TData = Awaited<ReturnType<typeof getMemberPipelineHistory>>,
+export function useGetMemberAreas<
+  TData = Awaited<ReturnType<typeof getMemberAreas>>,
   TError = ErrorType<unknown>,
 >(
   id: string,
   options?: {
     query?: UseQueryOptions<
-      Awaited<ReturnType<typeof getMemberPipelineHistory>>,
+      Awaited<ReturnType<typeof getMemberAreas>>,
       TError,
       TData
     >;
     request?: SecondParameter<typeof customFetch>;
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetMemberPipelineHistoryQueryOptions(id, options);
+  const queryOptions = getGetMemberAreasQueryOptions(id, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -1855,43 +2039,44 @@ export function useGetMemberPipelineHistory<
 }
 
 /**
- * @summary Move member to new pipeline stage
+ * @summary Update one discipleship area for a member
  */
-export const getMoveMemberPipelineUrl = (id: string) => {
-  return `/api/members/${id}/pipeline`;
+export const getUpdateMemberAreaUrl = (id: string, area: MemberArea) => {
+  return `/api/discipleship/members/${id}/areas/${area}`;
 };
 
-export const moveMemberPipeline = async (
+export const updateMemberArea = async (
   id: string,
-  movePipelineRequest: MovePipelineRequest,
+  area: MemberArea,
+  updateMemberAreaRequest: UpdateMemberAreaRequest,
   options?: RequestInit,
-): Promise<MovePipelineResponse> => {
-  return customFetch<MovePipelineResponse>(getMoveMemberPipelineUrl(id), {
+): Promise<MemberAreaEntry> => {
+  return customFetch<MemberAreaEntry>(getUpdateMemberAreaUrl(id, area), {
     ...options,
     method: "PUT",
     headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(movePipelineRequest),
+    body: JSON.stringify(updateMemberAreaRequest),
   });
 };
 
-export const getMoveMemberPipelineMutationOptions = <
+export const getUpdateMemberAreaMutationOptions = <
   TError = ErrorType<unknown>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof moveMemberPipeline>>,
+    Awaited<ReturnType<typeof updateMemberArea>>,
     TError,
-    { id: string; data: BodyType<MovePipelineRequest> },
+    { id: string; area: MemberArea; data: BodyType<UpdateMemberAreaRequest> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
-  Awaited<ReturnType<typeof moveMemberPipeline>>,
+  Awaited<ReturnType<typeof updateMemberArea>>,
   TError,
-  { id: string; data: BodyType<MovePipelineRequest> },
+  { id: string; area: MemberArea; data: BodyType<UpdateMemberAreaRequest> },
   TContext
 > => {
-  const mutationKey = ["moveMemberPipeline"];
+  const mutationKey = ["updateMemberArea"];
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       "mutationKey" in options.mutation &&
@@ -1901,45 +2086,136 @@ export const getMoveMemberPipelineMutationOptions = <
     : { mutation: { mutationKey }, request: undefined };
 
   const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof moveMemberPipeline>>,
-    { id: string; data: BodyType<MovePipelineRequest> }
+    Awaited<ReturnType<typeof updateMemberArea>>,
+    { id: string; area: MemberArea; data: BodyType<UpdateMemberAreaRequest> }
   > = (props) => {
-    const { id, data } = props ?? {};
+    const { id, area, data } = props ?? {};
 
-    return moveMemberPipeline(id, data, requestOptions);
+    return updateMemberArea(id, area, data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
 };
 
-export type MoveMemberPipelineMutationResult = NonNullable<
-  Awaited<ReturnType<typeof moveMemberPipeline>>
+export type UpdateMemberAreaMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateMemberArea>>
 >;
-export type MoveMemberPipelineMutationBody = BodyType<MovePipelineRequest>;
-export type MoveMemberPipelineMutationError = ErrorType<unknown>;
+export type UpdateMemberAreaMutationBody = BodyType<UpdateMemberAreaRequest>;
+export type UpdateMemberAreaMutationError = ErrorType<unknown>;
 
 /**
- * @summary Move member to new pipeline stage
+ * @summary Update one discipleship area for a member
  */
-export const useMoveMemberPipeline = <
+export const useUpdateMemberArea = <
   TError = ErrorType<unknown>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof moveMemberPipeline>>,
+    Awaited<ReturnType<typeof updateMemberArea>>,
     TError,
-    { id: string; data: BodyType<MovePipelineRequest> },
+    { id: string; area: MemberArea; data: BodyType<UpdateMemberAreaRequest> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
-  Awaited<ReturnType<typeof moveMemberPipeline>>,
+  Awaited<ReturnType<typeof updateMemberArea>>,
   TError,
-  { id: string; data: BodyType<MovePipelineRequest> },
+  { id: string; area: MemberArea; data: BodyType<UpdateMemberAreaRequest> },
   TContext
 > => {
-  return useMutation(getMoveMemberPipelineMutationOptions(options));
+  return useMutation(getUpdateMemberAreaMutationOptions(options));
 };
+
+/**
+ * @summary Discipleship area transition history
+ */
+export const getGetMemberAreaHistoryUrl = (id: string) => {
+  return `/api/discipleship/members/${id}/history`;
+};
+
+export const getMemberAreaHistory = async (
+  id: string,
+  options?: RequestInit,
+): Promise<MemberAreaHistoryResponse> => {
+  return customFetch<MemberAreaHistoryResponse>(
+    getGetMemberAreaHistoryUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetMemberAreaHistoryQueryKey = (id: string) => {
+  return [`/api/discipleship/members/${id}/history`] as const;
+};
+
+export const getGetMemberAreaHistoryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMemberAreaHistory>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMemberAreaHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetMemberAreaHistoryQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMemberAreaHistory>>
+  > = ({ signal }) => getMemberAreaHistory(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMemberAreaHistory>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMemberAreaHistoryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMemberAreaHistory>>
+>;
+export type GetMemberAreaHistoryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Discipleship area transition history
+ */
+
+export function useGetMemberAreaHistory<
+  TData = Awaited<ReturnType<typeof getMemberAreaHistory>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMemberAreaHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMemberAreaHistoryQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Get own member profile
@@ -7690,43 +7966,62 @@ export const useCreateEvent = <
 };
 
 /**
- * @summary Get upcoming events (next 7 days)
+ * @summary Get upcoming events (default 7 days, max 365 with silent clamp)
  */
-export const getGetUpcomingEventsUrl = () => {
-  return `/api/events/upcoming`;
+export const getGetUpcomingEventsUrl = (params?: GetUpcomingEventsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/events/upcoming?${stringifiedParams}`
+    : `/api/events/upcoming`;
 };
 
 export const getUpcomingEvents = async (
+  params?: GetUpcomingEventsParams,
   options?: RequestInit,
 ): Promise<UpcomingEventsResponse> => {
-  return customFetch<UpcomingEventsResponse>(getGetUpcomingEventsUrl(), {
+  return customFetch<UpcomingEventsResponse>(getGetUpcomingEventsUrl(params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getGetUpcomingEventsQueryKey = () => {
-  return [`/api/events/upcoming`] as const;
+export const getGetUpcomingEventsQueryKey = (
+  params?: GetUpcomingEventsParams,
+) => {
+  return [`/api/events/upcoming`, ...(params ? [params] : [])] as const;
 };
 
 export const getGetUpcomingEventsQueryOptions = <
   TData = Awaited<ReturnType<typeof getUpcomingEvents>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getUpcomingEvents>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
+>(
+  params?: GetUpcomingEventsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUpcomingEvents>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetUpcomingEventsQueryKey();
+  const queryKey =
+    queryOptions?.queryKey ?? getGetUpcomingEventsQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getUpcomingEvents>>
-  > = ({ signal }) => getUpcomingEvents({ signal, ...requestOptions });
+  > = ({ signal }) => getUpcomingEvents(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getUpcomingEvents>>,
@@ -7741,21 +8036,24 @@ export type GetUpcomingEventsQueryResult = NonNullable<
 export type GetUpcomingEventsQueryError = ErrorType<unknown>;
 
 /**
- * @summary Get upcoming events (next 7 days)
+ * @summary Get upcoming events (default 7 days, max 365 with silent clamp)
  */
 
 export function useGetUpcomingEvents<
   TData = Awaited<ReturnType<typeof getUpcomingEvents>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getUpcomingEvents>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetUpcomingEventsQueryOptions(options);
+>(
+  params?: GetUpcomingEventsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUpcomingEvents>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetUpcomingEventsQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -17000,9 +17298,11 @@ export const useReviewSongSuggestion = <
 };
 
 /**
- * @summary List liturgies
+ * @summary Annual culto report
  */
-export const getListLiturgiesUrl = (params?: ListLiturgiesParams) => {
+export const getGetAnnualCultoReportUrl = (
+  params?: GetAnnualCultoReportParams,
+) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -17014,32 +17314,34 @@ export const getListLiturgiesUrl = (params?: ListLiturgiesParams) => {
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/liturgy?${stringifiedParams}`
-    : `/api/liturgy`;
+    ? `/api/cultos/reports/annual?${stringifiedParams}`
+    : `/api/cultos/reports/annual`;
 };
 
-export const listLiturgies = async (
-  params?: ListLiturgiesParams,
+export const getAnnualCultoReport = async (
+  params?: GetAnnualCultoReportParams,
   options?: RequestInit,
-): Promise<LiturgiesListResponse> => {
-  return customFetch<LiturgiesListResponse>(getListLiturgiesUrl(params), {
+): Promise<AnnualCultoReport> => {
+  return customFetch<AnnualCultoReport>(getGetAnnualCultoReportUrl(params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getListLiturgiesQueryKey = (params?: ListLiturgiesParams) => {
-  return [`/api/liturgy`, ...(params ? [params] : [])] as const;
+export const getGetAnnualCultoReportQueryKey = (
+  params?: GetAnnualCultoReportParams,
+) => {
+  return [`/api/cultos/reports/annual`, ...(params ? [params] : [])] as const;
 };
 
-export const getListLiturgiesQueryOptions = <
-  TData = Awaited<ReturnType<typeof listLiturgies>>,
+export const getGetAnnualCultoReportQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAnnualCultoReport>>,
   TError = ErrorType<unknown>,
 >(
-  params?: ListLiturgiesParams,
+  params?: GetAnnualCultoReportParams,
   options?: {
     query?: UseQueryOptions<
-      Awaited<ReturnType<typeof listLiturgies>>,
+      Awaited<ReturnType<typeof getAnnualCultoReport>>,
       TError,
       TData
     >;
@@ -17048,43 +17350,45 @@ export const getListLiturgiesQueryOptions = <
 ) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListLiturgiesQueryKey(params);
+  const queryKey =
+    queryOptions?.queryKey ?? getGetAnnualCultoReportQueryKey(params);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listLiturgies>>> = ({
-    signal,
-  }) => listLiturgies(params, { signal, ...requestOptions });
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getAnnualCultoReport>>
+  > = ({ signal }) =>
+    getAnnualCultoReport(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof listLiturgies>>,
+    Awaited<ReturnType<typeof getAnnualCultoReport>>,
     TError,
     TData
   > & { queryKey: QueryKey };
 };
 
-export type ListLiturgiesQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listLiturgies>>
+export type GetAnnualCultoReportQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAnnualCultoReport>>
 >;
-export type ListLiturgiesQueryError = ErrorType<unknown>;
+export type GetAnnualCultoReportQueryError = ErrorType<unknown>;
 
 /**
- * @summary List liturgies
+ * @summary Annual culto report
  */
 
-export function useListLiturgies<
-  TData = Awaited<ReturnType<typeof listLiturgies>>,
+export function useGetAnnualCultoReport<
+  TData = Awaited<ReturnType<typeof getAnnualCultoReport>>,
   TError = ErrorType<unknown>,
 >(
-  params?: ListLiturgiesParams,
+  params?: GetAnnualCultoReportParams,
   options?: {
     query?: UseQueryOptions<
-      Awaited<ReturnType<typeof listLiturgies>>,
+      Awaited<ReturnType<typeof getAnnualCultoReport>>,
       TError,
       TData
     >;
     request?: SecondParameter<typeof customFetch>;
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getListLiturgiesQueryOptions(params, options);
+  const queryOptions = getGetAnnualCultoReportQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -17094,42 +17398,211 @@ export function useListLiturgies<
 }
 
 /**
- * @summary Create a liturgy
+ * @summary Next 5 upcoming cultos
  */
-export const getCreateLiturgyUrl = () => {
-  return `/api/liturgy`;
+export const getGetUpcomingCultosUrl = () => {
+  return `/api/cultos/upcoming`;
 };
 
-export const createLiturgy = async (
-  createLiturgyRequest: CreateLiturgyRequest,
+export const getUpcomingCultos = async (
   options?: RequestInit,
-): Promise<Liturgy> => {
-  return customFetch<Liturgy>(getCreateLiturgyUrl(), {
+): Promise<UpcomingCultosResponse> => {
+  return customFetch<UpcomingCultosResponse>(getGetUpcomingCultosUrl(), {
     ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(createLiturgyRequest),
+    method: "GET",
   });
 };
 
-export const getCreateLiturgyMutationOptions = <
+export const getGetUpcomingCultosQueryKey = () => {
+  return [`/api/cultos/upcoming`] as const;
+};
+
+export const getGetUpcomingCultosQueryOptions = <
+  TData = Awaited<ReturnType<typeof getUpcomingCultos>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getUpcomingCultos>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetUpcomingCultosQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getUpcomingCultos>>
+  > = ({ signal }) => getUpcomingCultos({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getUpcomingCultos>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetUpcomingCultosQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getUpcomingCultos>>
+>;
+export type GetUpcomingCultosQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Next 5 upcoming cultos
+ */
+
+export function useGetUpcomingCultos<
+  TData = Awaited<ReturnType<typeof getUpcomingCultos>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getUpcomingCultos>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetUpcomingCultosQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List cultos with filters
+ */
+export const getListCultosUrl = (params?: ListCultosParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/cultos?${stringifiedParams}`
+    : `/api/cultos`;
+};
+
+export const listCultos = async (
+  params?: ListCultosParams,
+  options?: RequestInit,
+): Promise<CultosListResponse> => {
+  return customFetch<CultosListResponse>(getListCultosUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListCultosQueryKey = (params?: ListCultosParams) => {
+  return [`/api/cultos`, ...(params ? [params] : [])] as const;
+};
+
+export const getListCultosQueryOptions = <
+  TData = Awaited<ReturnType<typeof listCultos>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListCultosParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCultos>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListCultosQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listCultos>>> = ({
+    signal,
+  }) => listCultos(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listCultos>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListCultosQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listCultos>>
+>;
+export type ListCultosQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List cultos with filters
+ */
+
+export function useListCultos<
+  TData = Awaited<ReturnType<typeof listCultos>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListCultosParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCultos>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListCultosQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a culto (event + culto in transaction)
+ */
+export const getCreateCultoUrl = () => {
+  return `/api/cultos`;
+};
+
+export const createCulto = async (
+  createCultoRequest: CreateCultoRequest,
+  options?: RequestInit,
+): Promise<Culto> => {
+  return customFetch<Culto>(getCreateCultoUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createCultoRequest),
+  });
+};
+
+export const getCreateCultoMutationOptions = <
   TError = ErrorType<unknown>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createLiturgy>>,
+    Awaited<ReturnType<typeof createCulto>>,
     TError,
-    { data: BodyType<CreateLiturgyRequest> },
+    { data: BodyType<CreateCultoRequest> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
-  Awaited<ReturnType<typeof createLiturgy>>,
+  Awaited<ReturnType<typeof createCulto>>,
   TError,
-  { data: BodyType<CreateLiturgyRequest> },
+  { data: BodyType<CreateCultoRequest> },
   TContext
 > => {
-  const mutationKey = ["createLiturgy"];
+  const mutationKey = ["createCulto"];
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       "mutationKey" in options.mutation &&
@@ -17139,75 +17612,75 @@ export const getCreateLiturgyMutationOptions = <
     : { mutation: { mutationKey }, request: undefined };
 
   const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof createLiturgy>>,
-    { data: BodyType<CreateLiturgyRequest> }
+    Awaited<ReturnType<typeof createCulto>>,
+    { data: BodyType<CreateCultoRequest> }
   > = (props) => {
     const { data } = props ?? {};
 
-    return createLiturgy(data, requestOptions);
+    return createCulto(data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
 };
 
-export type CreateLiturgyMutationResult = NonNullable<
-  Awaited<ReturnType<typeof createLiturgy>>
+export type CreateCultoMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createCulto>>
 >;
-export type CreateLiturgyMutationBody = BodyType<CreateLiturgyRequest>;
-export type CreateLiturgyMutationError = ErrorType<unknown>;
+export type CreateCultoMutationBody = BodyType<CreateCultoRequest>;
+export type CreateCultoMutationError = ErrorType<unknown>;
 
 /**
- * @summary Create a liturgy
+ * @summary Create a culto (event + culto in transaction)
  */
-export const useCreateLiturgy = <
+export const useCreateCulto = <
   TError = ErrorType<unknown>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createLiturgy>>,
+    Awaited<ReturnType<typeof createCulto>>,
     TError,
-    { data: BodyType<CreateLiturgyRequest> },
+    { data: BodyType<CreateCultoRequest> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
-  Awaited<ReturnType<typeof createLiturgy>>,
+  Awaited<ReturnType<typeof createCulto>>,
   TError,
-  { data: BodyType<CreateLiturgyRequest> },
+  { data: BodyType<CreateCultoRequest> },
   TContext
 > => {
-  return useMutation(getCreateLiturgyMutationOptions(options));
+  return useMutation(getCreateCultoMutationOptions(options));
 };
 
 /**
- * @summary Get liturgy detail with items
+ * @summary Get culto detail with songs
  */
-export const getGetLiturgyDetailUrl = (id: string) => {
-  return `/api/liturgy/${id}`;
+export const getGetCultoDetailUrl = (id: string) => {
+  return `/api/cultos/${id}`;
 };
 
-export const getLiturgyDetail = async (
+export const getCultoDetail = async (
   id: string,
   options?: RequestInit,
-): Promise<LiturgyDetail> => {
-  return customFetch<LiturgyDetail>(getGetLiturgyDetailUrl(id), {
+): Promise<CultoDetail> => {
+  return customFetch<CultoDetail>(getGetCultoDetailUrl(id), {
     ...options,
     method: "GET",
   });
 };
 
-export const getGetLiturgyDetailQueryKey = (id: string) => {
-  return [`/api/liturgy/${id}`] as const;
+export const getGetCultoDetailQueryKey = (id: string) => {
+  return [`/api/cultos/${id}`] as const;
 };
 
-export const getGetLiturgyDetailQueryOptions = <
-  TData = Awaited<ReturnType<typeof getLiturgyDetail>>,
+export const getGetCultoDetailQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCultoDetail>>,
   TError = ErrorType<unknown>,
 >(
   id: string,
   options?: {
     query?: UseQueryOptions<
-      Awaited<ReturnType<typeof getLiturgyDetail>>,
+      Awaited<ReturnType<typeof getCultoDetail>>,
       TError,
       TData
     >;
@@ -17216,11 +17689,11 @@ export const getGetLiturgyDetailQueryOptions = <
 ) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetLiturgyDetailQueryKey(id);
+  const queryKey = queryOptions?.queryKey ?? getGetCultoDetailQueryKey(id);
 
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof getLiturgyDetail>>
-  > = ({ signal }) => getLiturgyDetail(id, { signal, ...requestOptions });
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getCultoDetail>>> = ({
+    signal,
+  }) => getCultoDetail(id, { signal, ...requestOptions });
 
   return {
     queryKey,
@@ -17228,36 +17701,36 @@ export const getGetLiturgyDetailQueryOptions = <
     enabled: !!id,
     ...queryOptions,
   } as UseQueryOptions<
-    Awaited<ReturnType<typeof getLiturgyDetail>>,
+    Awaited<ReturnType<typeof getCultoDetail>>,
     TError,
     TData
   > & { queryKey: QueryKey };
 };
 
-export type GetLiturgyDetailQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getLiturgyDetail>>
+export type GetCultoDetailQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCultoDetail>>
 >;
-export type GetLiturgyDetailQueryError = ErrorType<unknown>;
+export type GetCultoDetailQueryError = ErrorType<unknown>;
 
 /**
- * @summary Get liturgy detail with items
+ * @summary Get culto detail with songs
  */
 
-export function useGetLiturgyDetail<
-  TData = Awaited<ReturnType<typeof getLiturgyDetail>>,
+export function useGetCultoDetail<
+  TData = Awaited<ReturnType<typeof getCultoDetail>>,
   TError = ErrorType<unknown>,
 >(
   id: string,
   options?: {
     query?: UseQueryOptions<
-      Awaited<ReturnType<typeof getLiturgyDetail>>,
+      Awaited<ReturnType<typeof getCultoDetail>>,
       TError,
       TData
     >;
     request?: SecondParameter<typeof customFetch>;
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetLiturgyDetailQueryOptions(id, options);
+  const queryOptions = getGetCultoDetailQueryOptions(id, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -17267,43 +17740,43 @@ export function useGetLiturgyDetail<
 }
 
 /**
- * @summary Update a liturgy
+ * @summary Update a culto
  */
-export const getUpdateLiturgyUrl = (id: string) => {
-  return `/api/liturgy/${id}`;
+export const getUpdateCultoUrl = (id: string) => {
+  return `/api/cultos/${id}`;
 };
 
-export const updateLiturgy = async (
+export const updateCulto = async (
   id: string,
-  updateLiturgyRequest: UpdateLiturgyRequest,
+  updateCultoRequest: UpdateCultoRequest,
   options?: RequestInit,
-): Promise<Liturgy> => {
-  return customFetch<Liturgy>(getUpdateLiturgyUrl(id), {
+): Promise<Culto> => {
+  return customFetch<Culto>(getUpdateCultoUrl(id), {
     ...options,
     method: "PUT",
     headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(updateLiturgyRequest),
+    body: JSON.stringify(updateCultoRequest),
   });
 };
 
-export const getUpdateLiturgyMutationOptions = <
+export const getUpdateCultoMutationOptions = <
   TError = ErrorType<unknown>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateLiturgy>>,
+    Awaited<ReturnType<typeof updateCulto>>,
     TError,
-    { id: string; data: BodyType<UpdateLiturgyRequest> },
+    { id: string; data: BodyType<UpdateCultoRequest> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
-  Awaited<ReturnType<typeof updateLiturgy>>,
+  Awaited<ReturnType<typeof updateCulto>>,
   TError,
-  { id: string; data: BodyType<UpdateLiturgyRequest> },
+  { id: string; data: BodyType<UpdateCultoRequest> },
   TContext
 > => {
-  const mutationKey = ["updateLiturgy"];
+  const mutationKey = ["updateCulto"];
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       "mutationKey" in options.mutation &&
@@ -17313,81 +17786,81 @@ export const getUpdateLiturgyMutationOptions = <
     : { mutation: { mutationKey }, request: undefined };
 
   const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof updateLiturgy>>,
-    { id: string; data: BodyType<UpdateLiturgyRequest> }
+    Awaited<ReturnType<typeof updateCulto>>,
+    { id: string; data: BodyType<UpdateCultoRequest> }
   > = (props) => {
     const { id, data } = props ?? {};
 
-    return updateLiturgy(id, data, requestOptions);
+    return updateCulto(id, data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
 };
 
-export type UpdateLiturgyMutationResult = NonNullable<
-  Awaited<ReturnType<typeof updateLiturgy>>
+export type UpdateCultoMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateCulto>>
 >;
-export type UpdateLiturgyMutationBody = BodyType<UpdateLiturgyRequest>;
-export type UpdateLiturgyMutationError = ErrorType<unknown>;
+export type UpdateCultoMutationBody = BodyType<UpdateCultoRequest>;
+export type UpdateCultoMutationError = ErrorType<unknown>;
 
 /**
- * @summary Update a liturgy
+ * @summary Update a culto
  */
-export const useUpdateLiturgy = <
+export const useUpdateCulto = <
   TError = ErrorType<unknown>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateLiturgy>>,
+    Awaited<ReturnType<typeof updateCulto>>,
     TError,
-    { id: string; data: BodyType<UpdateLiturgyRequest> },
+    { id: string; data: BodyType<UpdateCultoRequest> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
-  Awaited<ReturnType<typeof updateLiturgy>>,
+  Awaited<ReturnType<typeof updateCulto>>,
   TError,
-  { id: string; data: BodyType<UpdateLiturgyRequest> },
+  { id: string; data: BodyType<UpdateCultoRequest> },
   TContext
 > => {
-  return useMutation(getUpdateLiturgyMutationOptions(options));
+  return useMutation(getUpdateCultoMutationOptions(options));
 };
 
 /**
- * @summary Delete a liturgy
+ * @summary Delete a culto (soft delete via event.deletedAt)
  */
-export const getDeleteLiturgyUrl = (id: string) => {
-  return `/api/liturgy/${id}`;
+export const getDeleteCultoUrl = (id: string) => {
+  return `/api/cultos/${id}`;
 };
 
-export const deleteLiturgy = async (
+export const deleteCulto = async (
   id: string,
   options?: RequestInit,
 ): Promise<MessageResponse> => {
-  return customFetch<MessageResponse>(getDeleteLiturgyUrl(id), {
+  return customFetch<MessageResponse>(getDeleteCultoUrl(id), {
     ...options,
     method: "DELETE",
   });
 };
 
-export const getDeleteLiturgyMutationOptions = <
+export const getDeleteCultoMutationOptions = <
   TError = ErrorType<unknown>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof deleteLiturgy>>,
+    Awaited<ReturnType<typeof deleteCulto>>,
     TError,
     { id: string },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
-  Awaited<ReturnType<typeof deleteLiturgy>>,
+  Awaited<ReturnType<typeof deleteCulto>>,
   TError,
   { id: string },
   TContext
 > => {
-  const mutationKey = ["deleteLiturgy"];
+  const mutationKey = ["deleteCulto"];
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       "mutationKey" in options.mutation &&
@@ -17397,84 +17870,84 @@ export const getDeleteLiturgyMutationOptions = <
     : { mutation: { mutationKey }, request: undefined };
 
   const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof deleteLiturgy>>,
+    Awaited<ReturnType<typeof deleteCulto>>,
     { id: string }
   > = (props) => {
     const { id } = props ?? {};
 
-    return deleteLiturgy(id, requestOptions);
+    return deleteCulto(id, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
 };
 
-export type DeleteLiturgyMutationResult = NonNullable<
-  Awaited<ReturnType<typeof deleteLiturgy>>
+export type DeleteCultoMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteCulto>>
 >;
 
-export type DeleteLiturgyMutationError = ErrorType<unknown>;
+export type DeleteCultoMutationError = ErrorType<unknown>;
 
 /**
- * @summary Delete a liturgy
+ * @summary Delete a culto (soft delete via event.deletedAt)
  */
-export const useDeleteLiturgy = <
+export const useDeleteCulto = <
   TError = ErrorType<unknown>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof deleteLiturgy>>,
+    Awaited<ReturnType<typeof deleteCulto>>,
     TError,
     { id: string },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
-  Awaited<ReturnType<typeof deleteLiturgy>>,
+  Awaited<ReturnType<typeof deleteCulto>>,
   TError,
   { id: string },
   TContext
 > => {
-  return useMutation(getDeleteLiturgyMutationOptions(options));
+  return useMutation(getDeleteCultoMutationOptions(options));
 };
 
 /**
- * @summary Add item to liturgy
+ * @summary Add song to culto
  */
-export const getAddLiturgyItemUrl = (id: string) => {
-  return `/api/liturgy/${id}/items`;
+export const getAddCultoSongUrl = (id: string) => {
+  return `/api/cultos/${id}/songs`;
 };
 
-export const addLiturgyItem = async (
+export const addCultoSong = async (
   id: string,
-  addLiturgyItemRequest: AddLiturgyItemRequest,
+  addCultoSongRequest: AddCultoSongRequest,
   options?: RequestInit,
-): Promise<LiturgyItem> => {
-  return customFetch<LiturgyItem>(getAddLiturgyItemUrl(id), {
+): Promise<CultoSong> => {
+  return customFetch<CultoSong>(getAddCultoSongUrl(id), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(addLiturgyItemRequest),
+    body: JSON.stringify(addCultoSongRequest),
   });
 };
 
-export const getAddLiturgyItemMutationOptions = <
+export const getAddCultoSongMutationOptions = <
   TError = ErrorType<unknown>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof addLiturgyItem>>,
+    Awaited<ReturnType<typeof addCultoSong>>,
     TError,
-    { id: string; data: BodyType<AddLiturgyItemRequest> },
+    { id: string; data: BodyType<AddCultoSongRequest> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
-  Awaited<ReturnType<typeof addLiturgyItem>>,
+  Awaited<ReturnType<typeof addCultoSong>>,
   TError,
-  { id: string; data: BodyType<AddLiturgyItemRequest> },
+  { id: string; data: BodyType<AddCultoSongRequest> },
   TContext
 > => {
-  const mutationKey = ["addLiturgyItem"];
+  const mutationKey = ["addCultoSong"];
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       "mutationKey" in options.mutation &&
@@ -17484,85 +17957,84 @@ export const getAddLiturgyItemMutationOptions = <
     : { mutation: { mutationKey }, request: undefined };
 
   const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof addLiturgyItem>>,
-    { id: string; data: BodyType<AddLiturgyItemRequest> }
+    Awaited<ReturnType<typeof addCultoSong>>,
+    { id: string; data: BodyType<AddCultoSongRequest> }
   > = (props) => {
     const { id, data } = props ?? {};
 
-    return addLiturgyItem(id, data, requestOptions);
+    return addCultoSong(id, data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
 };
 
-export type AddLiturgyItemMutationResult = NonNullable<
-  Awaited<ReturnType<typeof addLiturgyItem>>
+export type AddCultoSongMutationResult = NonNullable<
+  Awaited<ReturnType<typeof addCultoSong>>
 >;
-export type AddLiturgyItemMutationBody = BodyType<AddLiturgyItemRequest>;
-export type AddLiturgyItemMutationError = ErrorType<unknown>;
+export type AddCultoSongMutationBody = BodyType<AddCultoSongRequest>;
+export type AddCultoSongMutationError = ErrorType<unknown>;
 
 /**
- * @summary Add item to liturgy
+ * @summary Add song to culto
  */
-export const useAddLiturgyItem = <
+export const useAddCultoSong = <
   TError = ErrorType<unknown>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof addLiturgyItem>>,
+    Awaited<ReturnType<typeof addCultoSong>>,
     TError,
-    { id: string; data: BodyType<AddLiturgyItemRequest> },
+    { id: string; data: BodyType<AddCultoSongRequest> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
-  Awaited<ReturnType<typeof addLiturgyItem>>,
+  Awaited<ReturnType<typeof addCultoSong>>,
   TError,
-  { id: string; data: BodyType<AddLiturgyItemRequest> },
+  { id: string; data: BodyType<AddCultoSongRequest> },
   TContext
 > => {
-  return useMutation(getAddLiturgyItemMutationOptions(options));
+  return useMutation(getAddCultoSongMutationOptions(options));
 };
 
 /**
- * @summary Update a liturgy item
+ * @summary Reorder culto songs
  */
-export const getUpdateLiturgyItemUrl = (id: string, itemId: string) => {
-  return `/api/liturgy/${id}/items/${itemId}`;
+export const getReorderCultoSongsUrl = (id: string) => {
+  return `/api/cultos/${id}/songs/reorder`;
 };
 
-export const updateLiturgyItem = async (
+export const reorderCultoSongs = async (
   id: string,
-  itemId: string,
-  updateLiturgyItemRequest: UpdateLiturgyItemRequest,
+  reorderCultoSongsRequest: ReorderCultoSongsRequest,
   options?: RequestInit,
-): Promise<LiturgyItem> => {
-  return customFetch<LiturgyItem>(getUpdateLiturgyItemUrl(id, itemId), {
+): Promise<CultoSongsReorderResponse> => {
+  return customFetch<CultoSongsReorderResponse>(getReorderCultoSongsUrl(id), {
     ...options,
     method: "PUT",
     headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(updateLiturgyItemRequest),
+    body: JSON.stringify(reorderCultoSongsRequest),
   });
 };
 
-export const getUpdateLiturgyItemMutationOptions = <
+export const getReorderCultoSongsMutationOptions = <
   TError = ErrorType<unknown>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateLiturgyItem>>,
+    Awaited<ReturnType<typeof reorderCultoSongs>>,
     TError,
-    { id: string; itemId: string; data: BodyType<UpdateLiturgyItemRequest> },
+    { id: string; data: BodyType<ReorderCultoSongsRequest> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
-  Awaited<ReturnType<typeof updateLiturgyItem>>,
+  Awaited<ReturnType<typeof reorderCultoSongs>>,
   TError,
-  { id: string; itemId: string; data: BodyType<UpdateLiturgyItemRequest> },
+  { id: string; data: BodyType<ReorderCultoSongsRequest> },
   TContext
 > => {
-  const mutationKey = ["updateLiturgyItem"];
+  const mutationKey = ["reorderCultoSongs"];
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       "mutationKey" in options.mutation &&
@@ -17572,82 +18044,170 @@ export const getUpdateLiturgyItemMutationOptions = <
     : { mutation: { mutationKey }, request: undefined };
 
   const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof updateLiturgyItem>>,
-    { id: string; itemId: string; data: BodyType<UpdateLiturgyItemRequest> }
+    Awaited<ReturnType<typeof reorderCultoSongs>>,
+    { id: string; data: BodyType<ReorderCultoSongsRequest> }
   > = (props) => {
-    const { id, itemId, data } = props ?? {};
+    const { id, data } = props ?? {};
 
-    return updateLiturgyItem(id, itemId, data, requestOptions);
+    return reorderCultoSongs(id, data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
 };
 
-export type UpdateLiturgyItemMutationResult = NonNullable<
-  Awaited<ReturnType<typeof updateLiturgyItem>>
+export type ReorderCultoSongsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof reorderCultoSongs>>
 >;
-export type UpdateLiturgyItemMutationBody = BodyType<UpdateLiturgyItemRequest>;
-export type UpdateLiturgyItemMutationError = ErrorType<unknown>;
+export type ReorderCultoSongsMutationBody = BodyType<ReorderCultoSongsRequest>;
+export type ReorderCultoSongsMutationError = ErrorType<unknown>;
 
 /**
- * @summary Update a liturgy item
+ * @summary Reorder culto songs
  */
-export const useUpdateLiturgyItem = <
+export const useReorderCultoSongs = <
   TError = ErrorType<unknown>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateLiturgyItem>>,
+    Awaited<ReturnType<typeof reorderCultoSongs>>,
     TError,
-    { id: string; itemId: string; data: BodyType<UpdateLiturgyItemRequest> },
+    { id: string; data: BodyType<ReorderCultoSongsRequest> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
-  Awaited<ReturnType<typeof updateLiturgyItem>>,
+  Awaited<ReturnType<typeof reorderCultoSongs>>,
   TError,
-  { id: string; itemId: string; data: BodyType<UpdateLiturgyItemRequest> },
+  { id: string; data: BodyType<ReorderCultoSongsRequest> },
   TContext
 > => {
-  return useMutation(getUpdateLiturgyItemMutationOptions(options));
+  return useMutation(getReorderCultoSongsMutationOptions(options));
 };
 
 /**
- * @summary Delete a liturgy item
+ * @summary Update song notes
  */
-export const getDeleteLiturgyItemUrl = (id: string, itemId: string) => {
-  return `/api/liturgy/${id}/items/${itemId}`;
+export const getUpdateCultoSongUrl = (id: string, songEntryId: string) => {
+  return `/api/cultos/${id}/songs/${songEntryId}`;
 };
 
-export const deleteLiturgyItem = async (
+export const updateCultoSong = async (
   id: string,
-  itemId: string,
+  songEntryId: string,
+  updateCultoSongRequest: UpdateCultoSongRequest,
+  options?: RequestInit,
+): Promise<CultoSong> => {
+  return customFetch<CultoSong>(getUpdateCultoSongUrl(id, songEntryId), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateCultoSongRequest),
+  });
+};
+
+export const getUpdateCultoSongMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCultoSong>>,
+    TError,
+    { id: string; songEntryId: string; data: BodyType<UpdateCultoSongRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateCultoSong>>,
+  TError,
+  { id: string; songEntryId: string; data: BodyType<UpdateCultoSongRequest> },
+  TContext
+> => {
+  const mutationKey = ["updateCultoSong"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateCultoSong>>,
+    { id: string; songEntryId: string; data: BodyType<UpdateCultoSongRequest> }
+  > = (props) => {
+    const { id, songEntryId, data } = props ?? {};
+
+    return updateCultoSong(id, songEntryId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateCultoSongMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateCultoSong>>
+>;
+export type UpdateCultoSongMutationBody = BodyType<UpdateCultoSongRequest>;
+export type UpdateCultoSongMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update song notes
+ */
+export const useUpdateCultoSong = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCultoSong>>,
+    TError,
+    { id: string; songEntryId: string; data: BodyType<UpdateCultoSongRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateCultoSong>>,
+  TError,
+  { id: string; songEntryId: string; data: BodyType<UpdateCultoSongRequest> },
+  TContext
+> => {
+  return useMutation(getUpdateCultoSongMutationOptions(options));
+};
+
+/**
+ * @summary Remove song from culto
+ */
+export const getDeleteCultoSongUrl = (id: string, songEntryId: string) => {
+  return `/api/cultos/${id}/songs/${songEntryId}`;
+};
+
+export const deleteCultoSong = async (
+  id: string,
+  songEntryId: string,
   options?: RequestInit,
 ): Promise<MessageResponse> => {
-  return customFetch<MessageResponse>(getDeleteLiturgyItemUrl(id, itemId), {
+  return customFetch<MessageResponse>(getDeleteCultoSongUrl(id, songEntryId), {
     ...options,
     method: "DELETE",
   });
 };
 
-export const getDeleteLiturgyItemMutationOptions = <
+export const getDeleteCultoSongMutationOptions = <
   TError = ErrorType<unknown>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof deleteLiturgyItem>>,
+    Awaited<ReturnType<typeof deleteCultoSong>>,
     TError,
-    { id: string; itemId: string },
+    { id: string; songEntryId: string },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
-  Awaited<ReturnType<typeof deleteLiturgyItem>>,
+  Awaited<ReturnType<typeof deleteCultoSong>>,
   TError,
-  { id: string; itemId: string },
+  { id: string; songEntryId: string },
   TContext
 > => {
-  const mutationKey = ["deleteLiturgyItem"];
+  const mutationKey = ["deleteCultoSong"];
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       "mutationKey" in options.mutation &&
@@ -17657,132 +18217,953 @@ export const getDeleteLiturgyItemMutationOptions = <
     : { mutation: { mutationKey }, request: undefined };
 
   const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof deleteLiturgyItem>>,
+    Awaited<ReturnType<typeof deleteCultoSong>>,
+    { id: string; songEntryId: string }
+  > = (props) => {
+    const { id, songEntryId } = props ?? {};
+
+    return deleteCultoSong(id, songEntryId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteCultoSongMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteCultoSong>>
+>;
+
+export type DeleteCultoSongMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Remove song from culto
+ */
+export const useDeleteCultoSong = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteCultoSong>>,
+    TError,
+    { id: string; songEntryId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteCultoSong>>,
+  TError,
+  { id: string; songEntryId: string },
+  TContext
+> => {
+  return useMutation(getDeleteCultoSongMutationOptions(options));
+};
+
+/**
+ * @summary Upcoming scheduled council meetings
+ */
+export const getGetUpcomingCouncilMeetingsUrl = () => {
+  return `/api/council/upcoming`;
+};
+
+export const getUpcomingCouncilMeetings = async (
+  options?: RequestInit,
+): Promise<UpcomingCouncilMeetingsResponse> => {
+  return customFetch<UpcomingCouncilMeetingsResponse>(
+    getGetUpcomingCouncilMeetingsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetUpcomingCouncilMeetingsQueryKey = () => {
+  return [`/api/council/upcoming`] as const;
+};
+
+export const getGetUpcomingCouncilMeetingsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getUpcomingCouncilMeetings>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getUpcomingCouncilMeetings>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetUpcomingCouncilMeetingsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getUpcomingCouncilMeetings>>
+  > = ({ signal }) => getUpcomingCouncilMeetings({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getUpcomingCouncilMeetings>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetUpcomingCouncilMeetingsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getUpcomingCouncilMeetings>>
+>;
+export type GetUpcomingCouncilMeetingsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Upcoming scheduled council meetings
+ */
+
+export function useGetUpcomingCouncilMeetings<
+  TData = Awaited<ReturnType<typeof getUpcomingCouncilMeetings>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getUpcomingCouncilMeetings>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetUpcomingCouncilMeetingsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List council meetings with filters
+ */
+export const getListCouncilMeetingsUrl = (
+  params?: ListCouncilMeetingsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/council?${stringifiedParams}`
+    : `/api/council`;
+};
+
+export const listCouncilMeetings = async (
+  params?: ListCouncilMeetingsParams,
+  options?: RequestInit,
+): Promise<CouncilMeetingsListResponse> => {
+  return customFetch<CouncilMeetingsListResponse>(
+    getListCouncilMeetingsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListCouncilMeetingsQueryKey = (
+  params?: ListCouncilMeetingsParams,
+) => {
+  return [`/api/council`, ...(params ? [params] : [])] as const;
+};
+
+export const getListCouncilMeetingsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listCouncilMeetings>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListCouncilMeetingsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCouncilMeetings>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListCouncilMeetingsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listCouncilMeetings>>
+  > = ({ signal }) =>
+    listCouncilMeetings(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listCouncilMeetings>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListCouncilMeetingsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listCouncilMeetings>>
+>;
+export type ListCouncilMeetingsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List council meetings with filters
+ */
+
+export function useListCouncilMeetings<
+  TData = Awaited<ReturnType<typeof listCouncilMeetings>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListCouncilMeetingsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCouncilMeetings>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListCouncilMeetingsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a council meeting (admin only)
+ */
+export const getCreateCouncilMeetingUrl = () => {
+  return `/api/council`;
+};
+
+export const createCouncilMeeting = async (
+  createCouncilMeetingRequest: CreateCouncilMeetingRequest,
+  options?: RequestInit,
+): Promise<CouncilMeeting> => {
+  return customFetch<CouncilMeeting>(getCreateCouncilMeetingUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createCouncilMeetingRequest),
+  });
+};
+
+export const getCreateCouncilMeetingMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createCouncilMeeting>>,
+    TError,
+    { data: BodyType<CreateCouncilMeetingRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createCouncilMeeting>>,
+  TError,
+  { data: BodyType<CreateCouncilMeetingRequest> },
+  TContext
+> => {
+  const mutationKey = ["createCouncilMeeting"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createCouncilMeeting>>,
+    { data: BodyType<CreateCouncilMeetingRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createCouncilMeeting(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateCouncilMeetingMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createCouncilMeeting>>
+>;
+export type CreateCouncilMeetingMutationBody =
+  BodyType<CreateCouncilMeetingRequest>;
+export type CreateCouncilMeetingMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a council meeting (admin only)
+ */
+export const useCreateCouncilMeeting = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createCouncilMeeting>>,
+    TError,
+    { data: BodyType<CreateCouncilMeetingRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createCouncilMeeting>>,
+  TError,
+  { data: BodyType<CreateCouncilMeetingRequest> },
+  TContext
+> => {
+  return useMutation(getCreateCouncilMeetingMutationOptions(options));
+};
+
+/**
+ * @summary Get council meeting detail with items
+ */
+export const getGetCouncilMeetingDetailUrl = (id: string) => {
+  return `/api/council/${id}`;
+};
+
+export const getCouncilMeetingDetail = async (
+  id: string,
+  options?: RequestInit,
+): Promise<CouncilMeetingDetail> => {
+  return customFetch<CouncilMeetingDetail>(getGetCouncilMeetingDetailUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCouncilMeetingDetailQueryKey = (id: string) => {
+  return [`/api/council/${id}`] as const;
+};
+
+export const getGetCouncilMeetingDetailQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCouncilMeetingDetail>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCouncilMeetingDetail>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetCouncilMeetingDetailQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getCouncilMeetingDetail>>
+  > = ({ signal }) =>
+    getCouncilMeetingDetail(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCouncilMeetingDetail>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCouncilMeetingDetailQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCouncilMeetingDetail>>
+>;
+export type GetCouncilMeetingDetailQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get council meeting detail with items
+ */
+
+export function useGetCouncilMeetingDetail<
+  TData = Awaited<ReturnType<typeof getCouncilMeetingDetail>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCouncilMeetingDetail>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCouncilMeetingDetailQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update council meeting
+ */
+export const getUpdateCouncilMeetingUrl = (id: string) => {
+  return `/api/council/${id}`;
+};
+
+export const updateCouncilMeeting = async (
+  id: string,
+  updateCouncilMeetingRequest: UpdateCouncilMeetingRequest,
+  options?: RequestInit,
+): Promise<CouncilMeeting> => {
+  return customFetch<CouncilMeeting>(getUpdateCouncilMeetingUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateCouncilMeetingRequest),
+  });
+};
+
+export const getUpdateCouncilMeetingMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCouncilMeeting>>,
+    TError,
+    { id: string; data: BodyType<UpdateCouncilMeetingRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateCouncilMeeting>>,
+  TError,
+  { id: string; data: BodyType<UpdateCouncilMeetingRequest> },
+  TContext
+> => {
+  const mutationKey = ["updateCouncilMeeting"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateCouncilMeeting>>,
+    { id: string; data: BodyType<UpdateCouncilMeetingRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateCouncilMeeting(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateCouncilMeetingMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateCouncilMeeting>>
+>;
+export type UpdateCouncilMeetingMutationBody =
+  BodyType<UpdateCouncilMeetingRequest>;
+export type UpdateCouncilMeetingMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update council meeting
+ */
+export const useUpdateCouncilMeeting = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCouncilMeeting>>,
+    TError,
+    { id: string; data: BodyType<UpdateCouncilMeetingRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateCouncilMeeting>>,
+  TError,
+  { id: string; data: BodyType<UpdateCouncilMeetingRequest> },
+  TContext
+> => {
+  return useMutation(getUpdateCouncilMeetingMutationOptions(options));
+};
+
+/**
+ * @summary Soft-delete council meeting
+ */
+export const getDeleteCouncilMeetingUrl = (id: string) => {
+  return `/api/council/${id}`;
+};
+
+export const deleteCouncilMeeting = async (
+  id: string,
+  options?: RequestInit,
+): Promise<MessageResponse> => {
+  return customFetch<MessageResponse>(getDeleteCouncilMeetingUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteCouncilMeetingMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteCouncilMeeting>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteCouncilMeeting>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["deleteCouncilMeeting"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteCouncilMeeting>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteCouncilMeeting(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteCouncilMeetingMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteCouncilMeeting>>
+>;
+
+export type DeleteCouncilMeetingMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Soft-delete council meeting
+ */
+export const useDeleteCouncilMeeting = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteCouncilMeeting>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteCouncilMeeting>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getDeleteCouncilMeetingMutationOptions(options));
+};
+
+/**
+ * @summary Add agenda item to meeting
+ */
+export const getAddCouncilMeetingItemUrl = (id: string) => {
+  return `/api/council/${id}/items`;
+};
+
+export const addCouncilMeetingItem = async (
+  id: string,
+  addCouncilMeetingItemRequest: AddCouncilMeetingItemRequest,
+  options?: RequestInit,
+): Promise<CouncilMeetingItem> => {
+  return customFetch<CouncilMeetingItem>(getAddCouncilMeetingItemUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(addCouncilMeetingItemRequest),
+  });
+};
+
+export const getAddCouncilMeetingItemMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addCouncilMeetingItem>>,
+    TError,
+    { id: string; data: BodyType<AddCouncilMeetingItemRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof addCouncilMeetingItem>>,
+  TError,
+  { id: string; data: BodyType<AddCouncilMeetingItemRequest> },
+  TContext
+> => {
+  const mutationKey = ["addCouncilMeetingItem"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof addCouncilMeetingItem>>,
+    { id: string; data: BodyType<AddCouncilMeetingItemRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return addCouncilMeetingItem(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AddCouncilMeetingItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof addCouncilMeetingItem>>
+>;
+export type AddCouncilMeetingItemMutationBody =
+  BodyType<AddCouncilMeetingItemRequest>;
+export type AddCouncilMeetingItemMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Add agenda item to meeting
+ */
+export const useAddCouncilMeetingItem = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addCouncilMeetingItem>>,
+    TError,
+    { id: string; data: BodyType<AddCouncilMeetingItemRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof addCouncilMeetingItem>>,
+  TError,
+  { id: string; data: BodyType<AddCouncilMeetingItemRequest> },
+  TContext
+> => {
+  return useMutation(getAddCouncilMeetingItemMutationOptions(options));
+};
+
+/**
+ * @summary Reorder agenda items
+ */
+export const getReorderCouncilMeetingItemsUrl = (id: string) => {
+  return `/api/council/${id}/items/reorder`;
+};
+
+export const reorderCouncilMeetingItems = async (
+  id: string,
+  reorderCouncilMeetingItemsRequest: ReorderCouncilMeetingItemsRequest,
+  options?: RequestInit,
+): Promise<CouncilMeetingItemsResponse> => {
+  return customFetch<CouncilMeetingItemsResponse>(
+    getReorderCouncilMeetingItemsUrl(id),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(reorderCouncilMeetingItemsRequest),
+    },
+  );
+};
+
+export const getReorderCouncilMeetingItemsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reorderCouncilMeetingItems>>,
+    TError,
+    { id: string; data: BodyType<ReorderCouncilMeetingItemsRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof reorderCouncilMeetingItems>>,
+  TError,
+  { id: string; data: BodyType<ReorderCouncilMeetingItemsRequest> },
+  TContext
+> => {
+  const mutationKey = ["reorderCouncilMeetingItems"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof reorderCouncilMeetingItems>>,
+    { id: string; data: BodyType<ReorderCouncilMeetingItemsRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return reorderCouncilMeetingItems(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReorderCouncilMeetingItemsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof reorderCouncilMeetingItems>>
+>;
+export type ReorderCouncilMeetingItemsMutationBody =
+  BodyType<ReorderCouncilMeetingItemsRequest>;
+export type ReorderCouncilMeetingItemsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Reorder agenda items
+ */
+export const useReorderCouncilMeetingItems = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reorderCouncilMeetingItems>>,
+    TError,
+    { id: string; data: BodyType<ReorderCouncilMeetingItemsRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof reorderCouncilMeetingItems>>,
+  TError,
+  { id: string; data: BodyType<ReorderCouncilMeetingItemsRequest> },
+  TContext
+> => {
+  return useMutation(getReorderCouncilMeetingItemsMutationOptions(options));
+};
+
+/**
+ * @summary Update agenda item (status lifecycle)
+ */
+export const getUpdateCouncilMeetingItemUrl = (id: string, itemId: string) => {
+  return `/api/council/${id}/items/${itemId}`;
+};
+
+export const updateCouncilMeetingItem = async (
+  id: string,
+  itemId: string,
+  updateCouncilMeetingItemRequest: UpdateCouncilMeetingItemRequest,
+  options?: RequestInit,
+): Promise<CouncilMeetingItem> => {
+  return customFetch<CouncilMeetingItem>(
+    getUpdateCouncilMeetingItemUrl(id, itemId),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(updateCouncilMeetingItemRequest),
+    },
+  );
+};
+
+export const getUpdateCouncilMeetingItemMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCouncilMeetingItem>>,
+    TError,
+    {
+      id: string;
+      itemId: string;
+      data: BodyType<UpdateCouncilMeetingItemRequest>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateCouncilMeetingItem>>,
+  TError,
+  {
+    id: string;
+    itemId: string;
+    data: BodyType<UpdateCouncilMeetingItemRequest>;
+  },
+  TContext
+> => {
+  const mutationKey = ["updateCouncilMeetingItem"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateCouncilMeetingItem>>,
+    {
+      id: string;
+      itemId: string;
+      data: BodyType<UpdateCouncilMeetingItemRequest>;
+    }
+  > = (props) => {
+    const { id, itemId, data } = props ?? {};
+
+    return updateCouncilMeetingItem(id, itemId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateCouncilMeetingItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateCouncilMeetingItem>>
+>;
+export type UpdateCouncilMeetingItemMutationBody =
+  BodyType<UpdateCouncilMeetingItemRequest>;
+export type UpdateCouncilMeetingItemMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update agenda item (status lifecycle)
+ */
+export const useUpdateCouncilMeetingItem = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCouncilMeetingItem>>,
+    TError,
+    {
+      id: string;
+      itemId: string;
+      data: BodyType<UpdateCouncilMeetingItemRequest>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateCouncilMeetingItem>>,
+  TError,
+  {
+    id: string;
+    itemId: string;
+    data: BodyType<UpdateCouncilMeetingItemRequest>;
+  },
+  TContext
+> => {
+  return useMutation(getUpdateCouncilMeetingItemMutationOptions(options));
+};
+
+/**
+ * @summary Remove agenda item
+ */
+export const getDeleteCouncilMeetingItemUrl = (id: string, itemId: string) => {
+  return `/api/council/${id}/items/${itemId}`;
+};
+
+export const deleteCouncilMeetingItem = async (
+  id: string,
+  itemId: string,
+  options?: RequestInit,
+): Promise<MessageResponse> => {
+  return customFetch<MessageResponse>(
+    getDeleteCouncilMeetingItemUrl(id, itemId),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
+
+export const getDeleteCouncilMeetingItemMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteCouncilMeetingItem>>,
+    TError,
+    { id: string; itemId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteCouncilMeetingItem>>,
+  TError,
+  { id: string; itemId: string },
+  TContext
+> => {
+  const mutationKey = ["deleteCouncilMeetingItem"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteCouncilMeetingItem>>,
     { id: string; itemId: string }
   > = (props) => {
     const { id, itemId } = props ?? {};
 
-    return deleteLiturgyItem(id, itemId, requestOptions);
+    return deleteCouncilMeetingItem(id, itemId, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
 };
 
-export type DeleteLiturgyItemMutationResult = NonNullable<
-  Awaited<ReturnType<typeof deleteLiturgyItem>>
+export type DeleteCouncilMeetingItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteCouncilMeetingItem>>
 >;
 
-export type DeleteLiturgyItemMutationError = ErrorType<unknown>;
+export type DeleteCouncilMeetingItemMutationError = ErrorType<unknown>;
 
 /**
- * @summary Delete a liturgy item
+ * @summary Remove agenda item
  */
-export const useDeleteLiturgyItem = <
+export const useDeleteCouncilMeetingItem = <
   TError = ErrorType<unknown>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof deleteLiturgyItem>>,
+    Awaited<ReturnType<typeof deleteCouncilMeetingItem>>,
     TError,
     { id: string; itemId: string },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
-  Awaited<ReturnType<typeof deleteLiturgyItem>>,
+  Awaited<ReturnType<typeof deleteCouncilMeetingItem>>,
   TError,
   { id: string; itemId: string },
   TContext
 > => {
-  return useMutation(getDeleteLiturgyItemMutationOptions(options));
-};
-
-/**
- * @summary Reorder liturgy items
- */
-export const getReorderLiturgyItemsUrl = (id: string) => {
-  return `/api/liturgy/${id}/items/reorder`;
-};
-
-export const reorderLiturgyItems = async (
-  id: string,
-  reorderLiturgyItemsRequest: ReorderLiturgyItemsRequest,
-  options?: RequestInit,
-): Promise<MessageResponse> => {
-  return customFetch<MessageResponse>(getReorderLiturgyItemsUrl(id), {
-    ...options,
-    method: "PUT",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(reorderLiturgyItemsRequest),
-  });
-};
-
-export const getReorderLiturgyItemsMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof reorderLiturgyItems>>,
-    TError,
-    { id: string; data: BodyType<ReorderLiturgyItemsRequest> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof reorderLiturgyItems>>,
-  TError,
-  { id: string; data: BodyType<ReorderLiturgyItemsRequest> },
-  TContext
-> => {
-  const mutationKey = ["reorderLiturgyItems"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof reorderLiturgyItems>>,
-    { id: string; data: BodyType<ReorderLiturgyItemsRequest> }
-  > = (props) => {
-    const { id, data } = props ?? {};
-
-    return reorderLiturgyItems(id, data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type ReorderLiturgyItemsMutationResult = NonNullable<
-  Awaited<ReturnType<typeof reorderLiturgyItems>>
->;
-export type ReorderLiturgyItemsMutationBody =
-  BodyType<ReorderLiturgyItemsRequest>;
-export type ReorderLiturgyItemsMutationError = ErrorType<unknown>;
-
-/**
- * @summary Reorder liturgy items
- */
-export const useReorderLiturgyItems = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof reorderLiturgyItems>>,
-    TError,
-    { id: string; data: BodyType<ReorderLiturgyItemsRequest> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationResult<
-  Awaited<ReturnType<typeof reorderLiturgyItems>>,
-  TError,
-  { id: string; data: BodyType<ReorderLiturgyItemsRequest> },
-  TContext
-> => {
-  return useMutation(getReorderLiturgyItemsMutationOptions(options));
+  return useMutation(getDeleteCouncilMeetingItemMutationOptions(options));
 };
 
 /**

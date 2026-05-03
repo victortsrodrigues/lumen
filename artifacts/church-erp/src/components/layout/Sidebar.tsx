@@ -4,7 +4,7 @@ import {
   Layers, Shield, ShieldCheck, LogOut,
   ChevronDown, ArrowDownToLine, ArrowUpFromLine, FileBarChart, Lock,
   BookOpen, Library, ClipboardCheck, GraduationCap, User, UsersRound, Package, CalendarCheck, PiggyBank, BarChart3, Target, FileText,
-  HeartHandshake, Music, BookMarked, Newspaper, MessageSquare, Globe, QrCode, UserPlus,
+  HeartHandshake, Music, BookMarked, Newspaper, MessageSquare, Globe, QrCode, UserPlus, Activity, Gavel,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth-context";
@@ -41,22 +41,24 @@ const MENU_ITEMS = [
   },
   {
     icon: BookOpen,
-    label: "Ensino",
+    label: "Ensino e Pregação",
     href: "/teaching",
     subItems: [
-      { icon: Library, label: "Cursos", href: "/teaching/courses" },
+      { icon: Library, label: "Séries", href: "/teaching/courses" },
       { icon: ClipboardCheck, label: "Frequência", href: "/teaching/attendance", roles: ["admin", "leader"] },
-      { icon: GraduationCap, label: "Meus Cursos", href: "/teaching/my-courses" },
+      { icon: GraduationCap, label: "Minhas Séries", href: "/teaching/my-courses" },
       { icon: FileText, label: "Conteúdos", href: "/teaching/contents" },
     ],
   },
   { icon: UserPlus, label: "Visitantes", href: "/visitors", roles: ["admin", "leader"] },
+  { icon: Activity, label: "Discipulado", href: "/discipleship", roles: ["admin", "leader"] },
   { icon: UsersRound, label: "Ministérios", href: "/ministries" },
   { icon: Calendar, label: "Calendário", href: "/events" },
   { icon: HeartHandshake, label: "Acompanhamento", href: "/pastoral", roles: ["admin", "leader"] },
   { icon: ShieldCheck, label: "Aconselhamento", href: "/counseling", roles: ["admin", "leader"] },
+  { icon: Gavel, label: "Conselho", href: "/conselho", roles: ["admin"] },
   { icon: Music, label: "Músicas", href: "/songs" },
-  { icon: BookMarked, label: "Liturgia", href: "/liturgy", roles: ["admin", "leader"] },
+  { icon: BookMarked, label: "Cultos", href: "/cultos" },
   { icon: QrCode, label: "Contribuições", href: "/contributions", roles: ["member", "leader"] },
   { icon: Newspaper, label: "Artigos & Devocionais", href: "/articles" },
   { icon: MessageSquare, label: "Fórum", href: "/forum" },

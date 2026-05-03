@@ -50,6 +50,7 @@ export const GetDashboardStatsResponse = zod.object({
     .nullish(),
   events: zod.object({
     upcomingCount: zod.number().optional(),
+    nextMonthCount: zod.number().optional(),
     upcoming: zod
       .array(
         zod.object({
@@ -74,6 +75,19 @@ export const GetDashboardStatsResponse = zod.object({
     .object({
       activeInitiatives: zod.number().optional(),
       overdueInitiatives: zod.number().optional(),
+    })
+    .optional(),
+  smallGroups: zod
+    .object({
+      groupCount: zod.number().optional(),
+      activeMemberCount: zod.number().optional(),
+      healthBreakdown: zod
+        .object({
+          verde: zod.number().optional(),
+          amarelo: zod.number().optional(),
+          vermelho: zod.number().optional(),
+        })
+        .optional(),
     })
     .optional(),
 });
@@ -110,9 +124,19 @@ export const GetMemberStatsResponse = zod.object({
       id: zod.string().optional(),
       fullName: zod.string().optional(),
       status: zod.string().optional(),
-      pipelineStage: zod.string().nullish(),
       baptismDate: zod.string().nullish(),
       conversionDate: zod.string().nullish(),
+      areas: zod
+        .array(
+          zod.object({
+            area: zod
+              .enum(["culto", "pequeno_grupo", "ministerio", "ebd"])
+              .optional(),
+            healthStatus: zod.enum(["verde", "amarelo", "vermelho"]).optional(),
+            leaderMemberName: zod.string().nullish(),
+          }),
+        )
+        .optional(),
     })
     .nullish(),
   enrolledCourses: zod.number().optional(),
@@ -351,9 +375,6 @@ export const ListMembersResponse = zod.object({
         "falecido",
         "demitido",
       ]),
-      pipelineStage: zod
-        .enum(["culto", "pequeno_grupo", "ministerio"])
-        .optional(),
       receptionMode: zod
         .enum([
           "profissao_fe",
@@ -429,72 +450,136 @@ export const CreateMemberBody = zod.object({
 });
 
 /**
- * @summary Pipeline funnel summary
+ * @summary Discipleship 4x3 health matrix (active members only)
  */
-export const GetPipelineSummaryResponse = zod.object({
-  summary: zod.object({}).passthrough(),
-  total: zod.number(),
+export const GetDiscipleshipSummaryResponse = zod.object({
+  matrix: zod.record(zod.string(), zod.record(zod.string(), zod.number())),
 });
 
 /**
- * @summary Members stagnant in pipeline
+ * @summary Members with red health in any area
  */
-export const getStagnantMembersQueryDaysDefault = 90;
-
-export const GetStagnantMembersQueryParams = zod.object({
-  days: zod.coerce.number().default(getStagnantMembersQueryDaysDefault),
+export const GetDiscipleshipAtRiskQueryParams = zod.object({
+  area: zod.enum(["culto", "pequeno_grupo", "ministerio", "ebd"]).optional(),
 });
 
-export const GetStagnantMembersResponse = zod.object({
-  stagnant: zod.array(
+export const GetDiscipleshipAtRiskResponse = zod.object({
+  items: zod.array(
     zod.object({
-      id: zod.string().optional(),
-      fullName: zod.string().optional(),
-      pipelineStage: zod.string().optional(),
-      daysSinceChange: zod.number().optional(),
-      lastChangeAt: zod.string().optional(),
+      memberId: zod.string(),
+      memberName: zod.string(),
+      area: zod.enum(["culto", "pequeno_grupo", "ministerio", "ebd"]),
+      areaLabel: zod.string(),
+      healthStatus: zod.enum(["verde", "amarelo", "vermelho"]),
+      leaderMemberName: zod.string().nullish(),
     }),
   ),
   total: zod.number(),
-  thresholdDays: zod.number().optional(),
 });
 
 /**
- * @summary Member pipeline history
+ * @summary Members who are leaders in any area
  */
-export const GetMemberPipelineHistoryParams = zod.object({
+export const GetDiscipleshipLeadersResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      leaderMemberId: zod.string().nullish(),
+      leaderMemberName: zod.string().nullish(),
+      total: zod.number(),
+    }),
+  ),
+});
+
+/**
+ * @summary Members under this leader (group by area)
+ */
+export const GetDiscipleshipByLeaderParams = zod.object({
+  leaderId: zod.coerce.string(),
+});
+
+export const GetDiscipleshipByLeaderResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      memberId: zod.string(),
+      memberName: zod.string(),
+      area: zod.enum(["culto", "pequeno_grupo", "ministerio", "ebd"]),
+      areaLabel: zod.string(),
+      healthStatus: zod.enum(["verde", "amarelo", "vermelho"]),
+      leaderMemberName: zod.string().nullish(),
+    }),
+  ),
+  total: zod.number(),
+});
+
+/**
+ * @summary List 4 discipleship areas for a member
+ */
+export const GetMemberAreasParams = zod.object({
   id: zod.coerce.string(),
 });
 
-export const GetMemberPipelineHistoryResponse = zod.object({
-  currentStage: zod.string(),
-  history: zod.array(
+export const GetMemberAreasResponse = zod.object({
+  memberId: zod.string(),
+  memberName: zod.string().optional(),
+  areas: zod.array(
     zod.object({
-      id: zod.string().optional(),
-      fromStage: zod.string().nullish(),
-      toStage: zod.string().optional(),
+      id: zod.string(),
+      area: zod.enum(["culto", "pequeno_grupo", "ministerio", "ebd"]),
+      areaLabel: zod.string(),
+      healthStatus: zod.enum(["verde", "amarelo", "vermelho"]),
+      leaderMemberId: zod.string().nullish(),
+      leaderMemberName: zod.string().nullish(),
+      notes: zod.string().nullish(),
+      lastUpdatedAt: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Update one discipleship area for a member
+ */
+export const UpdateMemberAreaParams = zod.object({
+  id: zod.coerce.string(),
+  area: zod.enum(["culto", "pequeno_grupo", "ministerio", "ebd"]),
+});
+
+export const UpdateMemberAreaBody = zod.object({
+  healthStatus: zod.enum(["verde", "amarelo", "vermelho"]).optional(),
+  leaderMemberId: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  reason: zod.string().nullish(),
+});
+
+export const UpdateMemberAreaResponse = zod.object({
+  id: zod.string(),
+  area: zod.enum(["culto", "pequeno_grupo", "ministerio", "ebd"]),
+  areaLabel: zod.string(),
+  healthStatus: zod.enum(["verde", "amarelo", "vermelho"]),
+  leaderMemberId: zod.string().nullish(),
+  leaderMemberName: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  lastUpdatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Discipleship area transition history
+ */
+export const GetMemberAreaHistoryParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetMemberAreaHistoryResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      id: zod.string(),
+      area: zod.enum(["culto", "pequeno_grupo", "ministerio", "ebd"]),
+      areaLabel: zod.string(),
+      fromHealth: zod.enum(["verde", "amarelo", "vermelho"]).nullish(),
+      toHealth: zod.enum(["verde", "amarelo", "vermelho"]),
       reason: zod.string().nullish(),
-      createdAt: zod.string().optional(),
+      createdAt: zod.string(),
     }),
   ),
-});
-
-/**
- * @summary Move member to new pipeline stage
- */
-export const MoveMemberPipelineParams = zod.object({
-  id: zod.coerce.string(),
-});
-
-export const MoveMemberPipelineBody = zod.object({
-  stage: zod.enum(["culto", "pequeno_grupo", "ministerio"]),
-  reason: zod.string().optional(),
-});
-
-export const MoveMemberPipelineResponse = zod.object({
-  message: zod.string(),
-  fromStage: zod.string(),
-  toStage: zod.string(),
 });
 
 /**
@@ -551,7 +636,6 @@ export const GetOwnProfileResponse = zod.object({
     "falecido",
     "demitido",
   ]),
-  pipelineStage: zod.enum(["culto", "pequeno_grupo", "ministerio"]).optional(),
   exclusionReason: zod
     .enum([
       "transferencia",
@@ -667,7 +751,6 @@ export const UpdateOwnProfileResponse = zod.object({
     "falecido",
     "demitido",
   ]),
-  pipelineStage: zod.enum(["culto", "pequeno_grupo", "ministerio"]).optional(),
   exclusionReason: zod
     .enum([
       "transferencia",
@@ -763,7 +846,6 @@ export const GetMemberResponse = zod.object({
     "falecido",
     "demitido",
   ]),
-  pipelineStage: zod.enum(["culto", "pequeno_grupo", "ministerio"]).optional(),
   exclusionReason: zod
     .enum([
       "transferencia",
@@ -907,7 +989,6 @@ export const UpdateMemberResponse = zod.object({
     "falecido",
     "demitido",
   ]),
-  pipelineStage: zod.enum(["culto", "pequeno_grupo", "ministerio"]).optional(),
   exclusionReason: zod
     .enum([
       "transferencia",
@@ -1061,7 +1142,6 @@ export const RegisterMemberExclusionResponse = zod.object({
     "falecido",
     "demitido",
   ]),
-  pipelineStage: zod.enum(["culto", "pequeno_grupo", "ministerio"]).optional(),
   exclusionReason: zod
     .enum([
       "transferencia",
@@ -1157,7 +1237,6 @@ export const RevertMemberExclusionResponse = zod.object({
     "falecido",
     "demitido",
   ]),
-  pipelineStage: zod.enum(["culto", "pequeno_grupo", "ministerio"]).optional(),
   exclusionReason: zod
     .enum([
       "transferencia",
@@ -1666,7 +1745,6 @@ export const ConvertVisitorResponse = zod.object({
     "falecido",
     "demitido",
   ]),
-  pipelineStage: zod.enum(["culto", "pequeno_grupo", "ministerio"]).optional(),
   exclusionReason: zod
     .enum([
       "transferencia",
@@ -2640,8 +2718,19 @@ export const CreateEventBody = zod.object({
 });
 
 /**
- * @summary Get upcoming events (next 7 days)
+ * @summary Get upcoming events (default 7 days, max 365 with silent clamp)
  */
+export const getUpcomingEventsQueryDaysDefault = 7;
+export const getUpcomingEventsQueryDaysMax = 365;
+
+export const GetUpcomingEventsQueryParams = zod.object({
+  days: zod.coerce
+    .number()
+    .min(1)
+    .max(getUpcomingEventsQueryDaysMax)
+    .default(getUpcomingEventsQueryDaysDefault),
+});
+
 export const GetUpcomingEventsResponse = zod.object({
   events: zod.array(
     zod.object({
@@ -2909,11 +2998,10 @@ export const ListTeachingCoursesResponse = zod.object({
       teacherId: zod.string(),
       teacherName: zod.string().nullish(),
       category: zod.enum([
-        "ebd",
-        "discipulado",
-        "seminario",
-        "curso_livre",
-        "escola_de_lideres",
+        "pregacao",
+        "escola_biblica",
+        "pequeno_grupo",
+        "cursos_livres",
       ]),
       status: zod.enum(["aberto", "em_andamento", "encerrado"]),
       startDate: zod.string().nullish(),
@@ -2944,11 +3032,10 @@ export const CreateCourseBody = zod.object({
   introVideoUrl: zod.string().optional(),
   teacherId: zod.string(),
   category: zod.enum([
-    "ebd",
-    "discipulado",
-    "seminario",
-    "curso_livre",
-    "escola_de_lideres",
+    "pregacao",
+    "escola_biblica",
+    "pequeno_grupo",
+    "cursos_livres",
   ]),
   status: zod.enum(["aberto", "em_andamento", "encerrado"]).optional(),
   startDate: zod.string().optional(),
@@ -3029,11 +3116,10 @@ export const UpdateCourseBody = zod.object({
   introVideoUrl: zod.string().optional(),
   teacherId: zod.string(),
   category: zod.enum([
-    "ebd",
-    "discipulado",
-    "seminario",
-    "curso_livre",
-    "escola_de_lideres",
+    "pregacao",
+    "escola_biblica",
+    "pequeno_grupo",
+    "cursos_livres",
   ]),
   status: zod.enum(["aberto", "em_andamento", "encerrado"]).optional(),
   startDate: zod.string().optional(),
@@ -3055,11 +3141,10 @@ export const UpdateCourseResponse = zod.object({
   teacherId: zod.string(),
   teacherName: zod.string().nullish(),
   category: zod.enum([
-    "ebd",
-    "discipulado",
-    "seminario",
-    "curso_livre",
-    "escola_de_lideres",
+    "pregacao",
+    "escola_biblica",
+    "pequeno_grupo",
+    "cursos_livres",
   ]),
   status: zod.enum(["aberto", "em_andamento", "encerrado"]),
   startDate: zod.string().nullish(),
@@ -5016,33 +5101,86 @@ export const ReviewSongSuggestionResponse = zod.object({
 });
 
 /**
- * @summary List liturgies
+ * @summary Annual culto report
  */
-export const ListLiturgiesQueryParams = zod.object({
-  type: zod.coerce.string().optional(),
-  status: zod.coerce.string().optional(),
-  date: zod.coerce.string().optional(),
+export const GetAnnualCultoReportQueryParams = zod.object({
+  year: zod.coerce.number().optional(),
+});
+
+export const GetAnnualCultoReportResponse = zod.object({
+  year: zod.number(),
+  totals: zod.object({
+    cultos: zod.number().optional(),
+    communions: zod.number().optional(),
+    baptisms: zod.number().optional(),
+    memberReceptions: zod.number().optional(),
+  }),
+  items: zod.array(
+    zod.object({
+      cultoId: zod.string(),
+      eventId: zod.string(),
+      title: zod.string(),
+      startDate: zod.string(),
+      hasCommunion: zod.boolean().optional(),
+      hasBaptism: zod.boolean().optional(),
+      hasMemberReception: zod.boolean().optional(),
+      attendanceCount: zod.number().optional(),
+      scheduledCount: zod.number().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Next 5 upcoming cultos
+ */
+export const GetUpcomingCultosResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      cultoId: zod.string(),
+      eventId: zod.string(),
+      title: zod.string(),
+      startDate: zod.string(),
+      location: zod.string().nullish(),
+      hasCommunion: zod.boolean().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary List cultos with filters
+ */
+export const ListCultosQueryParams = zod.object({
+  year: zod.coerce.number().optional(),
+  month: zod.coerce.number().optional(),
+  hasCommunion: zod.coerce.boolean().optional(),
+  hasBaptism: zod.coerce.boolean().optional(),
   page: zod.coerce.number().optional(),
   limit: zod.coerce.number().optional(),
 });
 
-export const ListLiturgiesResponse = zod.object({
-  liturgies: zod.array(
+export const ListCultosResponse = zod.object({
+  cultos: zod.array(
     zod.object({
       id: zod.string(),
+      eventId: zod.string(),
       title: zod.string(),
-      date: zod.string(),
-      type: zod.enum([
-        "culto_dominical",
-        "culto_especial",
-        "santa_ceia",
-        "culto_oracao",
-      ]),
-      eventId: zod.string().nullish(),
-      status: zod.enum(["rascunho", "aprovada"]),
+      startDate: zod.string(),
+      endDate: zod.string().nullish(),
+      location: zod.string().nullish(),
+      responsibleId: zod.string().nullish(),
+      responsibleName: zod.string().nullish(),
+      status: zod.string(),
+      openingText: zod.string().nullish(),
+      sermonTitle: zod.string().nullish(),
+      sermonReference: zod.string().nullish(),
+      sermonNotes: zod.string().nullish(),
+      hasCommunion: zod.boolean().optional(),
+      hasBaptism: zod.boolean().optional(),
+      hasMemberReception: zod.boolean().optional(),
       notes: zod.string().nullish(),
-      createdAt: zod.string(),
-      updatedAt: zod.string(),
+      songCount: zod.number().optional(),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
     }),
   ),
   total: zod.number(),
@@ -5051,218 +5189,443 @@ export const ListLiturgiesResponse = zod.object({
 });
 
 /**
- * @summary Create a liturgy
+ * @summary Create a culto (event + culto in transaction)
  */
-export const CreateLiturgyBody = zod.object({
+export const CreateCultoBody = zod.object({
   title: zod.string(),
-  date: zod.string(),
-  type: zod.enum([
-    "culto_dominical",
-    "culto_especial",
-    "santa_ceia",
-    "culto_oracao",
-  ]),
-  eventId: zod.string().optional(),
+  description: zod.string().optional(),
+  startDate: zod.string(),
+  endDate: zod.string(),
+  location: zod.string().optional(),
+  responsibleId: zod.string().optional(),
+  recurrence: zod.enum(["unico", "semanal", "quinzenal", "mensal"]).optional(),
+  maxSlots: zod.number().optional(),
+  status: zod
+    .enum(["agendado", "em_andamento", "encerrado", "cancelado"])
+    .optional(),
+  openingText: zod.string().optional(),
+  sermonTitle: zod.string().optional(),
+  sermonReference: zod.string().optional(),
+  sermonNotes: zod.string().optional(),
+  hasCommunion: zod.boolean().optional(),
+  hasBaptism: zod.boolean().optional(),
+  hasMemberReception: zod.boolean().optional(),
   notes: zod.string().optional(),
 });
 
 /**
- * @summary Get liturgy detail with items
+ * @summary Get culto detail with songs
  */
-export const GetLiturgyDetailParams = zod.object({
+export const GetCultoDetailParams = zod.object({
   id: zod.coerce.string(),
 });
 
-export const GetLiturgyDetailResponse = zod
+export const GetCultoDetailResponse = zod
   .object({
     id: zod.string(),
+    eventId: zod.string(),
     title: zod.string(),
-    date: zod.string(),
-    type: zod.enum([
-      "culto_dominical",
-      "culto_especial",
-      "santa_ceia",
-      "culto_oracao",
-    ]),
-    eventId: zod.string().nullish(),
-    status: zod.enum(["rascunho", "aprovada"]),
+    startDate: zod.string(),
+    endDate: zod.string().nullish(),
+    location: zod.string().nullish(),
+    responsibleId: zod.string().nullish(),
+    responsibleName: zod.string().nullish(),
+    status: zod.string(),
+    openingText: zod.string().nullish(),
+    sermonTitle: zod.string().nullish(),
+    sermonReference: zod.string().nullish(),
+    sermonNotes: zod.string().nullish(),
+    hasCommunion: zod.boolean().optional(),
+    hasBaptism: zod.boolean().optional(),
+    hasMemberReception: zod.boolean().optional(),
     notes: zod.string().nullish(),
-    createdAt: zod.string(),
-    updatedAt: zod.string(),
+    songCount: zod.number().optional(),
+    createdAt: zod.string().optional(),
+    updatedAt: zod.string().optional(),
   })
   .and(
     zod.object({
-      items: zod.array(
+      description: zod.string().nullish(),
+      songs: zod.array(
         zod.object({
           id: zod.string(),
-          liturgyId: zod.string(),
+          cultoId: zod.string(),
+          songId: zod.string(),
+          songTitle: zod.string(),
           order: zod.number(),
-          type: zod.enum([
-            "louvor",
-            "oracao",
-            "leitura",
-            "pregacao",
-            "ofertorio",
-            "avisos",
-            "santa_ceia",
-            "outro",
-          ]),
-          title: zod.string(),
-          description: zod.string().nullish(),
-          responsibleName: zod.string().nullish(),
-          durationMinutes: zod.number().nullish(),
-          songId: zod.string().nullish(),
-          createdAt: zod.string(),
+          notes: zod.string().nullish(),
+          createdAt: zod.string().optional(),
         }),
       ),
     }),
   );
 
 /**
- * @summary Update a liturgy
+ * @summary Update a culto
  */
-export const UpdateLiturgyParams = zod.object({
+export const UpdateCultoParams = zod.object({
   id: zod.coerce.string(),
 });
 
-export const UpdateLiturgyBody = zod.object({
+export const UpdateCultoBody = zod.object({
   title: zod.string().optional(),
-  date: zod.string().optional(),
-  type: zod
-    .enum(["culto_dominical", "culto_especial", "santa_ceia", "culto_oracao"])
+  description: zod.string().optional(),
+  startDate: zod.string().optional(),
+  endDate: zod.string().optional(),
+  location: zod.string().optional(),
+  responsibleId: zod.string().nullish(),
+  recurrence: zod.enum(["unico", "semanal", "quinzenal", "mensal"]).optional(),
+  maxSlots: zod.number().nullish(),
+  status: zod
+    .enum(["agendado", "em_andamento", "encerrado", "cancelado"])
     .optional(),
-  eventId: zod.string().optional(),
-  status: zod.enum(["rascunho", "aprovada"]).optional(),
+  openingText: zod.string().nullish(),
+  sermonTitle: zod.string().nullish(),
+  sermonReference: zod.string().nullish(),
+  sermonNotes: zod.string().nullish(),
+  hasCommunion: zod.boolean().optional(),
+  hasBaptism: zod.boolean().optional(),
+  hasMemberReception: zod.boolean().optional(),
+  notes: zod.string().nullish(),
+});
+
+export const UpdateCultoResponse = zod.object({
+  id: zod.string(),
+  eventId: zod.string(),
+  title: zod.string(),
+  startDate: zod.string(),
+  endDate: zod.string().nullish(),
+  location: zod.string().nullish(),
+  responsibleId: zod.string().nullish(),
+  responsibleName: zod.string().nullish(),
+  status: zod.string(),
+  openingText: zod.string().nullish(),
+  sermonTitle: zod.string().nullish(),
+  sermonReference: zod.string().nullish(),
+  sermonNotes: zod.string().nullish(),
+  hasCommunion: zod.boolean().optional(),
+  hasBaptism: zod.boolean().optional(),
+  hasMemberReception: zod.boolean().optional(),
+  notes: zod.string().nullish(),
+  songCount: zod.number().optional(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Delete a culto (soft delete via event.deletedAt)
+ */
+export const DeleteCultoParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteCultoResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Add song to culto
+ */
+export const AddCultoSongParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const AddCultoSongBody = zod.object({
+  songId: zod.string(),
   notes: zod.string().optional(),
 });
 
-export const UpdateLiturgyResponse = zod.object({
-  id: zod.string(),
-  title: zod.string(),
-  date: zod.string(),
-  type: zod.enum([
-    "culto_dominical",
-    "culto_especial",
-    "santa_ceia",
-    "culto_oracao",
-  ]),
-  eventId: zod.string().nullish(),
-  status: zod.enum(["rascunho", "aprovada"]),
+/**
+ * @summary Reorder culto songs
+ */
+export const ReorderCultoSongsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ReorderCultoSongsBody = zod.object({
+  songIds: zod.array(zod.string()),
+});
+
+export const ReorderCultoSongsResponse = zod.object({
+  songs: zod.array(
+    zod.object({
+      id: zod.string(),
+      cultoId: zod.string(),
+      songId: zod.string(),
+      songTitle: zod.string(),
+      order: zod.number(),
+      notes: zod.string().nullish(),
+      createdAt: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Update song notes
+ */
+export const UpdateCultoSongParams = zod.object({
+  id: zod.coerce.string(),
+  songEntryId: zod.coerce.string(),
+});
+
+export const UpdateCultoSongBody = zod.object({
   notes: zod.string().nullish(),
-  createdAt: zod.string(),
-  updatedAt: zod.string(),
 });
 
-/**
- * @summary Delete a liturgy
- */
-export const DeleteLiturgyParams = zod.object({
-  id: zod.coerce.string(),
-});
-
-export const DeleteLiturgyResponse = zod.object({
-  message: zod.string(),
-});
-
-/**
- * @summary Add item to liturgy
- */
-export const AddLiturgyItemParams = zod.object({
-  id: zod.coerce.string(),
-});
-
-export const AddLiturgyItemBody = zod.object({
-  type: zod.enum([
-    "louvor",
-    "oracao",
-    "leitura",
-    "pregacao",
-    "ofertorio",
-    "avisos",
-    "santa_ceia",
-    "outro",
-  ]),
-  title: zod.string(),
-  description: zod.string().optional(),
-  responsibleMemberId: zod.string().optional(),
-  durationMinutes: zod.number().optional(),
-  songId: zod.string().optional(),
-});
-
-/**
- * @summary Update a liturgy item
- */
-export const UpdateLiturgyItemParams = zod.object({
-  id: zod.coerce.string(),
-  itemId: zod.coerce.string(),
-});
-
-export const UpdateLiturgyItemBody = zod.object({
-  type: zod
-    .enum([
-      "louvor",
-      "oracao",
-      "leitura",
-      "pregacao",
-      "ofertorio",
-      "avisos",
-      "santa_ceia",
-      "outro",
-    ])
-    .optional(),
-  title: zod.string().optional(),
-  description: zod.string().optional(),
-  responsibleMemberId: zod.string().optional(),
-  durationMinutes: zod.number().optional(),
-  songId: zod.string().optional(),
-});
-
-export const UpdateLiturgyItemResponse = zod.object({
+export const UpdateCultoSongResponse = zod.object({
   id: zod.string(),
-  liturgyId: zod.string(),
+  cultoId: zod.string(),
+  songId: zod.string(),
+  songTitle: zod.string(),
   order: zod.number(),
-  type: zod.enum([
-    "louvor",
-    "oracao",
-    "leitura",
-    "pregacao",
-    "ofertorio",
-    "avisos",
-    "santa_ceia",
-    "outro",
-  ]),
-  title: zod.string(),
-  description: zod.string().nullish(),
-  responsibleName: zod.string().nullish(),
-  durationMinutes: zod.number().nullish(),
-  songId: zod.string().nullish(),
-  createdAt: zod.string(),
+  notes: zod.string().nullish(),
+  createdAt: zod.string().optional(),
 });
 
 /**
- * @summary Delete a liturgy item
+ * @summary Remove song from culto
  */
-export const DeleteLiturgyItemParams = zod.object({
+export const DeleteCultoSongParams = zod.object({
   id: zod.coerce.string(),
-  itemId: zod.coerce.string(),
+  songEntryId: zod.coerce.string(),
 });
 
-export const DeleteLiturgyItemResponse = zod.object({
+export const DeleteCultoSongResponse = zod.object({
   message: zod.string(),
 });
 
 /**
- * @summary Reorder liturgy items
+ * @summary Upcoming scheduled council meetings
  */
-export const ReorderLiturgyItemsParams = zod.object({
+export const GetUpcomingCouncilMeetingsResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      id: zod.string(),
+      meetingDate: zod.string(),
+      title: zod.string(),
+      agenda: zod.string().nullish(),
+      summary: zod.string().nullish(),
+      status: zod.enum(["agendada", "realizada", "cancelada"]),
+      notes: zod.string().nullish(),
+      ataMediaId: zod.string().nullish(),
+      ataTitle: zod.string().nullish(),
+      ataUrl: zod.string().nullish(),
+      itemCount: zod.number().optional(),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary List council meetings with filters
+ */
+export const ListCouncilMeetingsQueryParams = zod.object({
+  year: zod.coerce.number().optional(),
+  status: zod.coerce.string().optional(),
+  search: zod.coerce.string().optional(),
+  page: zod.coerce.number().optional(),
+  limit: zod.coerce.number().optional(),
+});
+
+export const ListCouncilMeetingsResponse = zod.object({
+  meetings: zod.array(
+    zod.object({
+      id: zod.string(),
+      meetingDate: zod.string(),
+      title: zod.string(),
+      agenda: zod.string().nullish(),
+      summary: zod.string().nullish(),
+      status: zod.enum(["agendada", "realizada", "cancelada"]),
+      notes: zod.string().nullish(),
+      ataMediaId: zod.string().nullish(),
+      ataTitle: zod.string().nullish(),
+      ataUrl: zod.string().nullish(),
+      itemCount: zod.number().optional(),
+      createdAt: zod.string().optional(),
+      updatedAt: zod.string().optional(),
+    }),
+  ),
+  total: zod.number(),
+  page: zod.number().optional(),
+  limit: zod.number().optional(),
+});
+
+/**
+ * @summary Create a council meeting (admin only)
+ */
+export const CreateCouncilMeetingBody = zod.object({
+  meetingDate: zod.string(),
+  title: zod.string(),
+  agenda: zod.string().optional(),
+  summary: zod.string().optional(),
+  ataMediaId: zod.string().optional(),
+  status: zod.enum(["agendada", "realizada", "cancelada"]).optional(),
+  notes: zod.string().optional(),
+});
+
+/**
+ * @summary Get council meeting detail with items
+ */
+export const GetCouncilMeetingDetailParams = zod.object({
   id: zod.coerce.string(),
 });
 
-export const ReorderLiturgyItemsBody = zod.object({
+export const GetCouncilMeetingDetailResponse = zod
+  .object({
+    id: zod.string(),
+    meetingDate: zod.string(),
+    title: zod.string(),
+    agenda: zod.string().nullish(),
+    summary: zod.string().nullish(),
+    status: zod.enum(["agendada", "realizada", "cancelada"]),
+    notes: zod.string().nullish(),
+    ataMediaId: zod.string().nullish(),
+    ataTitle: zod.string().nullish(),
+    ataUrl: zod.string().nullish(),
+    itemCount: zod.number().optional(),
+    createdAt: zod.string().optional(),
+    updatedAt: zod.string().optional(),
+  })
+  .and(
+    zod.object({
+      items: zod.array(
+        zod.object({
+          id: zod.string(),
+          meetingId: zod.string(),
+          order: zod.number(),
+          title: zod.string(),
+          description: zod.string().nullish(),
+          status: zod.enum(["pendente", "discutida", "decidida"]),
+          resolution: zod.string().nullish(),
+          resolvedAt: zod.string().nullish(),
+          createdAt: zod.string().optional(),
+        }),
+      ),
+    }),
+  );
+
+/**
+ * @summary Update council meeting
+ */
+export const UpdateCouncilMeetingParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateCouncilMeetingBody = zod.object({
+  meetingDate: zod.string().optional(),
+  title: zod.string().optional(),
+  agenda: zod.string().nullish(),
+  summary: zod.string().nullish(),
+  ataMediaId: zod.string().nullish(),
+  status: zod.enum(["agendada", "realizada", "cancelada"]).optional(),
+  notes: zod.string().nullish(),
+});
+
+export const UpdateCouncilMeetingResponse = zod.object({
+  id: zod.string(),
+  meetingDate: zod.string(),
+  title: zod.string(),
+  agenda: zod.string().nullish(),
+  summary: zod.string().nullish(),
+  status: zod.enum(["agendada", "realizada", "cancelada"]),
+  notes: zod.string().nullish(),
+  ataMediaId: zod.string().nullish(),
+  ataTitle: zod.string().nullish(),
+  ataUrl: zod.string().nullish(),
+  itemCount: zod.number().optional(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Soft-delete council meeting
+ */
+export const DeleteCouncilMeetingParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteCouncilMeetingResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Add agenda item to meeting
+ */
+export const AddCouncilMeetingItemParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const AddCouncilMeetingItemBody = zod.object({
+  title: zod.string(),
+  description: zod.string().optional(),
+  status: zod.enum(["pendente", "discutida", "decidida"]).optional(),
+  resolution: zod.string().optional(),
+});
+
+/**
+ * @summary Reorder agenda items
+ */
+export const ReorderCouncilMeetingItemsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ReorderCouncilMeetingItemsBody = zod.object({
   itemIds: zod.array(zod.string()),
 });
 
-export const ReorderLiturgyItemsResponse = zod.object({
+export const ReorderCouncilMeetingItemsResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      id: zod.string(),
+      meetingId: zod.string(),
+      order: zod.number(),
+      title: zod.string(),
+      description: zod.string().nullish(),
+      status: zod.enum(["pendente", "discutida", "decidida"]),
+      resolution: zod.string().nullish(),
+      resolvedAt: zod.string().nullish(),
+      createdAt: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Update agenda item (status lifecycle)
+ */
+export const UpdateCouncilMeetingItemParams = zod.object({
+  id: zod.coerce.string(),
+  itemId: zod.coerce.string(),
+});
+
+export const UpdateCouncilMeetingItemBody = zod.object({
+  title: zod.string().optional(),
+  description: zod.string().nullish(),
+  status: zod.enum(["pendente", "discutida", "decidida"]).optional(),
+  resolution: zod.string().nullish(),
+});
+
+export const UpdateCouncilMeetingItemResponse = zod.object({
+  id: zod.string(),
+  meetingId: zod.string(),
+  order: zod.number(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  status: zod.enum(["pendente", "discutida", "decidida"]),
+  resolution: zod.string().nullish(),
+  resolvedAt: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+});
+
+/**
+ * @summary Remove agenda item
+ */
+export const DeleteCouncilMeetingItemParams = zod.object({
+  id: zod.coerce.string(),
+  itemId: zod.coerce.string(),
+});
+
+export const DeleteCouncilMeetingItemResponse = zod.object({
   message: zod.string(),
 });
 

@@ -94,19 +94,20 @@ router.get("/", requireAuth, async (req: Request, res: Response) => {
   });
 });
 
-// GET /events/upcoming — próximos 7 dias
-router.get("/upcoming", requireAuth, async (_req: Request, res: Response) => {
+// GET /events/upcoming — próximos N dias (default 7, max 365 com clamp silencioso)
+router.get("/upcoming", requireAuth, async (req: Request, res: Response) => {
+  const days = Math.min(365, Math.max(1, parseInt(req.query.days as string) || 7));
   const now = new Date();
-  const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const until = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 
   const events = await db.select().from(eventsTable)
     .where(and(
       isNull(eventsTable.deletedAt),
       gte(eventsTable.startDate, now),
-      lte(eventsTable.startDate, nextWeek),
+      lte(eventsTable.startDate, until),
     ))
     .orderBy(asc(eventsTable.startDate))
-    .limit(10);
+    .limit(50);
 
   res.json({ events: events.map(serializeEvent) });
 });

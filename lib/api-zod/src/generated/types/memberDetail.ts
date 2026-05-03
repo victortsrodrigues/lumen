@@ -6,7 +6,6 @@
  * OpenAPI spec version: 0.2.0
  */
 import type { MemberClassification } from "./memberClassification";
-import type { MemberDetailPipelineStage } from "./memberDetailPipelineStage";
 import type { MemberDetailSex } from "./memberDetailSex";
 import type { MemberExclusionReason } from "./memberExclusionReason";
 import type { MemberGroupLink } from "./memberGroupLink";
@@ -46,7 +45,6 @@ export interface MemberDetail {
   academicEducation?: string;
   profession?: string;
   status: MemberStatus;
-  pipelineStage?: MemberDetailPipelineStage;
   exclusionReason?: MemberExclusionReason;
   exclusionDate?: string;
   exclusionNotes?: string;

@@ -14,10 +14,6 @@ export const memberStatusEnum = pgEnum("member_status", [
 
 export const memberSexEnum = pgEnum("member_sex", ["masculino", "feminino"]);
 
-export const memberPipelineStageEnum = pgEnum("member_pipeline_stage", [
-  "culto", "pequeno_grupo", "ministerio",
-]);
-
 export const memberClassificationEnum = pgEnum("member_classification", [
   "comungante",
   "nao_comungante",
@@ -106,7 +102,6 @@ export const membersTable = pgTable("members", {
 
   // ─── Status / exclusão ───
   status: memberStatusEnum("status").notNull().default("ativo"),
-  pipelineStage: memberPipelineStageEnum("pipeline_stage").notNull().default("culto"),
   exclusionReason: memberExclusionReasonEnum("exclusion_reason"),
   exclusionDate: date("exclusion_date"),
   exclusionNotes: text("exclusion_notes"),

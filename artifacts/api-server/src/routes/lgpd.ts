@@ -16,12 +16,13 @@ import {
   counselingCasesTable,
   counselingSessionsTable,
   songSuggestionsTable,
-  liturgyItemsTable,
   pixDonationsTable,
   memberChildrenTable,
   memberGroupMembersTable,
   visitorsTable,
   visitorVisitsTable,
+  memberAreasTable,
+  memberAreaHistoryTable,
 } from "@workspace/db";
 import { eq, desc, and, count, or } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middlewares/auth.js";
@@ -455,13 +456,7 @@ async function anonymizeMember(memberId: string, adminUserId: string): Promise<v
     suggestedByName: "[anonimizado]",
   }).where(eq(songSuggestionsTable.suggestedByMemberId, memberId));
 
-  // 12. Anonymize liturgy items
-  await db.update(liturgyItemsTable).set({
-    responsibleMemberId: null,
-    responsibleName: "[anonimizado]",
-  }).where(eq(liturgyItemsTable.responsibleMemberId, memberId));
-
-  // 13. Anonymize PIX donations
+  // 12. Anonymize PIX donations
   await db.update(pixDonationsTable).set({
     memberId: null,
     donorName: "[anonimizado]",
@@ -476,7 +471,17 @@ async function anonymizeMember(memberId: string, adminUserId: string): Promise<v
     updatedAt: new Date(),
   }).where(eq(visitorsTable.assignedToMemberId, memberId));
 
-  // 15. Record in member history
+  // 15. Discipleship: remove member's areas; clear leader refs where this member was leader; scrub reason field in history
+  await db.delete(memberAreasTable).where(eq(memberAreasTable.memberId, memberId));
+  await db.update(memberAreasTable).set({
+    leaderMemberId: null,
+    leaderMemberName: null,
+  }).where(eq(memberAreasTable.leaderMemberId, memberId));
+  await db.update(memberAreaHistoryTable).set({
+    reason: null,
+  }).where(eq(memberAreaHistoryTable.memberId, memberId));
+
+  // 16. Record in member history
   await db.insert(memberHistoryTable).values({
     memberId,
     changedByUserId: adminUserId,
