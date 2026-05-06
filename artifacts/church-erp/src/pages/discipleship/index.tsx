@@ -56,9 +56,9 @@ export default function DiscipleshipPage() {
               <thead>
                 <tr className="text-left text-xs uppercase text-muted-foreground border-b">
                   <th className="py-2">Área</th>
-                  <th className="py-2 text-center">Verde</th>
-                  <th className="py-2 text-center">Amarelo</th>
-                  <th className="py-2 text-center">Vermelho</th>
+                  <th className="py-2 text-center">Ativo</th>
+                  <th className="py-2 text-center">Irregular</th>
+                  <th className="py-2 text-center">Ausente</th>
                   <th className="py-2 text-right">Total</th>
                 </tr>
               </thead>

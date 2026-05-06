@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   useGetMemberAreas,
   useUpdateMemberArea,
   useGetMemberAreaHistory,
+  useListMembers,
+  useGetMember,
 } from "@workspace/api-client-react";
-import { Loader2, Activity } from "lucide-react";
-import { MemberSelect } from "@/components/MemberSelect";
+import { Loader2, Activity, Search, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const AREAS: Array<{ key: "culto" | "pequeno_grupo" | "ministerio" | "ebd"; label: string }> = [
@@ -16,10 +17,16 @@ const AREAS: Array<{ key: "culto" | "pequeno_grupo" | "ministerio" | "ebd"; labe
 ];
 
 const HEALTH: Array<{ key: "verde" | "amarelo" | "vermelho"; label: string; cls: string }> = [
-  { key: "verde", label: "Verde", cls: "bg-emerald-100 text-emerald-700 border-emerald-300 hover:bg-emerald-200" },
-  { key: "amarelo", label: "Amarelo", cls: "bg-amber-100 text-amber-700 border-amber-300 hover:bg-amber-200" },
-  { key: "vermelho", label: "Vermelho", cls: "bg-red-100 text-red-700 border-red-300 hover:bg-red-200" },
+  { key: "verde", label: "Ativo", cls: "bg-emerald-100 text-emerald-700 border-emerald-300 hover:bg-emerald-200" },
+  { key: "amarelo", label: "Irregular", cls: "bg-amber-100 text-amber-700 border-amber-300 hover:bg-amber-200" },
+  { key: "vermelho", label: "Ausente", cls: "bg-red-100 text-red-700 border-red-300 hover:bg-red-200" },
 ];
+
+const HEALTH_LABEL: Record<string, string> = {
+  verde: "Ativo",
+  amarelo: "Irregular",
+  vermelho: "Ausente",
+};
 
 interface Props {
   memberId: string;
@@ -81,9 +88,9 @@ export function MemberAreasTab({ memberId, memberName }: Props) {
             {(historyData as any).items.slice(0, 10).map((h: any) => (
               <li key={h.id} className="flex items-center gap-2 flex-wrap">
                 <span className="font-medium text-foreground">{h.areaLabel}</span>
-                <span className="text-muted-foreground">{h.fromHealth ?? "—"}</span>
+                <span className="text-muted-foreground">{h.fromHealth ? (HEALTH_LABEL[h.fromHealth] ?? h.fromHealth) : "—"}</span>
                 <span>→</span>
-                <span className="font-medium text-foreground">{h.toHealth}</span>
+                <span className="font-medium text-foreground">{HEALTH_LABEL[h.toHealth] ?? h.toHealth}</span>
                 {h.reason && <span className="text-muted-foreground">— {h.reason}</span>}
                 <span className="ml-auto text-muted-foreground">{h.createdAt && new Date(h.createdAt).toLocaleDateString("pt-BR")}</span>
               </li>
@@ -149,13 +156,12 @@ function AreaCard({ memberId, area, areaLabel, row, onSave, pending }: AreaCardP
       </div>
 
       <div>
-        <p className="text-xs text-muted-foreground mb-1.5">Líder / Referência</p>
-        <MemberSelect
-          value={leaderId}
+        <p className="text-xs text-muted-foreground mb-1.5">Referência</p>
+        <LeaderPicker
+          excludeId={memberId}
+          memberId={leaderId}
+          memberInitialName={leaderName}
           onChange={(id, name) => { setLeaderId(id || ""); setLeaderName(name || ""); }}
-          initialName={leaderName}
-          excludeIds={[memberId]}
-          placeholder="Selecionar líder…"
         />
       </div>
 
@@ -182,6 +188,124 @@ function AreaCard({ memberId, area, areaLabel, row, onSave, pending }: AreaCardP
       >
         {pending ? "Salvando…" : "Salvar"}
       </button>
+    </div>
+  );
+}
+
+// ─── Leader Picker ──────────────────────────────────────────────────────────
+// Lista pesquisável de membros (selecionar um). Apenas um pode ser escolhido.
+
+function LeaderPicker({
+  excludeId,
+  memberId,
+  memberInitialName,
+  onChange,
+}: {
+  excludeId?: string;
+  memberId: string;
+  memberInitialName: string;
+  onChange: (id: string, name: string) => void;
+}) {
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  const { data: candidates, isLoading } = useListMembers(
+    { search: search || undefined, status: "ativo" as any, limit: 30, page: 1 } as any,
+    { query: { enabled: showSearch } },
+  );
+  const { data: selectedDetail } = useGetMember(memberId, {
+    query: { enabled: !!memberId && !memberInitialName },
+  });
+
+  const list = ((candidates as any)?.members ?? []) as any[];
+  const filtered = useMemo(() => list.filter((m) => m.id !== excludeId), [list, excludeId]);
+
+  const selectedName = memberInitialName || (selectedDetail as any)?.fullName || "";
+
+  if (memberId) {
+    return (
+      <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40">
+        <p className="font-medium text-sm truncate">{selectedName || "Carregando..."}</p>
+        <button
+          type="button"
+          onClick={() => onChange("", "")}
+          className="p-1 text-muted-foreground hover:text-destructive"
+          title="Remover referência"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  }
+
+  if (!showSearch) {
+    return (
+      <button
+        type="button"
+        onClick={() => setShowSearch(true)}
+        className="w-full text-left px-3 py-2 border rounded-lg bg-background text-sm text-muted-foreground hover:bg-muted/40"
+      >
+        <Search className="inline h-3.5 w-3.5 mr-1.5" /> Buscar membro...
+      </button>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border bg-background/50 p-2 space-y-2">
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Buscar membro por nome..."
+            className="w-full pl-9 pr-3 py-2 border rounded-lg bg-background text-sm"
+            autoFocus
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => { setShowSearch(false); setSearchInput(""); setSearch(""); }}
+          className="px-2.5 py-2 border rounded-lg text-xs"
+        >
+          Fechar
+        </button>
+      </div>
+      <div className="border rounded-lg overflow-hidden max-h-60 overflow-y-auto bg-card">
+        {isLoading ? (
+          <div className="flex justify-center py-6">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-6 italic">
+            {search ? "Nenhum membro encontrado." : "Digite para buscar..."}
+          </p>
+        ) : (
+          <ul className="divide-y">
+            {filtered.map((m: any) => (
+              <li key={m.id}>
+                <button
+                  type="button"
+                  onClick={() => { onChange(m.id, m.fullName); setShowSearch(false); setSearchInput(""); setSearch(""); }}
+                  className="w-full text-left flex items-center gap-3 p-2.5 hover:bg-muted/50 transition-colors"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm truncate">{m.fullName}</p>
+                    {m.email && <p className="text-xs text-muted-foreground truncate">{m.email}</p>}
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
