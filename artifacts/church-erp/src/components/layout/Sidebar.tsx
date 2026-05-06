@@ -176,10 +176,17 @@ export function Sidebar({ open = false, onClose }: SidebarProps = {}) {
                   />
                 </button>
 
-                {isOpen && (
+                {isOpen && (() => {
+                  const visibleSubs = item.subItems!.filter((sub) => !(sub as any).roles || (sub as any).roles.includes(user?.role));
+                  // Encontra o sub-item MAIS ESPECÍFICO (path mais longo) que casa com o location.
+                  // Evita que /members ative tanto "Membros" quanto "Agrupamentos" quando estamos em /members/groups.
+                  const activeSubHref = visibleSubs
+                    .filter((sub) => location === sub.href || location.startsWith(sub.href + "/"))
+                    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+                  return (
                   <div className="mt-1 ml-4 pl-4 border-l border-white/10 space-y-1">
-                    {item.subItems!.filter((sub) => !(sub as any).roles || (sub as any).roles.includes(user?.role)).map((sub) => {
-                      const subActive = location === sub.href || location.startsWith(sub.href + "/");
+                    {visibleSubs.map((sub) => {
+                      const subActive = sub.href === activeSubHref;
                       return (
                         <Link
                           key={sub.href}
@@ -202,7 +209,8 @@ export function Sidebar({ open = false, onClose }: SidebarProps = {}) {
                       );
                     })}
                   </div>
-                )}
+                  );
+                })()}
               </div>
             );
           }
