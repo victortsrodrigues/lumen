@@ -3,7 +3,7 @@ import { useRegisterMemberExclusion } from "@workspace/api-client-react";
 import { X, AlertTriangle, Loader2 } from "lucide-react";
 
 const COMMUNING_REASONS: Array<{ value: string; label: string }> = [
-  { value: "transferencia", label: "Transferência (gera carta)" },
+  { value: "transferencia", label: "Transferência" },
   { value: "falecimento", label: "Falecimento" },
   { value: "exclusao_pedido", label: "Exclusão a Pedido" },
   { value: "exclusao_disciplina", label: "Exclusão por Disciplina" },
@@ -12,10 +12,10 @@ const COMMUNING_REASONS: Array<{ value: string; label: string }> = [
 ];
 
 const NON_COMMUNING_REASONS: Array<{ value: string; label: string }> = [
-  { value: "transferencia_responsaveis", label: "Transferência (acompanha responsáveis)" },
+  { value: "transferencia_responsaveis", label: "Transferência" },
   { value: "falecimento", label: "Falecimento" },
-  { value: "profissao_fe_migracao", label: "Profissão de Fé (migra para comungante)" },
-  { value: "exclusao_abandono_responsaveis", label: "Exclusão por Abandono dos Responsáveis" },
+  { value: "profissao_fe_migracao", label: "Profissão de Fé" },
+  { value: "exclusao_abandono_responsaveis", label: "Exclusão por Abandono" },
 ];
 
 interface ExclusionModalProps {

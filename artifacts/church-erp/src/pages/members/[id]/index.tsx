@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/hooks/use-auth-context';
-import { useGetMember, useGetMemberHistory, useRevealMemberCpf, useDeleteMember, useRevertMemberExclusion } from '@workspace/api-client-react';
+import { useGetMember, useGetMemberHistory, useRevealMemberCpf, useRevertMemberExclusion } from '@workspace/api-client-react';
 import { ExclusionModal } from '../components/ExclusionModal';
 import { TransferLetterModal } from '../components/TransferLetterModal';
 import { MemberAreasTab } from '../components/MemberAreasTab';
-import { Redirect, useParams, Link, useLocation } from 'wouter';
+import { Redirect, useParams, Link } from 'wouter';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -14,11 +14,9 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 export default function MemberProfile() {
   const { user } = useAuth();
-  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const params = useParams();
   const id = params.id as string;
@@ -26,8 +24,6 @@ export default function MemberProfile() {
   const [activeTab, setActiveTab] = useState<'details' | 'history' | 'areas'>('details');
   const [revealedCpf, setRevealedCpf] = useState<string | null>(null);
   const [isRevealing, setIsRevealing] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [showExclusionModal, setShowExclusionModal] = useState(false);
   const [showTransferLetterModal, setShowTransferLetterModal] = useState(false);
 
@@ -42,7 +38,6 @@ export default function MemberProfile() {
   });
 
   const { mutateAsync: revealCpf } = useRevealMemberCpf();
-  const { mutateAsync: deleteMember } = useDeleteMember();
 
   if (user?.role === 'member' && user.id !== id) {
     // Membros só podem ver o próprio perfil
@@ -59,19 +54,6 @@ export default function MemberProfile() {
       toast({ title: "Erro", description: "Não foi possível revelar o documento.", variant: "destructive" });
     } finally {
       setIsRevealing(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    setIsDeleting(true);
-    try {
-      await deleteMember({ id });
-      toast({ title: "Sucesso", description: "Membro excluído do sistema." });
-      setLocation('/members');
-    } catch (err) {
-      toast({ title: "Erro", description: "Falha ao excluir registro.", variant: "destructive" });
-      setIsDeleting(false);
-      setDeleteDialogOpen(false);
     }
   };
 
@@ -157,19 +139,10 @@ export default function MemberProfile() {
               {canDelete && member.status !== 'demitido' && (
                 <button
                   onClick={() => setShowExclusionModal(true)}
-                  className="flex items-center justify-center px-4 py-2.5 rounded-xl font-medium text-sm border border-amber-300 text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-all"
-                  title="Registrar exclusão"
+                  className="flex items-center justify-center px-4 py-2.5 rounded-xl font-medium text-sm border border-destructive/40 text-destructive hover:bg-destructive/10 transition-all"
+                  title="Excluir membro (configurar motivo)"
                 >
-                  <AlertTriangle className="w-4 h-4 mr-2" /> Registrar Exclusão
-                </button>
-              )}
-              {canDelete && (
-                <button
-                  onClick={() => setDeleteDialogOpen(true)}
-                  className="p-2.5 rounded-xl text-destructive hover:bg-destructive/10 transition-colors border border-transparent hover:border-destructive/20"
-                  title="Anonimizar (LGPD)"
-                >
-                  <Trash2 className="w-5 h-5" />
+                  <Trash2 className="w-4 h-4 mr-2" /> Excluir
                 </button>
               )}
             </div>
@@ -415,23 +388,6 @@ export default function MemberProfile() {
           )}
         </div>
       )}
-
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Excluir Membro</DialogTitle>
-            <DialogDescription>
-              Tem certeza que deseja excluir <strong>{member.fullName}</strong> permanentemente? Esta ação não pode ser desfeita e registrará um evento crítico de auditoria.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="mt-6">
-            <button onClick={() => setDeleteDialogOpen(false)} className="px-4 py-2 bg-secondary text-foreground rounded-lg font-medium">Cancelar</button>
-            <button onClick={handleDelete} disabled={isDeleting} className="px-4 py-2 bg-destructive text-destructive-foreground rounded-lg font-medium flex items-center">
-              {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />} Confirmar Exclusão
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {showExclusionModal && (
         <ExclusionModal
