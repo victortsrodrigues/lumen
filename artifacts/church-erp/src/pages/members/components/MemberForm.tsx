@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -7,13 +7,18 @@ import {
   useUpdateMember,
   useLookupCep,
   useRequestUploadUrl,
+  useListMembers,
+  useAddMemberChild,
+  useRemoveMemberChild,
+  useGetMember,
   CreateMemberRequestSex,
   MemberStatus,
   MemberDetail
 } from '@workspace/api-client-react';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, UploadCloud, MapPin, User, Save, ShieldCheck } from 'lucide-react';
+import { Loader2, UploadCloud, MapPin, User, Save, ShieldCheck, Users, Search, Plus, X, Heart } from 'lucide-react';
+import { MemberSelect } from '@/components/MemberSelect';
 
 import { ALL_RECEPTION_MODES } from "../../../../../../lib/db/src/schema/member-rules";
 
@@ -50,6 +55,7 @@ const formSchema = z.object({
   religiousOrigin: z.string().optional(),
   parentsOrGuardians: z.string().optional(),
   maritalStatus: z.union([z.enum(['solteiro', 'casado', 'viuvo', 'divorciado', 'uniao_estavel']), z.literal('')]).optional().transform(v => v === '' ? undefined : v),
+  spouseMemberId: z.string().optional(),
   academicEducation: z.string().optional(),
   profession: z.string().optional(),
   status: z.enum(['ativo', 'disciplina', 'rol_apartado', 'falecido', 'demitido']).default('ativo'),
@@ -100,6 +106,7 @@ export default function MemberForm({ initialData, isEditing = false }: MemberFor
       religiousOrigin: (initialData as any)?.religiousOrigin || '',
       parentsOrGuardians: (initialData as any)?.parentsOrGuardians || '',
       maritalStatus: ((initialData as any)?.maritalStatus || '') as any,
+      spouseMemberId: (initialData as any)?.spouseMemberId || '',
       academicEducation: (initialData as any)?.academicEducation || '',
       profession: (initialData as any)?.profession || '',
       status: initialData?.status as any || 'ativo',
@@ -268,6 +275,52 @@ export default function MemberForm({ initialData, isEditing = false }: MemberFor
                   </select>
                 </div>
               </div>
+
+              {/* Estado Civil + Cônjuge (condicional) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Estado Civil</label>
+                  <select {...register('maritalStatus')} className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all appearance-none">
+                    <option value="">Selecione...</option>
+                    <option value="solteiro">Solteiro(a)</option>
+                    <option value="casado">Casado(a)</option>
+                    <option value="viuvo">Viúvo(a)</option>
+                    <option value="divorciado">Divorciado(a)</option>
+                    <option value="uniao_estavel">União Estável</option>
+                  </select>
+                </div>
+                {(watch('maritalStatus') === 'casado' || watch('maritalStatus') === 'uniao_estavel') && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                      <Heart className="h-3.5 w-3.5 text-pink-500" /> Cônjuge
+                    </label>
+                    <MemberSelect
+                      value={watch('spouseMemberId') || ''}
+                      onChange={(id) => setValue('spouseMemberId', id || undefined, { shouldDirty: true })}
+                      initialName={(initialData as any)?.spouseName || ''}
+                      excludeIds={initialData?.id ? [initialData.id] : []}
+                      placeholder="Selecionar cônjuge..."
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Profissão + Formação Acadêmica */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Profissão</label>
+                  <input {...register('profession')} placeholder="Ex: Engenheiro" className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Formação Acadêmica</label>
+                  <input {...register('academicEducation')} placeholder="Ex: Bacharel em Computação" className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+                </div>
+              </div>
+
+              {/* Filhos — só em modo edição */}
+              {isEditing && initialData?.id && (
+                <ChildrenLinker memberId={initialData.id} />
+              )}
             </div>
           </div>
         </div>
@@ -412,26 +465,6 @@ export default function MemberForm({ initialData, isEditing = false }: MemberFor
                 </div>
               )}
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Estado Civil</label>
-                <select {...register('maritalStatus')} className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all appearance-none">
-                  <option value="">Selecione...</option>
-                  <option value="solteiro">Solteiro(a)</option>
-                  <option value="casado">Casado(a)</option>
-                  <option value="viuvo">Viúvo(a)</option>
-                  <option value="divorciado">Divorciado(a)</option>
-                  <option value="uniao_estavel">União Estável</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Profissão</label>
-                <input {...register('profession')} placeholder="Ex: Engenheiro" className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
-              </div>
-
-              <div className="space-y-2 sm:col-span-2">
-                <label className="text-sm font-medium text-foreground">Formação Acadêmica</label>
-                <input {...register('academicEducation')} placeholder="Ex: Bacharel em Computação" className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
-              </div>
             </div>
           </div>
         </div>
@@ -474,5 +507,134 @@ export default function MemberForm({ initialData, isEditing = false }: MemberFor
 
       </form>
     </>
+  );
+}
+
+// ─── Children Linker ────────────────────────────────────────────────────────
+// Editor de vínculos pai/filho. Lista os filhos atuais e permite adicionar
+// outros membros via busca + clique direto. Disponível só em modo edição
+// (precisa do memberId pra usar os endpoints).
+
+function ChildrenLinker({ memberId }: { memberId: string }) {
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
+
+  // Debounce
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  const { data: detail } = useGetMember(memberId, { query: { enabled: !!memberId } });
+  const { data: candidates, isLoading: isLoadingCandidates } = useListMembers(
+    { search: search || undefined, status: "ativo" as any, limit: 30, page: 1 } as any,
+    { query: { enabled: showSearch } },
+  );
+
+  const addMut = useAddMemberChild();
+  const removeMut = useRemoveMemberChild();
+
+  const children = ((detail as any)?.children ?? []) as Array<{ id: string; fullName: string }>;
+  const childIds = useMemo(() => new Set(children.map(c => c.id)), [children]);
+
+  const availableMembers = useMemo(() => {
+    const list = ((candidates as any)?.members ?? []) as any[];
+    return list.filter((m) => m.id !== memberId && !childIds.has(m.id));
+  }, [candidates, childIds, memberId]);
+
+  return (
+    <div className="space-y-3 pt-3 border-t">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <Users className="h-4 w-4 text-primary" /> Filhos ({children.length})
+        </h4>
+        {!showSearch && (
+          <button
+            type="button"
+            onClick={() => setShowSearch(true)}
+            className="flex items-center gap-1.5 text-xs text-primary hover:underline"
+          >
+            <Plus className="h-3.5 w-3.5" /> Adicionar filho
+          </button>
+        )}
+      </div>
+
+      {children.length > 0 ? (
+        <ul className="space-y-1.5">
+          {children.map((c) => (
+            <li key={c.id} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40">
+              <p className="font-medium text-sm truncate">{c.fullName}</p>
+              <button
+                type="button"
+                onClick={() => removeMut.mutate({ id: memberId, childId: c.id })}
+                disabled={removeMut.isPending}
+                className="p-1 text-muted-foreground hover:text-destructive shrink-0 disabled:opacity-50"
+                title="Desvincular filho"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : !showSearch ? (
+        <p className="text-sm text-muted-foreground italic">Nenhum filho vinculado.</p>
+      ) : null}
+
+      {showSearch && (
+        <div className="rounded-lg border bg-background/50 p-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Buscar membro por nome..."
+                className="w-full pl-9 pr-3 py-2 border rounded-lg bg-background text-sm"
+                autoFocus
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => { setShowSearch(false); setSearchInput(""); setSearch(""); }}
+              className="px-3 py-2 border rounded-lg text-xs"
+            >
+              Fechar
+            </button>
+          </div>
+          <div className="border rounded-lg overflow-hidden max-h-60 overflow-y-auto bg-card">
+            {isLoadingCandidates ? (
+              <div className="flex justify-center py-6">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : availableMembers.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6 italic">
+                {search ? "Nenhum membro encontrado." : "Digite para buscar..."}
+              </p>
+            ) : (
+              <ul className="divide-y">
+                {availableMembers.map((m: any) => (
+                  <li key={m.id}>
+                    <button
+                      type="button"
+                      onClick={() => addMut.mutate({ id: memberId, data: { childMemberId: m.id } as any })}
+                      disabled={addMut.isPending}
+                      className="w-full text-left flex items-center gap-3 p-2.5 hover:bg-muted/50 transition-colors disabled:opacity-50"
+                    >
+                      <Plus className="h-4 w-4 text-primary shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm truncate">{m.fullName}</p>
+                        {m.email && <p className="text-xs text-muted-foreground truncate">{m.email}</p>}
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
