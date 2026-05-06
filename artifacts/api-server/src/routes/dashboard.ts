@@ -390,7 +390,6 @@ router.get("/member-stats", requireAuth, async (req: Request, res: Response) => 
       fullName: linkedMember.fullName,
       status: linkedMember.status,
       receptionDate: linkedMember.receptionDate,
-      conversionDate: linkedMember.conversionDate,
       classification: linkedMember.classification,
       receptionMode: linkedMember.receptionMode,
       areas: memberAreas,

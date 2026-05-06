@@ -311,9 +311,9 @@ export default function MemberProfile() {
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-4">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Data de Conversão</p>
+                  <p className="text-sm text-muted-foreground mb-1">Ano de Conversão</p>
                   <p className="font-medium text-foreground">
-                    {member.conversionDate ? format(new Date(member.conversionDate), "dd/MM/yyyy") : '-'}
+                    {(member as any).conversionYear || '-'}
                   </p>
                 </div>
                 <div>

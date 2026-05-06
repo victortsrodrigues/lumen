@@ -15,7 +15,6 @@ export function ConvertVisitorModal({ visitor, onClose }: ConvertVisitorModalPro
   const [classification, setClassification] = useState<"comungante" | "nao_comungante">("comungante");
   const [receptionMode, setReceptionMode] = useState<string>("");
   const [receptionDate, setReceptionDate] = useState(new Date().toISOString().slice(0, 10));
-  const [conversionDate, setConversionDate] = useState("");
   const [conversionYear, setConversionYear] = useState("");
   const [religiousOrigin, setReligiousOrigin] = useState("");
   const [infantBaptism, setInfantBaptism] = useState(false);
@@ -25,27 +24,27 @@ export function ConvertVisitorModal({ visitor, onClose }: ConvertVisitorModalPro
   const [cpf, setCpf] = useState("");
 
   const COMMUNING = [
-    { v: "profissao_fe", l: "Profissão de Fé" },
-    { v: "profissao_fe_batismo", l: "Profissão de Fé e Batismo" },
-    { v: "carta_transferencia", l: "Carta de Transferência" },
-    { v: "jurisdicao_pedido", l: "Jurisdição a Pedido" },
-    { v: "jurisdicao_ex_officio", l: "Jurisdição ex officio" },
-    { v: "restauracao", l: "Restauração" },
+    { v: "profissao_fe", l: "Profissão de Fé", d: "Para batizados na infância" },
+    { v: "profissao_fe_batismo", l: "Profissão de Fé e Batismo", d: "Para novos convertidos" },
+    { v: "carta_transferencia", l: "Carta de Transferência", d: "Oriundos de outra IPB ou denominação evangélica" },
+    { v: "jurisdicao_pedido", l: "Jurisdição a Pedido", d: "Oriundos de outra igreja evangélica sem carta" },
+    { v: "jurisdicao_ex_officio", l: "Jurisdição ex officio", d: "Membro de outra IPB residente no local há mais de um ano" },
+    { v: "restauracao", l: "Restauração", d: "Retorno após disciplina ou solicitação prévia de saída" },
   ];
   const NON_COMMUNING = [
-    { v: "batismo_infantil", l: "Batismo Infantil" },
-    { v: "transferencia_menor", l: "Transferência (menor)" },
-    { v: "arrolamento_menor", l: "Arrolamento (menor)" },
+    { v: "batismo_infantil", l: "Batismo Infantil", d: "Filhos de membros comungantes" },
+    { v: "transferencia_menor", l: "Transferência (menor)", d: "Menores que acompanham os pais transferidos" },
+    { v: "arrolamento_menor", l: "Arrolamento (menor)", d: "Menores dependentes sob cuidado do Conselho" },
   ];
 
   const modes = classification === "comungante" ? COMMUNING : NON_COMMUNING;
+  const selectedMode = modes.find(m => m.v === receptionMode);
 
   function handleConvert() {
     const payload: any = {
       classification,
       receptionMode: receptionMode || undefined,
       receptionDate: receptionDate || undefined,
-      conversionDate: conversionDate || undefined,
       conversionYear: conversionYear ? Number(conversionYear) : undefined,
       religiousOrigin: religiousOrigin || undefined,
       infantBaptism: infantBaptism || undefined,
@@ -113,18 +112,17 @@ export function ConvertVisitorModal({ visitor, onClose }: ConvertVisitorModalPro
             <label className="text-sm font-medium">Modo de Recepção</label>
             <select value={receptionMode} onChange={(e) => setReceptionMode(e.target.value)} className="w-full mt-1 px-3 py-2 border rounded-lg bg-background">
               <option value="">Selecione...</option>
-              {modes.map((m) => <option key={m.v} value={m.v}>{m.l}</option>)}
+              {modes.map((m) => <option key={m.v} value={m.v} title={m.d}>{m.l}</option>)}
             </select>
+            {selectedMode && (
+              <p className="text-xs text-muted-foreground mt-1">{selectedMode.d}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-medium">Data de Recepção</label>
               <input type="date" value={receptionDate} onChange={(e) => setReceptionDate(e.target.value)} className="w-full mt-1 px-3 py-2 border rounded-lg bg-background" />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Data de Conversão</label>
-              <input type="date" value={conversionDate} onChange={(e) => setConversionDate(e.target.value)} className="w-full mt-1 px-3 py-2 border rounded-lg bg-background" />
             </div>
             <div>
               <label className="text-sm font-medium">Ano de Conversão</label>

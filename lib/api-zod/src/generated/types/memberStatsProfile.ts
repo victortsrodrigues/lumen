@@ -12,6 +12,5 @@ export type MemberStatsProfile = {
   fullName?: string;
   status?: string;
   baptismDate?: string | null;
-  conversionDate?: string | null;
   areas?: MemberStatsProfileAreasItem[];
 } | null;

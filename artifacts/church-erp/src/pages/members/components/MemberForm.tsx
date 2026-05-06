@@ -17,6 +17,18 @@ import { Loader2, UploadCloud, MapPin, User, Save, ShieldCheck } from 'lucide-re
 
 import { ALL_RECEPTION_MODES } from "../../../../../../lib/db/src/schema/member-rules";
 
+const RECEPTION_MODE_DESCRIPTIONS: Record<string, string> = {
+  profissao_fe: "Para batizados na infância",
+  profissao_fe_batismo: "Para novos convertidos",
+  carta_transferencia: "Oriundos de outra IPB ou denominação evangélica",
+  jurisdicao_pedido: "Oriundos de outra igreja evangélica sem carta",
+  jurisdicao_ex_officio: "Membro de outra IPB residente no local há mais de um ano",
+  restauracao: "Retorno após disciplina ou solicitação prévia de saída",
+  batismo_infantil: "Filhos de membros comungantes",
+  transferencia_menor: "Menores que acompanham os pais transferidos",
+  arrolamento_menor: "Menores dependentes sob cuidado do Conselho",
+};
+
 const formSchema = z.object({
   fullName: z.string().min(3, 'Nome completo é obrigatório'),
   cpf: z.string().optional(),
@@ -34,7 +46,6 @@ const formSchema = z.object({
   classification: z.enum(['comungante', 'nao_comungante']).default('comungante'),
   receptionMode: z.union([z.enum(ALL_RECEPTION_MODES), z.literal('')]).optional().transform(v => v === '' ? undefined : v),
   receptionDate: z.string().optional(),
-  conversionDate: z.string().optional(),
   conversionYear: z.union([z.string(), z.number(), z.literal('')]).optional().transform(v => v === '' || v === undefined ? undefined : Number(v)),
   religiousOrigin: z.string().optional(),
   parentsOrGuardians: z.string().optional(),
@@ -82,7 +93,6 @@ export default function MemberForm({ initialData, isEditing = false }: MemberFor
       addressNeighborhood: initialData?.addressNeighborhood || '',
       addressCity: initialData?.addressCity || '',
       addressState: initialData?.addressState || '',
-      conversionDate: initialData?.conversionDate ? initialData.conversionDate.split('T')[0] : '',
       classification: ((initialData as any)?.classification || 'comungante') as any,
       receptionMode: ((initialData as any)?.receptionMode || '') as any,
       receptionDate: (initialData as any)?.receptionDate ? (initialData as any).receptionDate.split('T')[0] : '',
@@ -344,7 +354,7 @@ export default function MemberForm({ initialData, isEditing = false }: MemberFor
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Status do Membro</label>
+                <label className="text-sm font-medium text-foreground">Status do Membro <span className="text-destructive">*</span></label>
                 <select {...register('status')} className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all appearance-none font-medium">
                   <option value="ativo">Ativo</option>
                   <option value="disciplina">Disciplina</option>
@@ -359,30 +369,31 @@ export default function MemberForm({ initialData, isEditing = false }: MemberFor
                   <option value="">Selecione...</option>
                   {watch('classification') === 'comungante' ? (
                     <>
-                      <option value="profissao_fe">Profissão de Fé</option>
-                      <option value="profissao_fe_batismo">Profissão de Fé e Batismo</option>
-                      <option value="carta_transferencia">Carta de Transferência</option>
-                      <option value="jurisdicao_pedido">Jurisdição a Pedido</option>
-                      <option value="jurisdicao_ex_officio">Jurisdição ex officio</option>
-                      <option value="restauracao">Restauração</option>
+                      <option value="profissao_fe" title="Para batizados na infância">Profissão de Fé</option>
+                      <option value="profissao_fe_batismo" title="Para novos convertidos">Profissão de Fé e Batismo</option>
+                      <option value="carta_transferencia" title="Oriundos de outra IPB ou denominação evangélica">Carta de Transferência</option>
+                      <option value="jurisdicao_pedido" title="Oriundos de outra igreja evangélica sem carta">Jurisdição a Pedido</option>
+                      <option value="jurisdicao_ex_officio" title="Membro de outra IPB residente no local há mais de um ano">Jurisdição ex officio</option>
+                      <option value="restauracao" title="Retorno após disciplina ou solicitação prévia de saída">Restauração</option>
                     </>
                   ) : (
                     <>
-                      <option value="batismo_infantil">Batismo Infantil</option>
-                      <option value="transferencia_menor">Transferência (menor)</option>
-                      <option value="arrolamento_menor">Arrolamento (menor)</option>
+                      <option value="batismo_infantil" title="Filhos de membros comungantes">Batismo Infantil</option>
+                      <option value="transferencia_menor" title="Menores que acompanham os pais transferidos">Transferência (menor)</option>
+                      <option value="arrolamento_menor" title="Menores dependentes sob cuidado do Conselho">Arrolamento (menor)</option>
                     </>
                   )}
                 </select>
+                {watch('receptionMode') && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {RECEPTION_MODE_DESCRIPTIONS[watch('receptionMode') as keyof typeof RECEPTION_MODE_DESCRIPTIONS]}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">Data de Recepção</label>
                 <input type="date" {...register('receptionDate')} className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Data de Conversão</label>
-                <input type="date" {...register('conversionDate')} className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
               </div>
 
               <div className="space-y-2">

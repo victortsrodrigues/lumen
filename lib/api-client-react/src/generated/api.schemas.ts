@@ -211,7 +211,6 @@ export interface MemberDetail {
   classification: MemberClassification;
   receptionMode?: MemberReceptionMode;
   receptionDate?: string;
-  conversionDate?: string;
   conversionYear?: number;
   religiousOrigin?: string;
   infantBaptism?: boolean;
@@ -267,7 +266,6 @@ export interface CreateMemberRequest {
   classification?: MemberClassification;
   receptionMode?: MemberReceptionMode;
   receptionDate?: string;
-  conversionDate?: string;
   conversionYear?: number;
   religiousOrigin?: string;
   infantBaptism?: boolean;
@@ -308,7 +306,6 @@ export interface UpdateMemberRequest {
   classification?: MemberClassification;
   receptionMode?: MemberReceptionMode;
   receptionDate?: string;
-  conversionDate?: string;
   conversionYear?: number;
   religiousOrigin?: string;
   infantBaptism?: boolean;
@@ -515,7 +512,6 @@ export interface ConvertVisitorRequest {
   classification: MemberClassification;
   receptionMode?: MemberReceptionMode;
   receptionDate?: string;
-  conversionDate?: string;
   conversionYear?: number;
   religiousOrigin?: string;
   infantBaptism?: boolean;
@@ -2003,7 +1999,6 @@ export type MemberStatsProfile = {
   fullName?: string;
   status?: string;
   baptismDate?: string | null;
-  conversionDate?: string | null;
   areas?: MemberStatsProfileAreasItem[];
 } | null;
 

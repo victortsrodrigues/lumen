@@ -261,8 +261,8 @@ export default function ProfilePage() {
                   <p className="font-medium mt-0.5">{profile.sex ? SEX_LABELS[profile.sex] || profile.sex : "—"}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground text-xs">Data de Conversão</p>
-                  <p className="font-medium mt-0.5">{formatDate(profile.conversionDate)}</p>
+                  <p className="text-muted-foreground text-xs">Ano de Conversão</p>
+                  <p className="font-medium mt-0.5">{(profile as any).conversionYear || "—"}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground text-xs">Data de Recepção</p>

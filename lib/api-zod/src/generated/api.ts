@@ -125,7 +125,6 @@ export const GetMemberStatsResponse = zod.object({
       fullName: zod.string().optional(),
       status: zod.string().optional(),
       baptismDate: zod.string().nullish(),
-      conversionDate: zod.string().nullish(),
       areas: zod
         .array(
           zod.object({
@@ -429,7 +428,6 @@ export const CreateMemberBody = zod.object({
     ])
     .optional(),
   receptionDate: zod.string().optional(),
-  conversionDate: zod.string().optional(),
   conversionYear: zod.number().optional(),
   religiousOrigin: zod.string().optional(),
   infantBaptism: zod.boolean().optional(),
@@ -615,7 +613,6 @@ export const GetOwnProfileResponse = zod.object({
     ])
     .optional(),
   receptionDate: zod.string().optional(),
-  conversionDate: zod.string().optional(),
   conversionYear: zod.number().optional(),
   religiousOrigin: zod.string().optional(),
   infantBaptism: zod.boolean().optional(),
@@ -730,7 +727,6 @@ export const UpdateOwnProfileResponse = zod.object({
     ])
     .optional(),
   receptionDate: zod.string().optional(),
-  conversionDate: zod.string().optional(),
   conversionYear: zod.number().optional(),
   religiousOrigin: zod.string().optional(),
   infantBaptism: zod.boolean().optional(),
@@ -825,7 +821,6 @@ export const GetMemberResponse = zod.object({
     ])
     .optional(),
   receptionDate: zod.string().optional(),
-  conversionDate: zod.string().optional(),
   conversionYear: zod.number().optional(),
   religiousOrigin: zod.string().optional(),
   infantBaptism: zod.boolean().optional(),
@@ -919,7 +914,6 @@ export const UpdateMemberBody = zod.object({
     ])
     .optional(),
   receptionDate: zod.string().optional(),
-  conversionDate: zod.string().optional(),
   conversionYear: zod.number().optional(),
   religiousOrigin: zod.string().optional(),
   infantBaptism: zod.boolean().optional(),
@@ -968,7 +962,6 @@ export const UpdateMemberResponse = zod.object({
     ])
     .optional(),
   receptionDate: zod.string().optional(),
-  conversionDate: zod.string().optional(),
   conversionYear: zod.number().optional(),
   religiousOrigin: zod.string().optional(),
   infantBaptism: zod.boolean().optional(),
@@ -1121,7 +1114,6 @@ export const RegisterMemberExclusionResponse = zod.object({
     ])
     .optional(),
   receptionDate: zod.string().optional(),
-  conversionDate: zod.string().optional(),
   conversionYear: zod.number().optional(),
   religiousOrigin: zod.string().optional(),
   infantBaptism: zod.boolean().optional(),
@@ -1216,7 +1208,6 @@ export const RevertMemberExclusionResponse = zod.object({
     ])
     .optional(),
   receptionDate: zod.string().optional(),
-  conversionDate: zod.string().optional(),
   conversionYear: zod.number().optional(),
   religiousOrigin: zod.string().optional(),
   infantBaptism: zod.boolean().optional(),
@@ -1679,7 +1670,6 @@ export const ConvertVisitorBody = zod.object({
     ])
     .optional(),
   receptionDate: zod.string().optional(),
-  conversionDate: zod.string().optional(),
   conversionYear: zod.number().optional(),
   religiousOrigin: zod.string().optional(),
   infantBaptism: zod.boolean().optional(),
@@ -1724,7 +1714,6 @@ export const ConvertVisitorResponse = zod.object({
     ])
     .optional(),
   receptionDate: zod.string().optional(),
-  conversionDate: zod.string().optional(),
   conversionYear: zod.number().optional(),
   religiousOrigin: zod.string().optional(),
   infantBaptism: zod.boolean().optional(),

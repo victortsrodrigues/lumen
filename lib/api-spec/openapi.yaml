@@ -5844,7 +5844,6 @@ components:
         receptionMode:
           $ref: "#/components/schemas/MemberReceptionMode"
         receptionDate: { type: string }
-        conversionDate: { type: string }
         conversionYear: { type: integer }
         religiousOrigin: { type: string }
         infantBaptism: { type: boolean }
@@ -5919,7 +5918,6 @@ components:
         receptionMode:
           $ref: "#/components/schemas/MemberReceptionMode"
         receptionDate: { type: string }
-        conversionDate: { type: string }
         conversionYear: { type: integer }
         religiousOrigin: { type: string }
         infantBaptism: { type: boolean }
@@ -5960,7 +5958,6 @@ components:
         receptionMode:
           $ref: "#/components/schemas/MemberReceptionMode"
         receptionDate: { type: string }
-        conversionDate: { type: string }
         conversionYear: { type: integer }
         religiousOrigin: { type: string }
         infantBaptism: { type: boolean }
@@ -6191,7 +6188,6 @@ components:
         classification: { $ref: "#/components/schemas/MemberClassification" }
         receptionMode: { $ref: "#/components/schemas/MemberReceptionMode" }
         receptionDate: { type: string }
-        conversionDate: { type: string }
         conversionYear: { type: integer }
         religiousOrigin: { type: string }
         infantBaptism: { type: boolean }
@@ -8496,7 +8492,6 @@ components:
             fullName: { type: string }
             status: { type: string }
             baptismDate: { type: string, nullable: true }
-            conversionDate: { type: string, nullable: true }
             areas:
               type: array
               items:

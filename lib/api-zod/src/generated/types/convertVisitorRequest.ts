@@ -26,7 +26,6 @@ export interface ConvertVisitorRequest {
   classification: MemberClassification;
   receptionMode?: MemberReceptionMode;
   receptionDate?: string;
-  conversionDate?: string;
   conversionYear?: number;
   religiousOrigin?: string;
   infantBaptism?: boolean;

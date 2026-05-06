@@ -495,7 +495,7 @@ router.post("/:id/convert", requireAuth, requireRole("admin"), async (req: Reque
   const {
     cpf, dateOfBirth, sex, phone, email,
     addressZip, addressStreet, addressNumber, addressComplement, addressNeighborhood, addressCity, addressState,
-    classification, receptionMode, receptionDate, conversionDate, conversionYear,
+    classification, receptionMode, receptionDate, conversionYear,
     religiousOrigin, infantBaptism, infantBaptismChurch, infantBaptismPastor, parentsOrGuardians,
     maritalStatus, spouseMemberId, academicEducation, profession,
   } = req.body;
@@ -558,7 +558,6 @@ router.post("/:id/convert", requireAuth, requireRole("admin"), async (req: Reque
     classification: classification as "comungante",
     receptionMode: receptionMode || null,
     receptionDate: receptionDate || null,
-    conversionDate: conversionDate || null,
     conversionYear: conversionYear ? Number(conversionYear) : null,
     religiousOrigin: religiousOrigin || null,
     infantBaptism: !!infantBaptism,

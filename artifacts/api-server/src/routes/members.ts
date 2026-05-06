@@ -97,7 +97,6 @@ function serializeMemberDetail(m: typeof membersTable.$inferSelect, extras?: {
     classification: m.classification,
     receptionMode: m.receptionMode,
     receptionDate: m.receptionDate,
-    conversionDate: m.conversionDate,
     conversionYear: m.conversionYear,
     religiousOrigin: m.religiousOrigin,
     infantBaptism: m.infantBaptism,
@@ -128,7 +127,7 @@ function buildHistoryDiff(before: Record<string, unknown>, after: Record<string,
   const changes: Record<string, { from: unknown; to: unknown }> = {};
   const safeFields = [
     "fullName", "dateOfBirth", "sex", "email", "addressCity", "addressState",
-    "addressNumber", "addressComplement", "conversionDate", "receptionDate",
+    "addressNumber", "addressComplement", "receptionDate",
     "conversionYear", "religiousOrigin", "infantBaptism", "infantBaptismChurch",
     "infantBaptismPastor", "parentsOrGuardians", "classification", "receptionMode",
     "maritalStatus", "spouseMemberId", "academicEducation", "profession",
@@ -296,7 +295,7 @@ router.post("/", requireAuth, requireRole("admin", "leader"), async (req: Reques
     fullName, cpf, dateOfBirth, sex, phone, email,
     addressZip, addressStreet, addressNumber, addressComplement,
     addressNeighborhood, addressCity, addressState,
-    classification, receptionMode, receptionDate, conversionDate, conversionYear,
+    classification, receptionMode, receptionDate, conversionYear,
     religiousOrigin, infantBaptism, infantBaptismChurch, infantBaptismPastor, parentsOrGuardians,
     maritalStatus, spouseMemberId, academicEducation, profession,
     status, photoPath, lgpdConsentAccepted,
@@ -349,7 +348,6 @@ router.post("/", requireAuth, requireRole("admin", "leader"), async (req: Reques
     classification: finalClassification as "comungante",
     receptionMode: receptionMode || null,
     receptionDate: receptionDate || null,
-    conversionDate: conversionDate || null,
     conversionYear: conversionYear ? Number(conversionYear) : null,
     religiousOrigin: religiousOrigin || null,
     infantBaptism: !!infantBaptism,
@@ -703,7 +701,7 @@ router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Requ
     fullName, cpf, dateOfBirth, sex, phone, email,
     addressZip, addressStreet, addressNumber, addressComplement,
     addressNeighborhood, addressCity, addressState,
-    classification, receptionMode, receptionDate, conversionDate, conversionYear,
+    classification, receptionMode, receptionDate, conversionYear,
     religiousOrigin, infantBaptism, infantBaptismChurch, infantBaptismPastor, parentsOrGuardians,
     maritalStatus, spouseMemberId, academicEducation, profession,
     status, photoPath,
@@ -745,7 +743,6 @@ router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Requ
   if (classification !== undefined) updateData.classification = classification;
   if (receptionMode !== undefined) updateData.receptionMode = receptionMode || null;
   if (receptionDate !== undefined) updateData.receptionDate = receptionDate || null;
-  if (conversionDate !== undefined) updateData.conversionDate = conversionDate || null;
   if (conversionYear !== undefined) updateData.conversionYear = conversionYear ? Number(conversionYear) : null;
   if (religiousOrigin !== undefined) updateData.religiousOrigin = religiousOrigin || null;
   if (infantBaptism !== undefined) updateData.infantBaptism = !!infantBaptism;
@@ -834,7 +831,6 @@ router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request, re
     addressNeighborhoodEncrypted: null,
     addressCity: null,
     addressState: null,
-    conversionDate: null,
     receptionDate: null,
     conversionYear: null,
     religiousOrigin: null,

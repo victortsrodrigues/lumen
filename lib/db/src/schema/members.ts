@@ -86,7 +86,6 @@ export const membersTable = pgTable("members", {
   classification: memberClassificationEnum("classification").notNull().default("comungante"),
   receptionMode: memberReceptionModeEnum("reception_mode"),
   receptionDate: date("reception_date"),
-  conversionDate: date("conversion_date"),
   conversionYear: integer("conversion_year"),
   religiousOrigin: text("religious_origin"),
   infantBaptism: boolean("infant_baptism").notNull().default(false),
