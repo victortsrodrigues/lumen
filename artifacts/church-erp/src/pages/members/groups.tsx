@@ -1,13 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   useListMemberGroups, useCreateMemberGroup, useUpdateMemberGroup, useDeleteMemberGroup,
   useGetMemberGroup, useLinkMemberToGroup, useUnlinkMemberFromGroup,
+  useListMembers,
 } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuth } from "@/hooks/use-auth-context";
 import { Redirect } from "wouter";
-import { UsersRound, Plus, Loader2, X, Trash2, Edit2, AlertTriangle } from "lucide-react";
-import { MemberSelect } from "@/components/MemberSelect";
+import { UsersRound, Plus, Loader2, X, Trash2, Edit2, AlertTriangle, Search, UserPlus } from "lucide-react";
 
 export default function MemberGroupsPage() {
   const { user } = useAuth();
@@ -19,10 +19,23 @@ export default function MemberGroupsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [form, setForm] = useState({ name: "", description: "" });
-  const [addMemberId, setAddMemberId] = useState("");
+  const [memberSearchInput, setMemberSearchInput] = useState("");
+  const [memberSearch, setMemberSearch] = useState("");
+
+  // Debounce para evitar refetch a cada tecla
+  useEffect(() => {
+    const t = setTimeout(() => setMemberSearch(memberSearchInput.trim()), 300);
+    return () => clearTimeout(t);
+  }, [memberSearchInput]);
 
   const { data, isLoading } = useListMemberGroups();
   const { data: detailData } = useGetMemberGroup(selectedId!, { query: { enabled: !!selectedId } });
+
+  // Lista de membros pra adicionar (apenas quando o detail está aberto)
+  const { data: membersData, isLoading: isLoadingMembers } = useListMembers(
+    { search: memberSearch || undefined, status: "ativo" as any, limit: 50, page: 1 } as any,
+    { query: { enabled: !!selectedId && (canManage as boolean) } },
+  );
 
   const createMutation = useCreateMemberGroup();
   const updateMutation = useUpdateMemberGroup();
@@ -60,11 +73,26 @@ export default function MemberGroupsPage() {
     }
   }
 
-  function handleAddMember() {
-    if (!selectedId || !addMemberId) return;
-    linkMutation.mutate({ memberId: addMemberId, groupId: selectedId }, {
-      onSuccess: () => setAddMemberId(""),
-    });
+  // Reset busca quando trocar de grupo
+  useEffect(() => {
+    setMemberSearchInput("");
+    setMemberSearch("");
+  }, [selectedId]);
+
+  // IDs dos membros já no grupo — pra filtrar da lista de adição
+  const membersInGroup = useMemo(
+    () => new Set<string>((detailData as any)?.members?.map((m: any) => m.id) ?? []),
+    [detailData],
+  );
+
+  const availableMembers = useMemo(() => {
+    const list = ((membersData as any)?.members ?? []) as any[];
+    return list.filter((m) => !membersInGroup.has(m.id));
+  }, [membersData, membersInGroup]);
+
+  function handleAddMember(memberId: string) {
+    if (!selectedId) return;
+    linkMutation.mutate({ memberId, groupId: selectedId });
   }
 
   return (
@@ -170,35 +198,27 @@ export default function MemberGroupsPage() {
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
-              {canManage && (
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Adicionar membro</label>
-                  <MemberSelect value={addMemberId} onChange={(id) => setAddMemberId(id)} />
-                  {addMemberId && (
-                    <button onClick={handleAddMember} disabled={linkMutation.isPending} className="mt-2 w-full px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm disabled:opacity-50">
-                      {linkMutation.isPending ? "Adicionando..." : "Adicionar"}
-                    </button>
-                  )}
-                </div>
-              )}
-
+            <div className="p-6 space-y-6">
+              {/* Membros já no grupo */}
               <div>
-                <h3 className="text-sm font-semibold mb-2">Membros ({(detail.members || []).length})</h3>
+                <h3 className="text-sm font-semibold mb-2">
+                  No grupo ({(detail.members || []).length})
+                </h3>
                 {(detail.members || []).length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Nenhum membro vinculado.</p>
+                  <p className="text-sm text-muted-foreground italic">Nenhum membro vinculado ainda.</p>
                 ) : (
-                  <ul className="space-y-2">
+                  <ul className="space-y-1.5">
                     {detail.members.map((m: any) => (
-                      <li key={m.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/40">
-                        <div className="min-w-0">
+                      <li key={m.id} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40">
+                        <div className="min-w-0 flex-1">
                           <p className="font-medium text-sm truncate">{m.fullName}</p>
                           {m.email && <p className="text-xs text-muted-foreground truncate">{m.email}</p>}
                         </div>
                         {canManage && (
                           <button
                             onClick={() => unlinkMutation.mutate({ memberId: m.id, groupId: selectedId })}
-                            className="p-1.5 text-muted-foreground hover:text-destructive shrink-0"
+                            disabled={unlinkMutation.isPending}
+                            className="p-1.5 text-muted-foreground hover:text-destructive shrink-0 disabled:opacity-50"
                             title="Remover do grupo"
                           >
                             <X className="h-4 w-4" />
@@ -209,6 +229,57 @@ export default function MemberGroupsPage() {
                   </ul>
                 )}
               </div>
+
+              {/* Adicionar novos */}
+              {canManage && (
+                <div>
+                  <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                    <UserPlus className="h-4 w-4" /> Adicionar membros
+                  </h3>
+                  <div className="relative mb-2">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <input
+                      type="text"
+                      value={memberSearchInput}
+                      onChange={(e) => setMemberSearchInput(e.target.value)}
+                      placeholder="Buscar por nome..."
+                      className="w-full pl-9 pr-3 py-2 border rounded-lg bg-background text-sm"
+                    />
+                  </div>
+                  <div className="border rounded-lg overflow-hidden max-h-72 overflow-y-auto">
+                    {isLoadingMembers ? (
+                      <div className="flex justify-center py-8">
+                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : availableMembers.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-8 italic">
+                        {memberSearch
+                          ? "Nenhum membro encontrado."
+                          : "Todos os membros já estão neste grupo."}
+                      </p>
+                    ) : (
+                      <ul className="divide-y">
+                        {availableMembers.map((m: any) => (
+                          <li key={m.id}>
+                            <button
+                              type="button"
+                              onClick={() => handleAddMember(m.id)}
+                              disabled={linkMutation.isPending}
+                              className="w-full text-left flex items-center gap-3 p-2.5 hover:bg-muted/50 transition-colors disabled:opacity-50"
+                            >
+                              <Plus className="h-4 w-4 text-primary shrink-0" />
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium text-sm truncate">{m.fullName}</p>
+                                {m.email && <p className="text-xs text-muted-foreground truncate">{m.email}</p>}
+                              </div>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
