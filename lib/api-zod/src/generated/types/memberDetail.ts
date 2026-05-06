@@ -41,6 +41,7 @@ export interface MemberDetail {
   maritalStatus?: MemberMaritalStatus;
   spouseMemberId?: string;
   spouseName?: string;
+  externalSpouseName?: string | null;
   academicEducation?: string;
   profession?: string;
   status: MemberStatus;

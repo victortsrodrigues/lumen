@@ -438,6 +438,7 @@ export const CreateMemberBody = zod.object({
     .enum(["solteiro", "casado", "viuvo", "divorciado", "uniao_estavel"])
     .optional(),
   spouseMemberId: zod.string().optional(),
+  externalSpouseName: zod.string().nullish(),
   academicEducation: zod.string().optional(),
   profession: zod.string().optional(),
   status: zod
@@ -445,6 +446,14 @@ export const CreateMemberBody = zod.object({
     .optional(),
   photoPath: zod.string().optional(),
   lgpdConsentAccepted: zod.boolean(),
+  children: zod
+    .array(
+      zod.object({
+        childMemberId: zod.string().nullish(),
+        externalName: zod.string().nullish(),
+      }),
+    )
+    .optional(),
 });
 
 /**
@@ -624,6 +633,7 @@ export const GetOwnProfileResponse = zod.object({
     .optional(),
   spouseMemberId: zod.string().optional(),
   spouseName: zod.string().optional(),
+  externalSpouseName: zod.string().nullish(),
   academicEducation: zod.string().optional(),
   profession: zod.string().optional(),
   status: zod.enum([
@@ -655,6 +665,8 @@ export const GetOwnProfileResponse = zod.object({
       zod.object({
         id: zod.string(),
         fullName: zod.string(),
+        isExternal: zod.boolean().optional(),
+        childMemberId: zod.string().nullish(),
       }),
     )
     .optional(),
@@ -690,6 +702,7 @@ export const UpdateOwnProfileBody = zod
     maritalStatus: zod
       .enum(["solteiro", "casado", "viuvo", "divorciado", "uniao_estavel"])
       .optional(),
+    externalSpouseName: zod.string().nullish(),
     academicEducation: zod.string().optional(),
     profession: zod.string().optional(),
   })
@@ -738,6 +751,7 @@ export const UpdateOwnProfileResponse = zod.object({
     .optional(),
   spouseMemberId: zod.string().optional(),
   spouseName: zod.string().optional(),
+  externalSpouseName: zod.string().nullish(),
   academicEducation: zod.string().optional(),
   profession: zod.string().optional(),
   status: zod.enum([
@@ -769,6 +783,8 @@ export const UpdateOwnProfileResponse = zod.object({
       zod.object({
         id: zod.string(),
         fullName: zod.string(),
+        isExternal: zod.boolean().optional(),
+        childMemberId: zod.string().nullish(),
       }),
     )
     .optional(),
@@ -832,6 +848,7 @@ export const GetMemberResponse = zod.object({
     .optional(),
   spouseMemberId: zod.string().optional(),
   spouseName: zod.string().optional(),
+  externalSpouseName: zod.string().nullish(),
   academicEducation: zod.string().optional(),
   profession: zod.string().optional(),
   status: zod.enum([
@@ -863,6 +880,8 @@ export const GetMemberResponse = zod.object({
       zod.object({
         id: zod.string(),
         fullName: zod.string(),
+        isExternal: zod.boolean().optional(),
+        childMemberId: zod.string().nullish(),
       }),
     )
     .optional(),
@@ -924,6 +943,7 @@ export const UpdateMemberBody = zod.object({
     .enum(["solteiro", "casado", "viuvo", "divorciado", "uniao_estavel"])
     .optional(),
   spouseMemberId: zod.string().nullish(),
+  externalSpouseName: zod.string().nullish(),
   academicEducation: zod.string().optional(),
   profession: zod.string().optional(),
   status: zod
@@ -973,6 +993,7 @@ export const UpdateMemberResponse = zod.object({
     .optional(),
   spouseMemberId: zod.string().optional(),
   spouseName: zod.string().optional(),
+  externalSpouseName: zod.string().nullish(),
   academicEducation: zod.string().optional(),
   profession: zod.string().optional(),
   status: zod.enum([
@@ -1004,6 +1025,8 @@ export const UpdateMemberResponse = zod.object({
       zod.object({
         id: zod.string(),
         fullName: zod.string(),
+        isExternal: zod.boolean().optional(),
+        childMemberId: zod.string().nullish(),
       }),
     )
     .optional(),
@@ -1125,6 +1148,7 @@ export const RegisterMemberExclusionResponse = zod.object({
     .optional(),
   spouseMemberId: zod.string().optional(),
   spouseName: zod.string().optional(),
+  externalSpouseName: zod.string().nullish(),
   academicEducation: zod.string().optional(),
   profession: zod.string().optional(),
   status: zod.enum([
@@ -1156,6 +1180,8 @@ export const RegisterMemberExclusionResponse = zod.object({
       zod.object({
         id: zod.string(),
         fullName: zod.string(),
+        isExternal: zod.boolean().optional(),
+        childMemberId: zod.string().nullish(),
       }),
     )
     .optional(),
@@ -1219,6 +1245,7 @@ export const RevertMemberExclusionResponse = zod.object({
     .optional(),
   spouseMemberId: zod.string().optional(),
   spouseName: zod.string().optional(),
+  externalSpouseName: zod.string().nullish(),
   academicEducation: zod.string().optional(),
   profession: zod.string().optional(),
   status: zod.enum([
@@ -1250,6 +1277,8 @@ export const RevertMemberExclusionResponse = zod.object({
       zod.object({
         id: zod.string(),
         fullName: zod.string(),
+        isExternal: zod.boolean().optional(),
+        childMemberId: zod.string().nullish(),
       }),
     )
     .optional(),
@@ -1291,16 +1320,21 @@ export const AddMemberChildParams = zod.object({
   id: zod.coerce.string(),
 });
 
-export const AddMemberChildBody = zod.object({
-  childMemberId: zod.string(),
-});
+export const AddMemberChildBody = zod
+  .object({
+    childMemberId: zod.string().optional(),
+    externalName: zod.string().optional(),
+  })
+  .describe(
+    "Informe childMemberId (membro existente) OU externalName (não cadastrado).",
+  );
 
 /**
- * @summary Remove child link
+ * @summary Remove child link by row id
  */
 export const RemoveMemberChildParams = zod.object({
   id: zod.coerce.string(),
-  childId: zod.coerce.string(),
+  rowId: zod.coerce.string(),
 });
 
 /**
@@ -1725,6 +1759,7 @@ export const ConvertVisitorResponse = zod.object({
     .optional(),
   spouseMemberId: zod.string().optional(),
   spouseName: zod.string().optional(),
+  externalSpouseName: zod.string().nullish(),
   academicEducation: zod.string().optional(),
   profession: zod.string().optional(),
   status: zod.enum([
@@ -1756,6 +1791,8 @@ export const ConvertVisitorResponse = zod.object({
       zod.object({
         id: zod.string(),
         fullName: zod.string(),
+        isExternal: zod.boolean().optional(),
+        childMemberId: zod.string().nullish(),
       }),
     )
     .optional(),

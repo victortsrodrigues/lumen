@@ -3152,18 +3152,18 @@ export const useAddMemberChild = <
 };
 
 /**
- * @summary Remove child link
+ * @summary Remove child link by row id
  */
-export const getRemoveMemberChildUrl = (id: string, childId: string) => {
-  return `/api/members/${id}/children/${childId}`;
+export const getRemoveMemberChildUrl = (id: string, rowId: string) => {
+  return `/api/members/${id}/children/${rowId}`;
 };
 
 export const removeMemberChild = async (
   id: string,
-  childId: string,
+  rowId: string,
   options?: RequestInit,
 ): Promise<void> => {
-  return customFetch<void>(getRemoveMemberChildUrl(id, childId), {
+  return customFetch<void>(getRemoveMemberChildUrl(id, rowId), {
     ...options,
     method: "DELETE",
   });
@@ -3176,14 +3176,14 @@ export const getRemoveMemberChildMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof removeMemberChild>>,
     TError,
-    { id: string; childId: string },
+    { id: string; rowId: string },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof removeMemberChild>>,
   TError,
-  { id: string; childId: string },
+  { id: string; rowId: string },
   TContext
 > => {
   const mutationKey = ["removeMemberChild"];
@@ -3197,11 +3197,11 @@ export const getRemoveMemberChildMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof removeMemberChild>>,
-    { id: string; childId: string }
+    { id: string; rowId: string }
   > = (props) => {
-    const { id, childId } = props ?? {};
+    const { id, rowId } = props ?? {};
 
-    return removeMemberChild(id, childId, requestOptions);
+    return removeMemberChild(id, rowId, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -3214,7 +3214,7 @@ export type RemoveMemberChildMutationResult = NonNullable<
 export type RemoveMemberChildMutationError = ErrorType<unknown>;
 
 /**
- * @summary Remove child link
+ * @summary Remove child link by row id
  */
 export const useRemoveMemberChild = <
   TError = ErrorType<unknown>,
@@ -3223,14 +3223,14 @@ export const useRemoveMemberChild = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof removeMemberChild>>,
     TError,
-    { id: string; childId: string },
+    { id: string; rowId: string },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof removeMemberChild>>,
   TError,
-  { id: string; childId: string },
+  { id: string; rowId: string },
   TContext
 > => {
   return useMutation(getRemoveMemberChildMutationOptions(options));

@@ -25,6 +25,7 @@ export interface UpdateOwnProfileRequest {
   addressState?: string;
   photoPath?: string;
   maritalStatus?: MemberMaritalStatus;
+  externalSpouseName?: string | null;
   academicEducation?: string;
   profession?: string;
 }

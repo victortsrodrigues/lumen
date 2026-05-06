@@ -6,9 +6,7 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface MemberLink {
-  id: string;
-  fullName: string;
-  isExternal?: boolean;
+export type CreateMemberRequestChildrenItem = {
   childMemberId?: string | null;
-}
+  externalName?: string | null;
+};

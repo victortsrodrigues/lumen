@@ -899,15 +899,15 @@ paths:
         "201":
           description: Linked
 
-  /members/{id}/children/{childId}:
+  /members/{id}/children/{rowId}:
     delete:
       operationId: removeMemberChild
       tags: [members]
-      summary: Remove child link
+      summary: Remove child link by row id
       security: [{ cookieAuth: [] }]
       parameters:
         - { in: path, name: id, required: true, schema: { type: string } }
-        - { in: path, name: childId, required: true, schema: { type: string } }
+        - { in: path, name: rowId, required: true, schema: { type: string } }
       responses:
         "200":
           description: Unlinked
@@ -5812,6 +5812,8 @@ components:
       properties:
         id: { type: string }
         fullName: { type: string }
+        isExternal: { type: boolean }
+        childMemberId: { type: string, nullable: true }
       required: [id, fullName]
 
     MemberGroupLink:
@@ -5855,6 +5857,7 @@ components:
           $ref: "#/components/schemas/MemberMaritalStatus"
         spouseMemberId: { type: string }
         spouseName: { type: string }
+        externalSpouseName: { type: string, nullable: true }
         academicEducation: { type: string }
         profession: { type: string }
         # Status / exclusão
@@ -5927,12 +5930,20 @@ components:
         maritalStatus:
           $ref: "#/components/schemas/MemberMaritalStatus"
         spouseMemberId: { type: string }
+        externalSpouseName: { type: string, nullable: true }
         academicEducation: { type: string }
         profession: { type: string }
         status:
           $ref: "#/components/schemas/MemberStatus"
         photoPath: { type: string }
         lgpdConsentAccepted: { type: boolean }
+        children:
+          type: array
+          items:
+            type: object
+            properties:
+              childMemberId: { type: string, nullable: true }
+              externalName: { type: string, nullable: true }
       required:
         - fullName
         - lgpdConsentAccepted
@@ -5967,6 +5978,7 @@ components:
         maritalStatus:
           $ref: "#/components/schemas/MemberMaritalStatus"
         spouseMemberId: { type: string, nullable: true }
+        externalSpouseName: { type: string, nullable: true }
         academicEducation: { type: string }
         profession: { type: string }
         status:
@@ -5991,6 +6003,7 @@ components:
         photoPath: { type: string }
         maritalStatus:
           $ref: "#/components/schemas/MemberMaritalStatus"
+        externalSpouseName: { type: string, nullable: true }
         academicEducation: { type: string }
         profession: { type: string }
 
@@ -6015,9 +6028,10 @@ components:
 
     AddChildRequest:
       type: object
+      description: Informe childMemberId (membro existente) OU externalName (não cadastrado).
       properties:
         childMemberId: { type: string }
-      required: [childMemberId]
+        externalName: { type: string }
 
     MemberGroup:
       type: object

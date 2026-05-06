@@ -30,7 +30,7 @@ const SELF_PROFILE_ALLOWED_FIELDS = new Set([
   "fullName", "dateOfBirth", "sex", "phone",
   "addressZip", "addressStreet", "addressNumber", "addressComplement",
   "addressNeighborhood", "addressCity", "addressState",
-  "photoPath", "maritalStatus", "academicEducation", "profession",
+  "photoPath", "maritalStatus", "externalSpouseName", "academicEducation", "profession",
 ]);
 
 // ─── DISCIPLESHIP AREAS ─────────────────────────────────────────────────────
@@ -107,6 +107,7 @@ function serializeMemberDetail(m: typeof membersTable.$inferSelect, extras?: {
     maritalStatus: m.maritalStatus,
     spouseMemberId: m.spouseMemberId,
     spouseName: extras?.spouseName ?? null,
+    externalSpouseName: m.externalSpouseName,
     academicEducation: m.academicEducation,
     profession: m.profession,
     // Status / exclusão
@@ -130,7 +131,7 @@ function buildHistoryDiff(before: Record<string, unknown>, after: Record<string,
     "addressNumber", "addressComplement", "receptionDate",
     "conversionYear", "religiousOrigin", "infantBaptism", "infantBaptismChurch",
     "infantBaptismPastor", "parentsOrGuardians", "classification", "receptionMode",
-    "maritalStatus", "spouseMemberId", "academicEducation", "profession",
+    "maritalStatus", "spouseMemberId", "externalSpouseName", "academicEducation", "profession",
     "status", "photoPath",
   ];
   for (const field of safeFields) {
@@ -297,8 +298,9 @@ router.post("/", requireAuth, requireRole("admin", "leader"), async (req: Reques
     addressNeighborhood, addressCity, addressState,
     classification, receptionMode, receptionDate, conversionYear,
     religiousOrigin, infantBaptism, infantBaptismChurch, infantBaptismPastor, parentsOrGuardians,
-    maritalStatus, spouseMemberId, academicEducation, profession,
+    maritalStatus, spouseMemberId, externalSpouseName, academicEducation, profession,
     status, photoPath, lgpdConsentAccepted,
+    children, // [{ childMemberId? } | { externalName? }]
   } = req.body;
 
   if (!fullName) {
@@ -356,6 +358,7 @@ router.post("/", requireAuth, requireRole("admin", "leader"), async (req: Reques
     parentsOrGuardians: parentsOrGuardians || null,
     maritalStatus: maritalStatus || null,
     spouseMemberId: null, // set via setSpouse below to ensure mirroring
+    externalSpouseName: externalSpouseName || null,
     academicEducation: academicEducation || null,
     profession: profession || null,
     status: (status || "ativo") as any,
@@ -366,6 +369,34 @@ router.post("/", requireAuth, requireRole("admin", "leader"), async (req: Reques
 
   if (spouseMemberId) {
     await setSpouse(member.id, spouseMemberId, userId);
+  }
+
+  // Children inline (durante criação): aceita misto de membros e externos
+  if (Array.isArray(children) && children.length > 0) {
+    for (const c of children) {
+      const childMemberId = (c?.childMemberId ?? "").trim?.() ?? c?.childMemberId;
+      const extName = (c?.externalName ?? "").trim?.() ?? "";
+      if (childMemberId) {
+        // Validar membro existente + não-self
+        if (childMemberId === member.id) continue;
+        const [exists] = await db.select({ id: membersTable.id })
+          .from(membersTable).where(eq(membersTable.id, childMemberId)).limit(1);
+        if (!exists) continue;
+        await db.insert(memberChildrenTable).values({
+          parentId: member.id,
+          childId: childMemberId,
+          externalName: null,
+          createdByUserId: userId,
+        }).onConflictDoNothing();
+      } else if (extName) {
+        await db.insert(memberChildrenTable).values({
+          parentId: member.id,
+          childId: null,
+          externalName: extName,
+          createdByUserId: userId,
+        });
+      }
+    }
   }
 
   await ensureMemberAreas(member.id, userId);
@@ -571,7 +602,7 @@ router.put("/me", requireAuth, async (req: Request, res: Response) => {
   const {
     fullName, dateOfBirth, sex, phone, addressZip, addressStreet, addressNumber,
     addressComplement, addressNeighborhood, addressCity, addressState,
-    photoPath, maritalStatus, academicEducation, profession,
+    photoPath, maritalStatus, externalSpouseName, academicEducation, profession,
   } = req.body;
 
   const updateData: Partial<typeof membersTable.$inferInsert> = {
@@ -591,6 +622,7 @@ router.put("/me", requireAuth, async (req: Request, res: Response) => {
   if (addressState !== undefined) updateData.addressState = addressState || null;
   if (photoPath !== undefined) updateData.photoPath = photoPath || null;
   if (maritalStatus !== undefined) updateData.maritalStatus = maritalStatus || null;
+  if (externalSpouseName !== undefined) updateData.externalSpouseName = externalSpouseName || null;
   if (academicEducation !== undefined) updateData.academicEducation = academicEducation || null;
   if (profession !== undefined) updateData.profession = profession || null;
 
@@ -621,7 +653,11 @@ router.put("/me", requireAuth, async (req: Request, res: Response) => {
 
 // Helper: load spouse name + children + groups
 async function loadMemberExtras(m: typeof membersTable.$inferSelect) {
-  const result: { spouseName: string | null; children: Array<{ id: string; fullName: string }>; groups: Array<{ id: string; name: string }> } = {
+  const result: {
+    spouseName: string | null;
+    children: Array<{ id: string; fullName: string; isExternal: boolean; childMemberId: string | null }>;
+    groups: Array<{ id: string; name: string }>;
+  } = {
     spouseName: null,
     children: [],
     groups: [],
@@ -633,13 +669,23 @@ async function loadMemberExtras(m: typeof membersTable.$inferSelect) {
     result.spouseName = spouse?.fullName ?? null;
   }
 
-  const childRows = await db.select({
-    childId: memberChildrenTable.childId,
-    fullName: membersTable.fullName,
-  }).from(memberChildrenTable)
-    .innerJoin(membersTable, eq(membersTable.id, memberChildrenTable.childId))
+  // Children: pega todas as rows + LEFT JOIN para resolver nome do membro
+  const childRows = await db
+    .select({
+      rowId: memberChildrenTable.id,
+      childId: memberChildrenTable.childId,
+      externalName: memberChildrenTable.externalName,
+      memberFullName: membersTable.fullName,
+    })
+    .from(memberChildrenTable)
+    .leftJoin(membersTable, eq(membersTable.id, memberChildrenTable.childId))
     .where(eq(memberChildrenTable.parentId, m.id));
-  result.children = childRows.map(c => ({ id: c.childId, fullName: c.fullName }));
+  result.children = childRows.map(c => ({
+    id: c.rowId,                    // ID da linha de vínculo (uniforme pra remoção)
+    fullName: c.childId ? (c.memberFullName ?? "") : (c.externalName ?? ""),
+    isExternal: !c.childId,
+    childMemberId: c.childId,       // null se externo
+  }));
 
   const groupRows = await db.select({
     groupId: memberGroupMembersTable.groupId,
@@ -703,7 +749,7 @@ router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Requ
     addressNeighborhood, addressCity, addressState,
     classification, receptionMode, receptionDate, conversionYear,
     religiousOrigin, infantBaptism, infantBaptismChurch, infantBaptismPastor, parentsOrGuardians,
-    maritalStatus, spouseMemberId, academicEducation, profession,
+    maritalStatus, spouseMemberId, externalSpouseName, academicEducation, profession,
     status, photoPath,
   } = req.body;
 
@@ -1184,79 +1230,107 @@ router.post("/:id/exclusion/letter", requireAuth, requireRole("admin"), async (r
 // CHILDREN
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// POST /members/:id/children — add child link
+// POST /members/:id/children — add child link (membro existente OU nome externo)
 router.post("/:id/children", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const parentId = req.params.id;
-  const { childMemberId } = req.body;
+  const childMemberId: string | undefined = req.body?.childMemberId || undefined;
+  const externalNameRaw: string | undefined = req.body?.externalName;
+  const externalName = typeof externalNameRaw === "string" ? externalNameRaw.trim() : "";
 
-  if (!childMemberId) {
-    res.status(400).json({ error: "VALIDATION_ERROR", message: "childMemberId é obrigatório" });
+  if (!childMemberId && !externalName) {
+    res.status(400).json({ error: "VALIDATION_ERROR", message: "Informe childMemberId ou externalName" });
     return;
   }
-  if (parentId === childMemberId) {
-    res.status(400).json({ error: "VALIDATION_ERROR", message: "Membro não pode ser pai/mãe de si mesmo" });
+  if (childMemberId && externalName) {
+    res.status(400).json({ error: "VALIDATION_ERROR", message: "Informe apenas um: childMemberId OU externalName" });
     return;
   }
 
-  const [parent, child] = await Promise.all([
-    db.select().from(membersTable).where(eq(membersTable.id, parentId)).limit(1),
-    db.select().from(membersTable).where(eq(membersTable.id, childMemberId)).limit(1),
-  ]);
-  if (!parent[0] || !child[0]) {
+  const [parent] = await db.select().from(membersTable).where(eq(membersTable.id, parentId)).limit(1);
+  if (!parent) {
     res.status(404).json({ error: "NOT_FOUND", message: "Membro não encontrado" });
     return;
   }
 
-  // Cycle prevention: child cannot already be a parent of parent
-  const [reverse] = await db.select().from(memberChildrenTable)
-    .where(and(
-      eq(memberChildrenTable.parentId, childMemberId),
-      eq(memberChildrenTable.childId, parentId),
-    )).limit(1);
-  if (reverse) {
-    res.status(400).json({
-      error: "VALIDATION_ERROR",
-      message: "Vínculo cíclico detectado: o filho já é pai/mãe deste membro.",
+  if (childMemberId) {
+    if (parentId === childMemberId) {
+      res.status(400).json({ error: "VALIDATION_ERROR", message: "Membro não pode ser pai/mãe de si mesmo" });
+      return;
+    }
+    const [child] = await db.select().from(membersTable).where(eq(membersTable.id, childMemberId)).limit(1);
+    if (!child) {
+      res.status(404).json({ error: "NOT_FOUND", message: "Membro não encontrado" });
+      return;
+    }
+
+    const [reverse] = await db.select().from(memberChildrenTable)
+      .where(and(
+        eq(memberChildrenTable.parentId, childMemberId),
+        eq(memberChildrenTable.childId, parentId),
+      )).limit(1);
+    if (reverse) {
+      res.status(400).json({
+        error: "VALIDATION_ERROR",
+        message: "Vínculo cíclico detectado: o filho já é pai/mãe deste membro.",
+      });
+      return;
+    }
+
+    const [duplicate] = await db.select().from(memberChildrenTable)
+      .where(and(
+        eq(memberChildrenTable.parentId, parentId),
+        eq(memberChildrenTable.childId, childMemberId),
+      )).limit(1);
+    if (duplicate) {
+      res.status(409).json({ error: "ALREADY_EXISTS", message: "Vínculo já existe" });
+      return;
+    }
+
+    const [row] = await db.insert(memberChildrenTable).values({
+      parentId,
+      childId: childMemberId,
+      externalName: null,
+      createdByUserId: userId,
+    }).returning();
+
+    await db.insert(memberHistoryTable).values({
+      memberId: parentId,
+      changedByUserId: userId,
+      changeType: "child_added",
+      fieldChanges: { childMemberId },
     });
+
+    res.status(201).json({ id: row.id, parentId, childMemberId, externalName: null });
     return;
   }
 
-  // Duplicate prevention
-  const [duplicate] = await db.select().from(memberChildrenTable)
-    .where(and(
-      eq(memberChildrenTable.parentId, parentId),
-      eq(memberChildrenTable.childId, childMemberId),
-    )).limit(1);
-  if (duplicate) {
-    res.status(409).json({ error: "ALREADY_EXISTS", message: "Vínculo já existe" });
-    return;
-  }
-
-  await db.insert(memberChildrenTable).values({
+  // External child
+  const [row] = await db.insert(memberChildrenTable).values({
     parentId,
-    childId: childMemberId,
+    childId: null,
+    externalName,
     createdByUserId: userId,
-  });
+  }).returning();
 
   await db.insert(memberHistoryTable).values({
     memberId: parentId,
     changedByUserId: userId,
     changeType: "child_added",
-    fieldChanges: { childMemberId },
+    fieldChanges: { externalName },
   });
 
-  res.status(201).json({ parentId, childId: childMemberId });
+  res.status(201).json({ id: row.id, parentId, childMemberId: null, externalName });
 });
 
-// DELETE /members/:id/children/:childId — remove child link
-router.delete("/:id/children/:childId", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+// DELETE /members/:id/children/:rowId — remove child link by row id
+router.delete("/:id/children/:rowId", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
   const userId = req.user!.userId;
-  const { id: parentId, childId } = req.params;
+  const { id: parentId, rowId } = req.params;
 
   const result = await db.delete(memberChildrenTable).where(and(
     eq(memberChildrenTable.parentId, parentId),
-    eq(memberChildrenTable.childId, childId),
+    eq(memberChildrenTable.id, rowId),
   )).returning();
 
   if (result.length === 0) {
@@ -1268,7 +1342,9 @@ router.delete("/:id/children/:childId", requireAuth, requireRole("admin", "leade
     memberId: parentId,
     changedByUserId: userId,
     changeType: "child_removed",
-    fieldChanges: { childMemberId: childId },
+    fieldChanges: result[0].childId
+      ? { childMemberId: result[0].childId }
+      : { externalName: result[0].externalName },
   });
 
   res.json({ message: "Vínculo removido" });

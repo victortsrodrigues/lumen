@@ -5,6 +5,7 @@
  * Church ERP API
  * OpenAPI spec version: 0.2.0
  */
+import type { CreateMemberRequestChildrenItem } from "./createMemberRequestChildrenItem";
 import type { CreateMemberRequestSex } from "./createMemberRequestSex";
 import type { MemberClassification } from "./memberClassification";
 import type { MemberMaritalStatus } from "./memberMaritalStatus";
@@ -36,9 +37,11 @@ export interface CreateMemberRequest {
   parentsOrGuardians?: string;
   maritalStatus?: MemberMaritalStatus;
   spouseMemberId?: string;
+  externalSpouseName?: string | null;
   academicEducation?: string;
   profession?: string;
   status?: MemberStatus;
   photoPath?: string;
   lgpdConsentAccepted: boolean;
+  children?: CreateMemberRequestChildrenItem[];
 }

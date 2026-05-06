@@ -18,7 +18,6 @@ import {
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, UploadCloud, MapPin, User, Save, ShieldCheck, Users, Search, Plus, X, Heart } from 'lucide-react';
-import { MemberSelect } from '@/components/MemberSelect';
 
 import { ALL_RECEPTION_MODES } from "../../../../../../lib/db/src/schema/member-rules";
 
@@ -56,6 +55,7 @@ const formSchema = z.object({
   parentsOrGuardians: z.string().optional(),
   maritalStatus: z.union([z.enum(['solteiro', 'casado', 'viuvo', 'divorciado', 'uniao_estavel']), z.literal('')]).optional().transform(v => v === '' ? undefined : v),
   spouseMemberId: z.string().optional(),
+  externalSpouseName: z.string().optional(),
   academicEducation: z.string().optional(),
   profession: z.string().optional(),
   status: z.enum(['ativo', 'disciplina', 'rol_apartado', 'falecido', 'demitido']).default('ativo'),
@@ -78,6 +78,8 @@ export default function MemberForm({ initialData, isEditing = false }: MemberFor
   const [photoPreview, setPhotoPreview] = useState<string | null>(initialData?.photoPath ? `/api/storage${initialData.photoPath}` : null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cepToLookup, setCepToLookup] = useState<string>('');
+  // Filhos draft (para modo criação) — enviados inline no POST /members
+  const [draftChildren, setDraftChildren] = useState<Array<{ childMemberId?: string; externalName?: string; displayName: string }>>([]);
 
   const { mutateAsync: createMember } = useCreateMember();
   const { mutateAsync: updateMember } = useUpdateMember();
@@ -107,6 +109,7 @@ export default function MemberForm({ initialData, isEditing = false }: MemberFor
       parentsOrGuardians: (initialData as any)?.parentsOrGuardians || '',
       maritalStatus: ((initialData as any)?.maritalStatus || '') as any,
       spouseMemberId: (initialData as any)?.spouseMemberId || '',
+      externalSpouseName: (initialData as any)?.externalSpouseName || '',
       academicEducation: (initialData as any)?.academicEducation || '',
       profession: (initialData as any)?.profession || '',
       status: initialData?.status as any || 'ativo',
@@ -189,6 +192,11 @@ export default function MemberForm({ initialData, isEditing = false }: MemberFor
         setLocation(`/members/${initialData.id}`);
         return;
       } else {
+        if (draftChildren.length > 0) {
+          payload.children = draftChildren.map(c => c.childMemberId
+            ? { childMemberId: c.childMemberId }
+            : { externalName: c.externalName });
+        }
         const newMember = await createMember({ data: payload });
         toast({ title: "Sucesso", description: "Membro cadastrado com sucesso." });
         setLocation(`/members/${newMember.id}`);
@@ -294,12 +302,19 @@ export default function MemberForm({ initialData, isEditing = false }: MemberFor
                     <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
                       <Heart className="h-3.5 w-3.5 text-pink-500" /> Cônjuge
                     </label>
-                    <MemberSelect
-                      value={watch('spouseMemberId') || ''}
-                      onChange={(id) => setValue('spouseMemberId', id || undefined, { shouldDirty: true })}
-                      initialName={(initialData as any)?.spouseName || ''}
-                      excludeIds={initialData?.id ? [initialData.id] : []}
-                      placeholder="Selecionar cônjuge..."
+                    <SpousePicker
+                      excludeId={initialData?.id}
+                      memberId={watch('spouseMemberId') || ''}
+                      memberInitialName={(initialData as any)?.spouseName || ''}
+                      externalName={watch('externalSpouseName') || ''}
+                      onChangeMember={(id) => {
+                        setValue('spouseMemberId', id || undefined, { shouldDirty: true });
+                        if (id) setValue('externalSpouseName', '', { shouldDirty: true });
+                      }}
+                      onChangeExternal={(name) => {
+                        setValue('externalSpouseName', name || undefined, { shouldDirty: true });
+                        if (name) setValue('spouseMemberId', undefined, { shouldDirty: true });
+                      }}
                     />
                   </div>
                 )}
@@ -317,9 +332,11 @@ export default function MemberForm({ initialData, isEditing = false }: MemberFor
                 </div>
               </div>
 
-              {/* Filhos — só em modo edição */}
-              {isEditing && initialData?.id && (
+              {/* Filhos */}
+              {isEditing && initialData?.id ? (
                 <ChildrenLinker memberId={initialData.id} />
+              ) : (
+                <ChildrenLinkerDraft draft={draftChildren} setDraft={setDraftChildren} />
               )}
             </div>
           </div>
@@ -510,79 +527,97 @@ export default function MemberForm({ initialData, isEditing = false }: MemberFor
   );
 }
 
-// ─── Children Linker ────────────────────────────────────────────────────────
-// Editor de vínculos pai/filho. Lista os filhos atuais e permite adicionar
-// outros membros via busca + clique direto. Disponível só em modo edição
-// (precisa do memberId pra usar os endpoints).
+// ─── Spouse Picker ──────────────────────────────────────────────────────────
+// Lista pesquisável de membros (selecionar um) OU input livre para cônjuge
+// não cadastrado. Apenas um dos dois pode estar preenchido.
 
-function ChildrenLinker({ memberId }: { memberId: string }) {
+function SpousePicker({
+  excludeId,
+  memberId,
+  memberInitialName,
+  externalName,
+  onChangeMember,
+  onChangeExternal,
+}: {
+  excludeId?: string;
+  memberId: string;
+  memberInitialName: string;
+  externalName: string;
+  onChangeMember: (id: string) => void;
+  onChangeExternal: (name: string) => void;
+}) {
+  const [mode, setMode] = useState<"member" | "external">(externalName ? "external" : "member");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
 
-  // Debounce
   useEffect(() => {
     const t = setTimeout(() => setSearch(searchInput.trim()), 300);
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  const { data: detail } = useGetMember(memberId, { query: { enabled: !!memberId } });
-  const { data: candidates, isLoading: isLoadingCandidates } = useListMembers(
+  const { data: candidates, isLoading } = useListMembers(
     { search: search || undefined, status: "ativo" as any, limit: 30, page: 1 } as any,
-    { query: { enabled: showSearch } },
+    { query: { enabled: mode === "member" && showSearch } },
   );
+  const { data: selectedDetail } = useGetMember(memberId, {
+    query: { enabled: !!memberId && !memberInitialName },
+  });
 
-  const addMut = useAddMemberChild();
-  const removeMut = useRemoveMemberChild();
+  const list = ((candidates as any)?.members ?? []) as any[];
+  const filtered = list.filter((m) => m.id !== excludeId);
 
-  const children = ((detail as any)?.children ?? []) as Array<{ id: string; fullName: string }>;
-  const childIds = useMemo(() => new Set(children.map(c => c.id)), [children]);
-
-  const availableMembers = useMemo(() => {
-    const list = ((candidates as any)?.members ?? []) as any[];
-    return list.filter((m) => m.id !== memberId && !childIds.has(m.id));
-  }, [candidates, childIds, memberId]);
+  const selectedName = memberInitialName || (selectedDetail as any)?.fullName || "";
 
   return (
-    <div className="space-y-3 pt-3 border-t">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-          <Users className="h-4 w-4 text-primary" /> Filhos ({children.length})
-        </h4>
-        {!showSearch && (
-          <button
-            type="button"
-            onClick={() => setShowSearch(true)}
-            className="flex items-center gap-1.5 text-xs text-primary hover:underline"
-          >
-            <Plus className="h-3.5 w-3.5" /> Adicionar filho
-          </button>
-        )}
+    <div className="space-y-2">
+      <div className="flex gap-2 text-xs">
+        <button
+          type="button"
+          onClick={() => { setMode("member"); onChangeExternal(""); }}
+          className={`px-2.5 py-1 rounded-full border ${mode === "member" ? "bg-primary text-primary-foreground border-primary" : "bg-background"}`}
+        >
+          Membro
+        </button>
+        <button
+          type="button"
+          onClick={() => { setMode("external"); onChangeMember(""); }}
+          className={`px-2.5 py-1 rounded-full border ${mode === "external" ? "bg-primary text-primary-foreground border-primary" : "bg-background"}`}
+        >
+          Não cadastrado
+        </button>
       </div>
 
-      {children.length > 0 ? (
-        <ul className="space-y-1.5">
-          {children.map((c) => (
-            <li key={c.id} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40">
-              <p className="font-medium text-sm truncate">{c.fullName}</p>
-              <button
-                type="button"
-                onClick={() => removeMut.mutate({ id: memberId, childId: c.id })}
-                disabled={removeMut.isPending}
-                className="p-1 text-muted-foreground hover:text-destructive shrink-0 disabled:opacity-50"
-                title="Desvincular filho"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </li>
-          ))}
-        </ul>
+      {mode === "external" ? (
+        <input
+          type="text"
+          value={externalName}
+          onChange={(e) => onChangeExternal(e.target.value)}
+          placeholder="Nome do cônjuge (não cadastrado)"
+          className="w-full px-3 py-2 border rounded-lg bg-background text-sm"
+        />
+      ) : memberId ? (
+        <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40">
+          <p className="font-medium text-sm truncate">{selectedName || "Carregando..."}</p>
+          <button
+            type="button"
+            onClick={() => onChangeMember("")}
+            className="p-1 text-muted-foreground hover:text-destructive"
+            title="Remover cônjuge"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       ) : !showSearch ? (
-        <p className="text-sm text-muted-foreground italic">Nenhum filho vinculado.</p>
-      ) : null}
-
-      {showSearch && (
-        <div className="rounded-lg border bg-background/50 p-3 space-y-2">
+        <button
+          type="button"
+          onClick={() => setShowSearch(true)}
+          className="w-full text-left px-3 py-2 border rounded-lg bg-background text-sm text-muted-foreground hover:bg-muted/40"
+        >
+          <Search className="inline h-3.5 w-3.5 mr-1.5" /> Buscar membro...
+        </button>
+      ) : (
+        <div className="rounded-lg border bg-background/50 p-2 space-y-2">
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -598,31 +633,29 @@ function ChildrenLinker({ memberId }: { memberId: string }) {
             <button
               type="button"
               onClick={() => { setShowSearch(false); setSearchInput(""); setSearch(""); }}
-              className="px-3 py-2 border rounded-lg text-xs"
+              className="px-2.5 py-2 border rounded-lg text-xs"
             >
               Fechar
             </button>
           </div>
           <div className="border rounded-lg overflow-hidden max-h-60 overflow-y-auto bg-card">
-            {isLoadingCandidates ? (
+            {isLoading ? (
               <div className="flex justify-center py-6">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               </div>
-            ) : availableMembers.length === 0 ? (
+            ) : filtered.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-6 italic">
                 {search ? "Nenhum membro encontrado." : "Digite para buscar..."}
               </p>
             ) : (
               <ul className="divide-y">
-                {availableMembers.map((m: any) => (
+                {filtered.map((m: any) => (
                   <li key={m.id}>
                     <button
                       type="button"
-                      onClick={() => addMut.mutate({ id: memberId, data: { childMemberId: m.id } as any })}
-                      disabled={addMut.isPending}
-                      className="w-full text-left flex items-center gap-3 p-2.5 hover:bg-muted/50 transition-colors disabled:opacity-50"
+                      onClick={() => { onChangeMember(m.id); setShowSearch(false); setSearchInput(""); setSearch(""); }}
+                      className="w-full text-left flex items-center gap-3 p-2.5 hover:bg-muted/50 transition-colors"
                     >
-                      <Plus className="h-4 w-4 text-primary shrink-0" />
                       <div className="min-w-0 flex-1">
                         <p className="font-medium text-sm truncate">{m.fullName}</p>
                         {m.email && <p className="text-xs text-muted-foreground truncate">{m.email}</p>}
@@ -633,6 +666,375 @@ function ChildrenLinker({ memberId }: { memberId: string }) {
               </ul>
             )}
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Children Linker ────────────────────────────────────────────────────────
+// Editor de vínculos pai/filho em modo edição. Lista os filhos atuais e
+// permite adicionar membros (busca) ou nomes externos (não cadastrados).
+
+function ChildrenLinker({ memberId }: { memberId: string }) {
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
+  const [addMode, setAddMode] = useState<"member" | "external">("member");
+  const [externalChildName, setExternalChildName] = useState("");
+
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  const { data: detail } = useGetMember(memberId, { query: { enabled: !!memberId } });
+  const { data: candidates, isLoading: isLoadingCandidates } = useListMembers(
+    { search: search || undefined, status: "ativo" as any, limit: 30, page: 1 } as any,
+    { query: { enabled: showAdd && addMode === "member" } },
+  );
+
+  const addMut = useAddMemberChild();
+  const removeMut = useRemoveMemberChild();
+
+  const children = ((detail as any)?.children ?? []) as Array<{ id: string; fullName: string; isExternal?: boolean; childMemberId?: string | null }>;
+  const linkedMemberIds = useMemo(
+    () => new Set(children.filter(c => c.childMemberId).map(c => c.childMemberId as string)),
+    [children],
+  );
+
+  const availableMembers = useMemo(() => {
+    const list = ((candidates as any)?.members ?? []) as any[];
+    return list.filter((m) => m.id !== memberId && !linkedMemberIds.has(m.id));
+  }, [candidates, linkedMemberIds, memberId]);
+
+  function handleAddExternal() {
+    const name = externalChildName.trim();
+    if (!name) return;
+    addMut.mutate(
+      { id: memberId, data: { externalName: name } as any },
+      { onSuccess: () => { setExternalChildName(""); } },
+    );
+  }
+
+  return (
+    <div className="space-y-3 pt-3 border-t">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <Users className="h-4 w-4 text-primary" /> Filhos ({children.length})
+        </h4>
+        {!showAdd && (
+          <button
+            type="button"
+            onClick={() => setShowAdd(true)}
+            className="flex items-center gap-1.5 text-xs text-primary hover:underline"
+          >
+            <Plus className="h-3.5 w-3.5" /> Adicionar filho
+          </button>
+        )}
+      </div>
+
+      {children.length > 0 ? (
+        <ul className="space-y-1.5">
+          {children.map((c) => (
+            <li key={c.id} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40">
+              <p className="font-medium text-sm truncate">
+                {c.fullName}
+                {c.isExternal && <span className="ml-2 text-xs text-muted-foreground italic">(não cadastrado)</span>}
+              </p>
+              <button
+                type="button"
+                onClick={() => removeMut.mutate({ id: memberId, rowId: c.id } as any)}
+                disabled={removeMut.isPending}
+                className="p-1 text-muted-foreground hover:text-destructive shrink-0 disabled:opacity-50"
+                title="Desvincular filho"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : !showAdd ? (
+        <p className="text-sm text-muted-foreground italic">Nenhum filho vinculado.</p>
+      ) : null}
+
+      {showAdd && (
+        <div className="rounded-lg border bg-background/50 p-3 space-y-2">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex gap-2 text-xs">
+              <button
+                type="button"
+                onClick={() => setAddMode("member")}
+                className={`px-2.5 py-1 rounded-full border ${addMode === "member" ? "bg-primary text-primary-foreground border-primary" : "bg-background"}`}
+              >
+                Membro
+              </button>
+              <button
+                type="button"
+                onClick={() => setAddMode("external")}
+                className={`px-2.5 py-1 rounded-full border ${addMode === "external" ? "bg-primary text-primary-foreground border-primary" : "bg-background"}`}
+              >
+                Não cadastrado
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => { setShowAdd(false); setSearchInput(""); setSearch(""); setExternalChildName(""); }}
+              className="px-3 py-1.5 border rounded-lg text-xs"
+            >
+              Fechar
+            </button>
+          </div>
+
+          {addMode === "external" ? (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={externalChildName}
+                onChange={(e) => setExternalChildName(e.target.value)}
+                placeholder="Nome do filho (não cadastrado)"
+                className="flex-1 px-3 py-2 border rounded-lg bg-background text-sm"
+              />
+              <button
+                type="button"
+                onClick={handleAddExternal}
+                disabled={!externalChildName.trim() || addMut.isPending}
+                className="px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {addMut.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                <Plus className="h-3.5 w-3.5" /> Adicionar
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder="Buscar membro por nome..."
+                  className="w-full pl-9 pr-3 py-2 border rounded-lg bg-background text-sm"
+                  autoFocus
+                />
+              </div>
+              <div className="border rounded-lg overflow-hidden max-h-60 overflow-y-auto bg-card">
+                {isLoadingCandidates ? (
+                  <div className="flex justify-center py-6">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : availableMembers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6 italic">
+                    {search ? "Nenhum membro encontrado." : "Digite para buscar..."}
+                  </p>
+                ) : (
+                  <ul className="divide-y">
+                    {availableMembers.map((m: any) => (
+                      <li key={m.id}>
+                        <button
+                          type="button"
+                          onClick={() => addMut.mutate({ id: memberId, data: { childMemberId: m.id } as any })}
+                          disabled={addMut.isPending}
+                          className="w-full text-left flex items-center gap-3 p-2.5 hover:bg-muted/50 transition-colors disabled:opacity-50"
+                        >
+                          <Plus className="h-4 w-4 text-primary shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-sm truncate">{m.fullName}</p>
+                            {m.email && <p className="text-xs text-muted-foreground truncate">{m.email}</p>}
+                          </div>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Children Linker (Draft) ────────────────────────────────────────────────
+// Versão para modo de criação — armazena filhos em estado local e o
+// MemberForm envia inline no POST /members.
+
+function ChildrenLinkerDraft({
+  draft,
+  setDraft,
+}: {
+  draft: Array<{ childMemberId?: string; externalName?: string; displayName: string }>;
+  setDraft: React.Dispatch<React.SetStateAction<Array<{ childMemberId?: string; externalName?: string; displayName: string }>>>;
+}) {
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
+  const [addMode, setAddMode] = useState<"member" | "external">("member");
+  const [externalChildName, setExternalChildName] = useState("");
+
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  const { data: candidates, isLoading: isLoadingCandidates } = useListMembers(
+    { search: search || undefined, status: "ativo" as any, limit: 30, page: 1 } as any,
+    { query: { enabled: showAdd && addMode === "member" } },
+  );
+
+  const draftMemberIds = useMemo(
+    () => new Set(draft.filter(d => d.childMemberId).map(d => d.childMemberId as string)),
+    [draft],
+  );
+  const availableMembers = useMemo(() => {
+    const list = ((candidates as any)?.members ?? []) as any[];
+    return list.filter((m) => !draftMemberIds.has(m.id));
+  }, [candidates, draftMemberIds]);
+
+  function addMember(m: { id: string; fullName: string }) {
+    setDraft(prev => [...prev, { childMemberId: m.id, displayName: m.fullName }]);
+  }
+  function addExternal() {
+    const name = externalChildName.trim();
+    if (!name) return;
+    setDraft(prev => [...prev, { externalName: name, displayName: name }]);
+    setExternalChildName("");
+  }
+  function removeAt(idx: number) {
+    setDraft(prev => prev.filter((_, i) => i !== idx));
+  }
+
+  return (
+    <div className="space-y-3 pt-3 border-t">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <Users className="h-4 w-4 text-primary" /> Filhos ({draft.length})
+        </h4>
+        {!showAdd && (
+          <button
+            type="button"
+            onClick={() => setShowAdd(true)}
+            className="flex items-center gap-1.5 text-xs text-primary hover:underline"
+          >
+            <Plus className="h-3.5 w-3.5" /> Adicionar filho
+          </button>
+        )}
+      </div>
+
+      {draft.length > 0 ? (
+        <ul className="space-y-1.5">
+          {draft.map((c, idx) => (
+            <li key={`${c.childMemberId || c.externalName}-${idx}`} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40">
+              <p className="font-medium text-sm truncate">
+                {c.displayName}
+                {!c.childMemberId && <span className="ml-2 text-xs text-muted-foreground italic">(não cadastrado)</span>}
+              </p>
+              <button
+                type="button"
+                onClick={() => removeAt(idx)}
+                className="p-1 text-muted-foreground hover:text-destructive shrink-0"
+                title="Remover"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : !showAdd ? (
+        <p className="text-sm text-muted-foreground italic">Nenhum filho vinculado.</p>
+      ) : null}
+
+      {showAdd && (
+        <div className="rounded-lg border bg-background/50 p-3 space-y-2">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex gap-2 text-xs">
+              <button
+                type="button"
+                onClick={() => setAddMode("member")}
+                className={`px-2.5 py-1 rounded-full border ${addMode === "member" ? "bg-primary text-primary-foreground border-primary" : "bg-background"}`}
+              >
+                Membro
+              </button>
+              <button
+                type="button"
+                onClick={() => setAddMode("external")}
+                className={`px-2.5 py-1 rounded-full border ${addMode === "external" ? "bg-primary text-primary-foreground border-primary" : "bg-background"}`}
+              >
+                Não cadastrado
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => { setShowAdd(false); setSearchInput(""); setSearch(""); setExternalChildName(""); }}
+              className="px-3 py-1.5 border rounded-lg text-xs"
+            >
+              Fechar
+            </button>
+          </div>
+
+          {addMode === "external" ? (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={externalChildName}
+                onChange={(e) => setExternalChildName(e.target.value)}
+                placeholder="Nome do filho (não cadastrado)"
+                className="flex-1 px-3 py-2 border rounded-lg bg-background text-sm"
+              />
+              <button
+                type="button"
+                onClick={addExternal}
+                disabled={!externalChildName.trim()}
+                className="px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs disabled:opacity-50 flex items-center gap-1.5"
+              >
+                <Plus className="h-3.5 w-3.5" /> Adicionar
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder="Buscar membro por nome..."
+                  className="w-full pl-9 pr-3 py-2 border rounded-lg bg-background text-sm"
+                  autoFocus
+                />
+              </div>
+              <div className="border rounded-lg overflow-hidden max-h-60 overflow-y-auto bg-card">
+                {isLoadingCandidates ? (
+                  <div className="flex justify-center py-6">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : availableMembers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6 italic">
+                    {search ? "Nenhum membro encontrado." : "Digite para buscar..."}
+                  </p>
+                ) : (
+                  <ul className="divide-y">
+                    {availableMembers.map((m: any) => (
+                      <li key={m.id}>
+                        <button
+                          type="button"
+                          onClick={() => addMember({ id: m.id, fullName: m.fullName })}
+                          className="w-full text-left flex items-center gap-3 p-2.5 hover:bg-muted/50 transition-colors"
+                        >
+                          <Plus className="h-4 w-4 text-primary shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-sm truncate">{m.fullName}</p>
+                            {m.email && <p className="text-xs text-muted-foreground truncate">{m.email}</p>}
+                          </div>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>

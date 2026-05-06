@@ -36,6 +36,7 @@ export interface UpdateMemberRequest {
   parentsOrGuardians?: string;
   maritalStatus?: MemberMaritalStatus;
   spouseMemberId?: string | null;
+  externalSpouseName?: string | null;
   academicEducation?: string;
   profession?: string;
   status?: MemberStatus;

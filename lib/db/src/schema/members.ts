@@ -96,6 +96,7 @@ export const membersTable = pgTable("members", {
   // ─── Pessoal ───
   maritalStatus: memberMaritalStatusEnum("marital_status"),
   spouseMemberId: text("spouse_member_id"),
+  externalSpouseName: text("external_spouse_name"),  // nome do cônjuge não-membro (alternativo a spouseMemberId)
   academicEducation: text("academic_education"),
   profession: text("profession"),
 

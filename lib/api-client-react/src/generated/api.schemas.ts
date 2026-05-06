@@ -178,6 +178,8 @@ export interface MemberSummary {
 export interface MemberLink {
   id: string;
   fullName: string;
+  isExternal?: boolean;
+  childMemberId?: string | null;
 }
 
 export interface MemberGroupLink {
@@ -220,6 +222,7 @@ export interface MemberDetail {
   maritalStatus?: MemberMaritalStatus;
   spouseMemberId?: string;
   spouseName?: string;
+  externalSpouseName?: string | null;
   academicEducation?: string;
   profession?: string;
   status: MemberStatus;
@@ -249,6 +252,11 @@ export const CreateMemberRequestSex = {
   feminino: "feminino",
 } as const;
 
+export type CreateMemberRequestChildrenItem = {
+  childMemberId?: string | null;
+  externalName?: string | null;
+};
+
 export interface CreateMemberRequest {
   fullName: string;
   cpf?: string;
@@ -274,11 +282,13 @@ export interface CreateMemberRequest {
   parentsOrGuardians?: string;
   maritalStatus?: MemberMaritalStatus;
   spouseMemberId?: string;
+  externalSpouseName?: string | null;
   academicEducation?: string;
   profession?: string;
   status?: MemberStatus;
   photoPath?: string;
   lgpdConsentAccepted: boolean;
+  children?: CreateMemberRequestChildrenItem[];
 }
 
 export type UpdateMemberRequestSex =
@@ -314,6 +324,7 @@ export interface UpdateMemberRequest {
   parentsOrGuardians?: string;
   maritalStatus?: MemberMaritalStatus;
   spouseMemberId?: string | null;
+  externalSpouseName?: string | null;
   academicEducation?: string;
   profession?: string;
   status?: MemberStatus;
@@ -345,6 +356,7 @@ export interface UpdateOwnProfileRequest {
   addressState?: string;
   photoPath?: string;
   maritalStatus?: MemberMaritalStatus;
+  externalSpouseName?: string | null;
   academicEducation?: string;
   profession?: string;
 }
@@ -363,8 +375,12 @@ export interface TransferLetterRequest {
   notes?: string;
 }
 
+/**
+ * Informe childMemberId (membro existente) OU externalName (não cadastrado).
+ */
 export interface AddChildRequest {
-  childMemberId: string;
+  childMemberId?: string;
+  externalName?: string;
 }
 
 export interface MemberGroup {

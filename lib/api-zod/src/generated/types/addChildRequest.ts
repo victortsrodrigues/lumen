@@ -6,6 +6,10 @@
  * OpenAPI spec version: 0.2.0
  */
 
+/**
+ * Informe childMemberId (membro existente) OU externalName (não cadastrado).
+ */
 export interface AddChildRequest {
-  childMemberId: string;
+  childMemberId?: string;
+  externalName?: string;
 }

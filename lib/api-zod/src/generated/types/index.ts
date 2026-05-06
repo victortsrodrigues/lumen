@@ -123,6 +123,7 @@ export * from "./createMediaRequest";
 export * from "./createMediaRequestEntityType";
 export * from "./createMemberGroupRequest";
 export * from "./createMemberRequest";
+export * from "./createMemberRequestChildrenItem";
 export * from "./createMemberRequestSex";
 export * from "./createMinistryGoalRequest";
 export * from "./createMinistryRequest";
