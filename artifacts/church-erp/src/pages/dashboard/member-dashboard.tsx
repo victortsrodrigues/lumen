@@ -19,19 +19,6 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-const AREA_LABELS: Record<string, string> = {
-  culto: "Culto",
-  pequeno_grupo: "Pequeno grupo",
-  ministerio: "Ministério",
-  ebd: "Escola Bíblica",
-};
-
-const HEALTH_STATUS: Record<string, { label: string; dot: string; text: string }> = {
-  verde: { label: "Ativo", dot: "bg-emerald-500", text: "text-emerald-700 dark:text-emerald-400" },
-  amarelo: { label: "Irregular", dot: "bg-amber-500", text: "text-amber-700 dark:text-amber-400" },
-  vermelho: { label: "Ausente", dot: "bg-red-500", text: "text-red-700 dark:text-red-400" },
-};
-
 const STATUS_LABELS: Record<string, string> = {
   visitante: "Visitante",
   ativo: "Ativo",
@@ -101,38 +88,6 @@ export default function MemberDashboard() {
                 </Button>
               </div>
 
-              {(data.profile.areas?.length ?? 0) > 0 ? (
-                <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-                  {data.profile.areas?.map((area, index) => {
-                    const health = HEALTH_STATUS[area.healthStatus ?? ""] ?? {
-                      label: "Não informado",
-                      dot: "bg-muted-foreground",
-                      text: "text-muted-foreground",
-                    };
-
-                    return (
-                      <div key={area.area ?? index} className="rounded-xl border border-border/60 bg-muted/30 p-4">
-                        <p className="text-sm font-medium text-foreground">
-                          {AREA_LABELS[area.area ?? ""] ?? area.area ?? "Área"}
-                        </p>
-                        <div className={`mt-2 flex items-center gap-2 text-sm font-semibold ${health.text}`}>
-                          <span className={`h-2 w-2 rounded-full ${health.dot}`} aria-hidden="true" />
-                          <span>{health.label}</span>
-                        </div>
-                        {area.leaderMemberName && (
-                          <p className="mt-2 truncate text-xs text-muted-foreground" title={area.leaderMemberName}>
-                            Referência: {area.leaderMemberName}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="mt-5 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
-                  Ainda não há informações de participação cadastradas.
-                </p>
-              )}
             </motion.section>
           )}
 
