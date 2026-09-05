@@ -116,7 +116,7 @@ Copie cada uma das 3 strings (64 caracteres hex) — você vai precisar delas.
 | `STORAGE_PROVIDER` | `local` |
 | `UPLOAD_DIR` | `/app/uploads` |
 | `BOOTSTRAP_ADMIN_EMAIL` | `victadeu@gmail.com` |
-| `BOOTSTRAP_ADMIN_PASSWORD` | `SenhaERP@` |
+| `BOOTSTRAP_ADMIN_PASSWORD` | Gere uma senha forte e exclusiva; nunca a versione |
 | `BOOTSTRAP_ADMIN_NAME` | `Victor Tadeu` |
 
 > 🟢 `DATABASE_URL` e `PORT` são automáticos. Não mexer.
@@ -149,7 +149,7 @@ Por padrão, o serviço está rodando mas sem URL pública.
 ### Teste o login
 
 - **E-mail:** `victadeu@gmail.com`
-- **Senha:** `SenhaERP@`
+- **Senha:** use o valor seguro configurado em `BOOTSTRAP_ADMIN_PASSWORD` no Railway
 
 Logou? 🎉 **Deploy concluído.**
 
@@ -277,7 +277,7 @@ Guarde os backups fora do Railway (Google Drive, Dropbox, S3).
 | `STORAGE_PROVIDER` | local | `local` | ✅ |
 | `UPLOAD_DIR` | `./uploads` | `/app/uploads` | ✅ |
 | `BOOTSTRAP_ADMIN_EMAIL` | — | e-mail do admin inicial | Só 1º deploy |
-| `BOOTSTRAP_ADMIN_PASSWORD` | — | senha do admin inicial | Só 1º deploy |
+| `BOOTSTRAP_ADMIN_PASSWORD` | — | senha forte e exclusiva, nunca versionada | Só 1º deploy |
 | `BOOTSTRAP_ADMIN_NAME` | — | nome do admin | Opcional |
 
 ---
