@@ -1,11 +1,12 @@
 import { AppLayout } from "@/components/layout/AppLayout";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth-context";
 import { useGetMemberStats } from "@workspace/api-client-react";
 import {
   Calendar, BookOpen, UsersRound, Loader2, MapPin, Clock,
-  User, Award, Newspaper, MessageSquare, Music,
+  User, Award, Newspaper, MessageSquare, Music, ArrowRight,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import { Link } from "wouter";
 
 function formatDateTime(iso: string) {
@@ -20,32 +21,42 @@ function formatDate(iso: string) {
 
 const AREA_LABELS: Record<string, string> = {
   culto: "Culto",
-  pequeno_grupo: "PG",
+  pequeno_grupo: "Pequeno grupo",
   ministerio: "Ministério",
-  ebd: "EBD",
+  ebd: "Escola Bíblica",
 };
 
-const HEALTH_COLORS: Record<string, string> = {
-  verde: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  amarelo: "bg-amber-100 text-amber-700 border-amber-200",
-  vermelho: "bg-red-100 text-red-700 border-red-200",
+const HEALTH_STATUS: Record<string, { label: string; dot: string; text: string }> = {
+  verde: { label: "Ativo", dot: "bg-emerald-500", text: "text-emerald-700 dark:text-emerald-400" },
+  amarelo: { label: "Irregular", dot: "bg-amber-500", text: "text-amber-700 dark:text-amber-400" },
+  vermelho: { label: "Ausente", dot: "bg-red-500", text: "text-red-700 dark:text-red-400" },
 };
 
 const STATUS_LABELS: Record<string, string> = {
   visitante: "Visitante",
   ativo: "Ativo",
   inativo: "Inativo",
+  disciplina: "Em disciplina",
+  rol_apartado: "Rol apartado",
+  falecido: "Falecido",
+  demitido: "Demitido",
 };
 
 export default function MemberDashboard() {
   const { user } = useAuth();
   const { data, isLoading } = useGetMemberStats();
+  const firstName = data?.profile?.fullName?.trim().split(/\s+/)[0]
+    || user?.name?.trim().split(/\s+/)[0];
+  const enrolledCourses = data?.enrolledCourses ?? 0;
+  const upcomingRegisteredEvents = data?.upcomingRegisteredEvents ?? [];
+  const myMinistries = data?.myMinistries ?? [];
+  const recentArticles = data?.recentArticles ?? [];
 
-  const container = {
+  const container: Variants = {
     hidden: { opacity: 0 },
     show: { opacity: 1, transition: { staggerChildren: 0.08 } },
   };
-  const item = {
+  const item: Variants = {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } },
   };
@@ -54,10 +65,10 @@ export default function MemberDashboard() {
     <AppLayout breadcrumbs={[{ label: "Dashboard" }]}>
       <div className="mb-8">
         <h2 className="text-3xl font-display font-bold text-foreground">
-          Olá, {user?.name?.split(" ")[0]}
+          Olá{firstName ? `, ${firstName}` : ""}
         </h2>
         <p className="text-muted-foreground mt-1">
-          Seu caminho na igreja.
+          Acompanhe o dia a dia da Lumen!
         </p>
       </div>
 
@@ -69,44 +80,84 @@ export default function MemberDashboard() {
 
       {data && (
         <motion.div variants={container} initial="hidden" animate="show" className="space-y-8">
-          {/* Profile Card */}
+          {/* Participation overview */}
           {data.profile && (
-            <motion.div variants={item} className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-2xl p-6 border border-primary/20 shadow-sm">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-primary/20 text-primary flex items-center justify-center text-2xl font-bold">
-                  {data.profile.fullName.charAt(0)}
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-display font-bold text-xl">{data.profile.fullName}</h3>
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary font-medium">
-                      {STATUS_LABELS[data.profile.status] || data.profile.status}
+            <motion.section variants={item} className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm md:p-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h3 className="font-display text-lg font-bold">Minha participação</h3>
+                  <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                    <span className="h-2 w-2 rounded-full bg-primary" aria-hidden="true" />
+                    <span>
+                      Membro {(STATUS_LABELS[data.profile.status ?? ""] ?? data.profile.status ?? "ativo").toLocaleLowerCase("pt-BR")}
                     </span>
                   </div>
-                  {Array.isArray((data.profile as any).areas) && (data.profile as any).areas.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {(data.profile as any).areas.map((a: any) => (
-                        <span
-                          key={a.area}
-                          className={`text-xs px-2 py-0.5 rounded-full border font-medium ${HEALTH_COLORS[a.healthStatus] ?? ""}`}
-                          title={a.leaderMemberName ? `Referência: ${a.leaderMemberName}` : undefined}
-                        >
-                          {AREA_LABELS[a.area] ?? a.area}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  {((data.profile as any).receptionDate || (data.profile as any).conversionYear) && (
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {(data.profile as any).receptionDate && (
-                        <>Recepção: {formatDate((data.profile as any).receptionDate)}</>
-                      )}
-                      {(data.profile as any).receptionDate && (data.profile as any).conversionYear && " · "}
-                      {(data.profile as any).conversionYear && (
-                        <>Conversão: {(data.profile as any).conversionYear}</>
-                      )}
-                    </p>
-                  )}
+                </div>
+                <Button asChild variant="outline" size="sm" className="self-start">
+                  <Link href="/profile">
+                    Ver meu perfil
+                    <ArrowRight aria-hidden="true" />
+                  </Link>
+                </Button>
+              </div>
+
+              {(data.profile.areas?.length ?? 0) > 0 ? (
+                <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                  {data.profile.areas?.map((area, index) => {
+                    const health = HEALTH_STATUS[area.healthStatus ?? ""] ?? {
+                      label: "Não informado",
+                      dot: "bg-muted-foreground",
+                      text: "text-muted-foreground",
+                    };
+
+                    return (
+                      <div key={area.area ?? index} className="rounded-xl border border-border/60 bg-muted/30 p-4">
+                        <p className="text-sm font-medium text-foreground">
+                          {AREA_LABELS[area.area ?? ""] ?? area.area ?? "Área"}
+                        </p>
+                        <div className={`mt-2 flex items-center gap-2 text-sm font-semibold ${health.text}`}>
+                          <span className={`h-2 w-2 rounded-full ${health.dot}`} aria-hidden="true" />
+                          <span>{health.label}</span>
+                        </div>
+                        {area.leaderMemberName && (
+                          <p className="mt-2 truncate text-xs text-muted-foreground" title={area.leaderMemberName}>
+                            Referência: {area.leaderMemberName}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="mt-5 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+                  Ainda não há informações de participação cadastradas.
+                </p>
+              )}
+            </motion.section>
+          )}
+
+          {/* Next Event */}
+          {data.nextEvent && (
+            <motion.div variants={item} className="bg-card rounded-2xl p-6 border border-border/60 shadow-sm">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Seu próximo evento</h3>
+              <div className="flex items-start gap-4">
+                <div className="w-14 h-14 rounded-xl bg-violet-500/10 text-violet-500 flex items-center justify-center flex-shrink-0">
+                  <Calendar className="w-7 h-7" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-bold text-lg">{data.nextEvent.title}</h4>
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mt-2">
+                    {data.nextEvent.startDate && (
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-4 h-4" /> {formatDateTime(data.nextEvent.startDate)}
+                      </span>
+                    )}
+                    {data.nextEvent.location && (
+                      <span className="flex items-center gap-1">
+                        <MapPin className="w-4 h-4" /> {data.nextEvent.location}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -119,7 +170,7 @@ export default function MemberDashboard() {
                 <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center mb-3">
                   <BookOpen className="w-6 h-6" />
                 </div>
-                <p className="text-2xl font-bold">{data.enrolledCourses}</p>
+                <p className="text-2xl font-bold">{enrolledCourses}</p>
                 <p className="text-sm text-muted-foreground">Meus cursos</p>
               </motion.div>
             </Link>
@@ -129,7 +180,7 @@ export default function MemberDashboard() {
                 <div className="w-12 h-12 rounded-xl bg-violet-500/10 text-violet-500 flex items-center justify-center mb-3">
                   <Calendar className="w-6 h-6" />
                 </div>
-                <p className="text-2xl font-bold">{data.upcomingRegisteredEvents.length}</p>
+                <p className="text-2xl font-bold">{upcomingRegisteredEvents.length}</p>
                 <p className="text-sm text-muted-foreground">Eventos inscritos</p>
               </motion.div>
             </Link>
@@ -139,7 +190,7 @@ export default function MemberDashboard() {
                 <div className="w-12 h-12 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center mb-3">
                   <UsersRound className="w-6 h-6" />
                 </div>
-                <p className="text-2xl font-bold">{data.myMinistries.length}</p>
+                <p className="text-2xl font-bold">{myMinistries.length}</p>
                 <p className="text-sm text-muted-foreground">Meus ministérios</p>
               </motion.div>
             </Link>
@@ -155,39 +206,14 @@ export default function MemberDashboard() {
             </Link>
           </div>
 
-          {/* Next Event */}
-          {data.nextEvent && (
-            <motion.div variants={item} className="bg-card rounded-2xl p-6 border border-border/60 shadow-sm">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Seu próximo evento</h3>
-              <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-xl bg-violet-500/10 text-violet-500 flex items-center justify-center flex-shrink-0">
-                  <Calendar className="w-7 h-7" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-bold text-lg">{data.nextEvent.title}</h4>
-                  <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mt-2">
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-4 h-4" /> {formatDateTime(data.nextEvent.startDate)}
-                    </span>
-                    {data.nextEvent.location && (
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-4 h-4" /> {data.nextEvent.location}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
           {/* My Ministries */}
-          {data.myMinistries.length > 0 && (
+          {myMinistries.length > 0 && (
             <motion.div variants={item} className="bg-card rounded-2xl p-6 border border-border/60 shadow-sm">
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <UsersRound className="w-5 h-5 text-rose-500" /> Meus Ministérios
               </h3>
               <div className="space-y-2">
-                {data.myMinistries.map((m: any) => (
+                {myMinistries.map((m) => (
                   <Link key={m.id} href={`/ministries/${m.id}`}>
                     <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50 hover:bg-muted/70 transition-colors cursor-pointer">
                       <p className="font-medium text-sm">{m.name}</p>
@@ -202,13 +228,13 @@ export default function MemberDashboard() {
           )}
 
           {/* Recent Articles (devocional feed) */}
-          {data.recentArticles.length > 0 && (
+          {recentArticles.length > 0 && (
             <motion.div variants={item} className="bg-card rounded-2xl p-6 border border-border/60 shadow-sm">
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <Newspaper className="w-5 h-5 text-orange-500" /> Últimos Artigos
               </h3>
               <div className="space-y-3">
-                {data.recentArticles.map((a: any) => (
+                {recentArticles.map((a) => (
                   <Link key={a.id} href={`/articles/${a.id}`}>
                     <div className="p-3 rounded-xl bg-muted/50 hover:bg-muted/70 transition-colors cursor-pointer">
                       <p className="font-medium text-sm">{a.title}</p>
