@@ -57,8 +57,8 @@ export default defineConfig({
   },
   server: {
     port,
-    host: "0.0.0.0",
-    allowedHosts: true,
+    host: "127.0.0.1",
+    allowedHosts: ["localhost"],
     fs: {
       strict: true,
       deny: ["**/.*"],
@@ -66,7 +66,7 @@ export default defineConfig({
   },
   preview: {
     port,
-    host: "0.0.0.0",
-    allowedHosts: true,
+    host: "127.0.0.1",
+    allowedHosts: ["localhost"],
   },
 });

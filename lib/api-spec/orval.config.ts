@@ -17,18 +17,21 @@ export default defineConfig({
   "api-client-react": {
     input: {
       target: "./openapi.yaml",
+      // Only the versioned specification is trusted; no local/remote external refs.
+      parserOptions: { externalRefs: { allow: [] } },
       override: {
         transformer: titleTransformer,
       },
     },
     output: {
-      workspace: apiClientReactSrc,
-      target: "generated",
+      // Keep the handwritten root barrel out of Orval's workspace index writer.
+      target: path.resolve(apiClientReactSrc, "generated/api.ts"),
       client: "react-query",
       mode: "split",
       baseUrl: "/api",
       clean: true,
-      prettier: true,
+      formatter: "prettier",
+      indexFiles: true,
       override: {
         fetch: {
           includeHttpResponseReturnType: false,
@@ -43,6 +46,7 @@ export default defineConfig({
   zod: {
     input: {
       target: "./openapi.yaml",
+      parserOptions: { externalRefs: { allow: [] } },
       override: {
         transformer: titleTransformer,
       },
@@ -54,12 +58,14 @@ export default defineConfig({
       schemas: { path: "generated/types", type: "typescript" },
       mode: "split",
       clean: true,
-      prettier: true,
+      formatter: "prettier",
+      indexFiles: false,
       override: {
         zod: {
+          version: 3,
           coerce: {
-            query: ['boolean', 'number', 'string'],
-            param: ['boolean', 'number', 'string'],
+            query: ["boolean", "number", "string"],
+            param: ["boolean", "number", "string"],
           },
         },
         useDates: true,

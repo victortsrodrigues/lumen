@@ -16,6 +16,9 @@
     "setup": "cp -n .env.example .env 2>/dev/null; docker compose up -d && sleep 2 && pnpm install && pnpm run db:push",
     "db:seed": "tsx --env-file=.env scripts/seed.ts",
     "test:unit": "vitest run --config tests/vitest.unit.config.ts",
+    "audit:security": "pnpm audit --audit-level high",
+    "test:accounts": "vitest run --config tests/vitest.accounts.config.ts",
+    "test:ui": "playwright test --config tests/playwright.accounts.config.ts",
     "test:api": "vitest run --config tests/vitest.config.ts",
     "test:api:reset": "tsx --env-file=.env tests/reset-db.ts",
     "test:e2e": "playwright test --config tests/playwright.config.ts",
@@ -24,12 +27,15 @@
   },
   "private": true,
   "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22.18.0"
+  },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/pg": "^8.18.0",
     "@types/speakeasy": "^2.0.10",
-    "concurrently": "^9.1.0",
+    "concurrently": "9.2.4",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.20.0",
     "prettier": "^3.8.1",

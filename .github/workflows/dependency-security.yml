@@ -1,0 +1,72 @@
+name: Dependency security
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "30 10 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: lumen_test
+          POSTGRES_PASSWORD: isolated-ci-only
+          POSTGRES_DB: lumen_accounts_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      ACCOUNTS_TEST_DATABASE_URL: postgresql://lumen_test:isolated-ci-only@127.0.0.1:5432/lumen_accounts_test
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install pinned package manager
+        run: npm install --global pnpm@10.33.0
+      - name: Install locked dependencies without lifecycle scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      # Audit the whole workspace, including browser dependencies and build tools.
+      # Registry errors must fail the job; never use --ignore-registry-errors.
+      - name: Block high and critical advisories
+        run: pnpm audit:security
+      - name: Generate API clients and validators
+        run: pnpm --filter @workspace/api-spec codegen
+      - name: Check reproducible code generation
+        run: git diff --exit-code -- lib/api-client-react/src lib/api-zod/src
+      - name: Build application
+        run: |
+          pnpm --filter @workspace/church-erp build
+          pnpm --filter @workspace/api-server build
+      - name: Unit and dependency regression tests
+        run: pnpm test:unit
+      - name: Migrate isolated test database
+        run: pnpm db:migrate
+        env:
+          DATABASE_URL: ${{ env.ACCOUNTS_TEST_DATABASE_URL }}
+      - name: Account and authorization integration tests
+        run: pnpm test:accounts
+      - name: Install test browser
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Browser regression tests with mocked API
+        run: pnpm test:ui

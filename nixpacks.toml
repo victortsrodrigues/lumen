@@ -1,15 +1,19 @@
 [variables]
-COREPACK_INTEGRITY_KEYS = "0"
+NIXPACKS_NODE_VERSION = "22"
 
 [phases.setup]
-nixPkgs = ["nodejs_20"]
-cmds = ["corepack enable", "corepack prepare pnpm@10.33.0 --activate"]
+nixPkgs = ["nodejs_22"]
+# Node 22.23.2; Nixpacks' default Node 22 archive still contains 22.14.0.
+nixpkgsArchive = "6713828a351efa628b025a1adf7f43cbf8597513"
+paths = ["/opt/lumen-tools/bin"]
+cmds = ["npm install --global --prefix /opt/lumen-tools pnpm@10.33.0"]
 
 [phases.install]
-cmds = ["pnpm install --frozen-lockfile"]
+cmds = ["pnpm install --frozen-lockfile --ignore-scripts"]
 
 [phases.build]
 cmds = [
+  "pnpm audit:security",
   "pnpm --filter @workspace/api-spec run codegen",
   "pnpm --filter @workspace/church-erp build",
   "pnpm --filter @workspace/api-server build"

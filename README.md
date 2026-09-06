@@ -28,8 +28,8 @@ ERP completo para gestao de igrejas com LGPD compliance, planejamento estrategic
 
 ## Pre-requisitos
 
-- [Node.js](https://nodejs.org/) 20+
-- [pnpm](https://pnpm.io/) 9+
+- [Node.js](https://nodejs.org/) 22.18+ (linha 22 LTS usada no deploy)
+- [pnpm](https://pnpm.io/) 10.33.0 (versão fixada em `packageManager`)
 - [Docker](https://www.docker.com/) (para PostgreSQL)
 
 ## Setup inicial
@@ -94,6 +94,13 @@ PGPASSWORD=church_erp psql -h localhost -p 5433 -U church_erp -d church_erp \
 | `pnpm test:e2e` | Roda 128 testes E2E (Playwright) |
 | `pnpm test:api:reset` | Limpa banco de testes |
 | `pnpm setup` | Setup completo (Docker + install + schema) |
+| `pnpm audit:security` | Reprova dependências com vulnerabilidades altas ou críticas |
+| `pnpm test:unit` | Testes unitários e regressões de dependências |
+| `pnpm test:accounts` | Gestão de contas em banco local isolado |
+| `pnpm test:ui` | Gestão de contas, Excel e gráficos com API simulada |
+
+As versões corrigidas, verificações de segurança e rotina de atualização estão em
+[Segurança das dependências](docs/dependency-security.md).
 
 ## Arquitetura
 
