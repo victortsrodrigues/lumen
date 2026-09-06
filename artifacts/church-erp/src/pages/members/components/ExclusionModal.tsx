@@ -86,7 +86,7 @@ export function ExclusionModal({ memberId, memberName, classification, onClose, 
 
           {isTransferencia && (
             <div className="rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-900 p-3 text-sm text-amber-900 dark:text-amber-200">
-              📄 Após salvar, será aberto o modal para gerar a <strong>Carta de Transferência</strong> (PDF).
+              📄 Após salvar, será aberto o modal para vincular a URL da <strong>Carta de Transferência</strong> armazenada na nuvem.
             </div>
           )}
 

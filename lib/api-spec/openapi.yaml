@@ -1191,7 +1191,7 @@ paths:
     post:
       operationId: saveTransferLetter
       tags: [members]
-      summary: Save transfer letter PDF path after upload
+      summary: Link a transfer letter stored at an HTTPS URL
       security: [{ cookieAuth: [] }]
       parameters:
         - { in: path, name: id, required: true, schema: { type: string } }
@@ -1209,7 +1209,7 @@ paths:
               schema:
                 type: object
                 properties:
-                  letterPath: { type: string }
+                  letterPath: { type: string, format: uri }
 
   /members/{id}/children:
     post:
@@ -1592,7 +1592,8 @@ paths:
     post:
       operationId: requestUploadUrl
       tags: [storage]
-      summary: Request a presigned upload URL for photo
+      summary: File uploads are temporarily disabled
+      deprecated: true
       security:
         - cookieAuth: []
       requestBody:
@@ -1602,12 +1603,12 @@ paths:
             schema:
               $ref: "#/components/schemas/RequestUploadUrlBody"
       responses:
-        "200":
-          description: Presigned URL
+        "410":
+          description: File uploads are disabled
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RequestUploadUrlResponse"
+                $ref: "#/components/schemas/ErrorResponse"
         "401":
           description: Not authenticated
           content:
@@ -6410,7 +6411,6 @@ components:
         profession: { type: string }
         status:
           $ref: "#/components/schemas/MemberStatus"
-        photoPath: { type: string }
         lgpdConsentAccepted: { type: boolean }
         children:
           type: array
@@ -6458,7 +6458,6 @@ components:
         profession: { type: string }
         status:
           $ref: "#/components/schemas/MemberStatus"
-        photoPath: { type: string }
 
     UpdateOwnProfileRequest:
       type: object
@@ -6475,7 +6474,6 @@ components:
         addressNeighborhood: { type: string }
         addressCity: { type: string }
         addressState: { type: string }
-        photoPath: { type: string }
         maritalStatus:
           $ref: "#/components/schemas/MemberMaritalStatus"
         externalSpouseName: { type: string, nullable: true }
@@ -6494,7 +6492,10 @@ components:
     TransferLetterRequest:
       type: object
       properties:
-        letterPath: { type: string }
+        letterPath:
+          type: string
+          format: uri
+          description: HTTPS URL of the transfer letter stored in a cloud service.
         destinationChurch: { type: string }
         responsiblePastor: { type: string }
         secretary: { type: string }

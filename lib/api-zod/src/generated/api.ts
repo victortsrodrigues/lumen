@@ -779,7 +779,6 @@ export const CreateMemberBody = zod.object({
   status: zod
     .enum(["ativo", "disciplina", "rol_apartado", "falecido", "demitido"])
     .optional(),
-  photoPath: zod.string().optional(),
   lgpdConsentAccepted: zod.boolean(),
   children: zod
     .array(
@@ -1033,7 +1032,6 @@ export const UpdateOwnProfileBody = zod
     addressNeighborhood: zod.string().optional(),
     addressCity: zod.string().optional(),
     addressState: zod.string().optional(),
-    photoPath: zod.string().optional(),
     maritalStatus: zod
       .enum(["solteiro", "casado", "viuvo", "divorciado", "uniao_estavel"])
       .optional(),
@@ -1284,7 +1282,6 @@ export const UpdateMemberBody = zod.object({
   status: zod
     .enum(["ativo", "disciplina", "rol_apartado", "falecido", "demitido"])
     .optional(),
-  photoPath: zod.string().optional(),
 });
 
 export const UpdateMemberResponse = zod.object({
@@ -1630,14 +1627,17 @@ export const RevertMemberExclusionResponse = zod.object({
 });
 
 /**
- * @summary Save transfer letter PDF path after upload
+ * @summary Link a transfer letter stored at an HTTPS URL
  */
 export const SaveTransferLetterParams = zod.object({
   id: zod.coerce.string(),
 });
 
 export const SaveTransferLetterBody = zod.object({
-  letterPath: zod.string(),
+  letterPath: zod
+    .string()
+    .url()
+    .describe("HTTPS URL of the transfer letter stored in a cloud service."),
   destinationChurch: zod.string().optional(),
   responsiblePastor: zod.string().optional(),
   secretary: zod.string().optional(),
@@ -1645,7 +1645,7 @@ export const SaveTransferLetterBody = zod.object({
 });
 
 export const SaveTransferLetterResponse = zod.object({
-  letterPath: zod.string().optional(),
+  letterPath: zod.string().url().optional(),
 });
 
 /**
@@ -2182,17 +2182,13 @@ export const LookupCepResponse = zod.object({
 });
 
 /**
- * @summary Request a presigned upload URL for photo
+ * @deprecated
+ * @summary File uploads are temporarily disabled
  */
 export const RequestUploadUrlBody = zod.object({
   name: zod.string(),
   size: zod.number(),
   contentType: zod.string(),
-});
-
-export const RequestUploadUrlResponse = zod.object({
-  uploadURL: zod.string(),
-  objectPath: zod.string(),
 });
 
 /**

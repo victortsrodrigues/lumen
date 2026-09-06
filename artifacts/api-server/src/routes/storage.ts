@@ -1,13 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { writeFileSync, mkdirSync, existsSync } from "fs";
-import path from "path";
-import {
-  RequestUploadUrlBody,
-  RequestUploadUrlResponse,
-} from "@workspace/api-zod";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage.js";
 import { requireAuth } from "../middlewares/auth.js";
-import { LocalStorageProvider } from "../lib/storage/localStorageProvider.js";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
@@ -15,73 +8,27 @@ const objectStorageService = new ObjectStorageService();
 /**
  * POST /storage/uploads/request-url
  *
- * Request an upload URL. Returns { uploadURL, objectPath }.
- * In local mode, uploadURL points to /api/storage/upload-target/:id
- * In cloud mode, uploadURL is a presigned cloud storage URL.
+ * Uploads are disabled while the application does not have persistent private
+ * object storage. Kept as an explicit response for older clients.
  */
-router.post("/storage/uploads/request-url", requireAuth, async (req: Request, res: Response) => {
-  const parsed = RequestUploadUrlBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: "Missing or invalid required fields" });
-    return;
-  }
-
-  try {
-    const { name, size, contentType } = parsed.data;
-
-    const { uploadURL, objectPath } = await objectStorageService.getObjectEntityUploadURL(name, contentType);
-
-    res.json(
-      RequestUploadUrlResponse.parse({
-        uploadURL,
-        objectPath,
-        metadata: { name, size, contentType },
-      }),
-    );
-  } catch (error) {
-    req.log.error({ err: error }, "Error generating upload URL");
-    res.status(500).json({ error: "Failed to generate upload URL" });
-  }
+router.post("/storage/uploads/request-url", requireAuth, (_req: Request, res: Response) => {
+  res.status(410).json({
+    error: "UPLOADS_DISABLED",
+    message: "O envio de arquivos está temporariamente desativado.",
+  });
 });
 
 /**
  * PUT /storage/upload-target/:objectId
  *
- * Receive file upload directly (local storage mode).
- * The frontend PUTs the file body to this URL after getting it from request-url.
+ * Local upload target disabled. Existing stored objects remain readable below
+ * for backwards compatibility.
  */
-router.put("/storage/upload-target/:objectId", requireAuth, async (req: Request, res: Response) => {
-  try {
-    const { objectId } = req.params;
-
-    // Validate objectId (prevent path traversal)
-    if (!objectId || objectId.includes("..") || objectId.includes("/")) {
-      res.status(400).json({ error: "Invalid object ID" });
-      return;
-    }
-
-    const uploadDir = process.env.UPLOAD_DIR || "./uploads";
-    const uploadsSubdir = path.resolve(uploadDir, "uploads");
-    if (!existsSync(uploadsSubdir)) {
-      mkdirSync(uploadsSubdir, { recursive: true });
-    }
-
-    const filePath = path.resolve(uploadsSubdir, objectId);
-
-    // Collect the raw body
-    const chunks: Buffer[] = [];
-    for await (const chunk of req) {
-      chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
-    }
-    const fileBuffer = Buffer.concat(chunks);
-
-    writeFileSync(filePath, fileBuffer);
-
-    res.json({ ok: true, path: `/objects/uploads/${objectId}` });
-  } catch (error) {
-    req.log.error({ err: error }, "Error saving uploaded file");
-    res.status(500).json({ error: "Failed to save file" });
-  }
+router.put("/storage/upload-target/:objectId", requireAuth, (_req: Request, res: Response) => {
+  res.status(410).json({
+    error: "UPLOADS_DISABLED",
+    message: "O envio de arquivos está temporariamente desativado.",
+  });
 });
 
 /**
@@ -89,7 +36,7 @@ router.put("/storage/upload-target/:objectId", requireAuth, async (req: Request,
  *
  * Serve stored files (photos, receipts, etc).
  */
-router.get("/storage/objects/*objectPath", async (req: Request, res: Response) => {
+router.get("/storage/objects/*objectPath", requireAuth, async (req: Request, res: Response) => {
   try {
     const raw = req.params.objectPath;
     const wildcardPath = Array.isArray(raw) ? raw.join("/") : raw;

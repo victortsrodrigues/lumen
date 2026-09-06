@@ -23,7 +23,6 @@ export interface UpdateOwnProfileRequest {
   addressNeighborhood?: string;
   addressCity?: string;
   addressState?: string;
-  photoPath?: string;
   maritalStatus?: MemberMaritalStatus;
   externalSpouseName?: string | null;
   academicEducation?: string;

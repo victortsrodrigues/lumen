@@ -113,8 +113,8 @@ Copie cada uma das 3 strings (64 caracteres hex) — você vai precisar delas.
 | `JWT_SECRET` | (primeira chave gerada acima) |
 | `CSRF_SECRET` | (segunda chave gerada acima) |
 | `FIELD_ENCRYPTION_KEY` | (terceira chave gerada acima) |
-| `STORAGE_PROVIDER` | `local` |
-| `UPLOAD_DIR` | `/app/uploads` |
+| `STORAGE_PROVIDER` | `local` (somente compatibilidade com arquivos legados) |
+| `UPLOAD_DIR` | `/app/uploads` (opcional; somente arquivos legados) |
 | `BOOTSTRAP_ADMIN_EMAIL` | `victadeu@gmail.com` |
 | `BOOTSTRAP_ADMIN_PASSWORD` | Gere uma senha forte e exclusiva; nunca a versione |
 | `BOOTSTRAP_ADMIN_NAME` | `Victor Tadeu` |
@@ -280,8 +280,8 @@ Guarde os backups fora do Railway (Google Drive, Dropbox, S3).
 | `EMAIL_REPLY_TO` | vazio | Endereço que receberá respostas | Opcional |
 | `APP_PUBLIC_URL` | localhost | URL pública sem barra final | Para envio |
 | `EMAIL_VERIFICATION_REQUIRED` | `false` | `true` somente após validar a entrega | Para verificação |
-| `STORAGE_PROVIDER` | local | `local` | ✅ |
-| `UPLOAD_DIR` | `./uploads` | `/app/uploads` | ✅ |
+| `STORAGE_PROVIDER` | local | `local` | Somente arquivos legados |
+| `UPLOAD_DIR` | `./uploads` | `/app/uploads` | Somente arquivos legados |
 | `BOOTSTRAP_ADMIN_EMAIL` | — | e-mail do admin inicial | Só 1º deploy |
 | `BOOTSTRAP_ADMIN_PASSWORD` | — | senha forte e exclusiva, nunca versionada | Só 1º deploy |
 | `BOOTSTRAP_ADMIN_NAME` | — | nome do admin | Opcional |
@@ -289,6 +289,8 @@ Guarde os backups fora do Railway (Google Drive, Dropbox, S3).
 Para testar antes de a Lumen ter um domínio próprio, use `Lumen <onboarding@resend.dev>` em `EMAIL_FROM`, mantenha `EMAIL_VERIFICATION_REQUIRED=false` e envie somente para o endereço associado à conta Resend. Um endereço `@gmail.com` pode ser usado como `EMAIL_REPLY_TO`, mas não como remetente autenticado. Depois de verificar um domínio no Resend, altere `EMAIL_FROM`, valide a entrega e só então ative `EMAIL_VERIFICATION_REQUIRED=true`.
 
 Nunca grave `RESEND_API_KEY` no repositório. Configure-a apenas como variável do serviço no Railway.
+
+Novos uploads locais estão desativados. Fotos de membros não podem ser enviadas no momento; atas e cartas de transferência devem ser armazenadas em um serviço de nuvem e vinculadas por URL HTTPS. O armazenamento local permanece configurável apenas para leitura e remoção de registros antigos.
 
 ---
 

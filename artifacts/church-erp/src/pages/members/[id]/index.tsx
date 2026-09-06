@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { CloudDocumentPreview, getDocumentHref } from '@/components/CloudDocumentPreview';
 
 export default function MemberProfile() {
   const { user } = useAuth();
@@ -100,6 +101,7 @@ export default function MemberProfile() {
 
   const canEdit = user?.role === 'admin' || user?.role === 'leader';
   const canDelete = user?.role === 'admin';
+  const transferLetterPath = (member as any).exclusionLetterPath as string | null;
 
   return (
     <AppLayout breadcrumbs={[{ label: "Rol de Membros", href: "/members" }, { label: member?.fullName || "Membro" }]}>
@@ -166,25 +168,31 @@ export default function MemberProfile() {
             {(member as any).exclusionNotes && (
               <p className="text-sm text-red-700 dark:text-red-300 mt-2 italic">"{(member as any).exclusionNotes}"</p>
             )}
-            {(member as any).exclusionLetterPath && (
-              <a
-                href={`/api/storage${(member as any).exclusionLetterPath}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-sm text-red-700 dark:text-red-300 hover:underline mt-2"
-              >
-                <FileText className="w-4 h-4" /> Baixar carta de transferência
-              </a>
+            {transferLetterPath && (
+              <div className="mt-4 space-y-3">
+                <a
+                  href={getDocumentHref(transferLetterPath)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sm text-red-700 dark:text-red-300 hover:underline"
+                >
+                  <FileText className="w-4 h-4" /> Abrir carta de transferência
+                </a>
+                <CloudDocumentPreview
+                  url={transferLetterPath}
+                  title={`Carta de transferência — ${member.fullName}`}
+                />
+              </div>
             )}
           </div>
           {canDelete && (
             <div className="flex flex-col gap-2 shrink-0">
-              {(member as any).exclusionReason === 'transferencia' && !(member as any).exclusionLetterPath && (
+              {(member as any).exclusionReason === 'transferencia' && !transferLetterPath && (
                 <button
                   onClick={() => setShowTransferLetterModal(true)}
                   className="flex items-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-xl text-sm hover:opacity-90"
                 >
-                  <FileText className="w-4 h-4" /> Gerar carta
+                  <FileText className="w-4 h-4" /> Vincular carta
                 </button>
               )}
               <button

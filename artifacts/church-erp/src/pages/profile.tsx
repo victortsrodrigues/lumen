@@ -1,12 +1,12 @@
-import { useState, useEffect, useRef } from "react";
-import { useGetOwnProfile, useUpdateOwnProfile, useLookupCep, useRequestUploadUrl } from "@workspace/api-client-react";
+import { useState, useEffect } from "react";
+import { useGetOwnProfile, useUpdateOwnProfile, useLookupCep } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { cleanFormPayload } from "@/hooks/use-form-errors";
 import { DeleteAccountSection } from "@/components/account/DeleteAccountSection";
 import {
-  User, Loader2, Save, Mail, Phone, MapPin, Calendar, Edit2, X, UploadCloud,
+  User, Loader2, Save, Mail, Phone, MapPin, Calendar, Edit2, X,
 } from "lucide-react";
 
 const SEX_LABELS: Record<string, string> = {
@@ -45,12 +45,7 @@ export default function ProfilePage() {
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [cepToLookup, setCepToLookup] = useState("");
 
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   const { data: cepData } = useLookupCep(cepToLookup, { query: { enabled: cepToLookup.length === 8 } } as any);
-  const { mutateAsync: requestUploadUrl } = useRequestUploadUrl();
 
   useEffect(() => {
     if (cepData && isEditing) {
@@ -72,8 +67,6 @@ export default function ProfilePage() {
         queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0] as string)?.startsWith?.("/api/members") });
         toast({ title: "Sucesso", description: "Perfil atualizado." });
         setIsEditing(false);
-        setPhotoFile(null);
-        setPhotoPreview(null);
       },
       onError: (err: any) => {
         toast({ title: "Erro", description: err?.response?.data?.message || "Falha ao atualizar.", variant: "destructive" });
@@ -99,57 +92,19 @@ export default function ProfilePage() {
       academicEducation: (profile as any).academicEducation || "",
       profession: (profile as any).profession || "",
     });
-    setPhotoPreview(currentPhotoUrl);
     setIsEditing(true);
   };
 
   const cancelEdit = () => {
     setIsEditing(false);
     setForm({ ...EMPTY_FORM });
-    setPhotoFile(null);
-    setPhotoPreview(null);
   };
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast({ title: "Erro", description: "Apenas imagens são permitidas.", variant: "destructive" });
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "Erro", description: "Arquivo muito grande (máx 5MB).", variant: "destructive" });
-      return;
-    }
-    setPhotoFile(file);
-    const reader = new FileReader();
-    reader.onload = (ev) => setPhotoPreview(ev.target?.result as string);
-    reader.readAsDataURL(file);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.fullName.trim()) {
       toast({ title: "Erro", description: "Nome é obrigatório.", variant: "destructive" });
       return;
-    }
-
-    let finalPhotoPath: string | undefined;
-    if (photoFile) {
-      try {
-        const { uploadURL, objectPath } = await requestUploadUrl({
-          data: { name: photoFile.name, size: photoFile.size, contentType: photoFile.type },
-        });
-        await fetch(uploadURL, {
-          method: "PUT",
-          headers: { "Content-Type": photoFile.type },
-          body: photoFile,
-        });
-        finalPhotoPath = objectPath;
-      } catch {
-        toast({ title: "Erro", description: "Falha ao enviar foto.", variant: "destructive" });
-        return;
-      }
     }
 
     // Strip phone mask before sending
@@ -171,7 +126,6 @@ export default function ProfilePage() {
         maritalStatus: (form.maritalStatus as any) || undefined,
         academicEducation: form.academicEducation || undefined,
         profession: form.profession || undefined,
-        ...(finalPhotoPath ? { photoPath: finalPhotoPath } : {}),
       }) as any,
     });
   };
@@ -302,30 +256,15 @@ export default function ProfilePage() {
               {/* Photo */}
               <div className="flex items-center gap-4">
                 <div className="w-24 h-24 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-3xl font-bold overflow-hidden border-2 border-border">
-                  {photoPreview ? (
-                    <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                  {currentPhotoUrl ? (
+                    <img src={currentPhotoUrl} alt={profile.fullName} className="w-full h-full object-cover" />
                   ) : (
                     form.fullName.charAt(0) || profile.fullName.charAt(0)
                   )}
                 </div>
-                <div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoChange}
-                    className="hidden"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-2 px-4 py-2 border rounded-xl text-sm hover:bg-muted"
-                  >
-                    <UploadCloud className="h-4 w-4" />
-                    {photoPreview ? "Trocar Foto" : "Enviar Foto"}
-                  </button>
-                  <p className="text-xs text-muted-foreground mt-1">PNG/JPG até 5MB</p>
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  Envio de foto temporariamente indisponível.
+                </p>
               </div>
 
               <div>

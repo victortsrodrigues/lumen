@@ -40,5 +40,4 @@ export interface UpdateMemberRequest {
   academicEducation?: string;
   profession?: string;
   status?: MemberStatus;
-  photoPath?: string;
 }

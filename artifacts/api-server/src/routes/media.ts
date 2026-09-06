@@ -38,6 +38,14 @@ function isValidMediaUrl(url: string): boolean {
   return true;
 }
 
+function isValidHttpsUrl(url: string): boolean {
+  try {
+    return new URL(url.trim()).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 // ─── Auto-detect media type ──────────────────────────────────────────────────
 
 function detectMediaType(url: string): "youtube" | "vimeo" | "drive" | "link" | "outro" {
@@ -104,6 +112,11 @@ router.post("/", requireAuth, requireRole("admin", "leader"), async (req: Reques
     return;
   }
 
+  if (entityType === "council_meeting" && !isValidHttpsUrl(url)) {
+    res.status(400).json({ error: "A URL da ata deve comecar com https://." });
+    return;
+  }
+
   const type = detectMediaType(url);
 
   const [media] = await db.insert(mediaLinksTable).values({
@@ -151,6 +164,11 @@ router.put("/:id", requireAuth, async (req: Request, res: Response) => {
 
   if (url !== undefined && !isValidMediaUrl(url)) {
     res.status(400).json({ error: "URL invalida. Deve comecar com http:// ou https://. URLs javascript:, data: e file: nao sao permitidas." });
+    return;
+  }
+
+  if (url !== undefined && existing.entityType === "council_meeting" && !isValidHttpsUrl(url)) {
+    res.status(400).json({ error: "A URL da ata deve comecar com https://." });
     return;
   }
 

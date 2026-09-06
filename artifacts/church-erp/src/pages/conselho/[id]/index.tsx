@@ -106,7 +106,7 @@ export default function ConselhoDetailPage() {
   function handleAtaUploaded(mediaId: string, _title: string) {
     updateMut.mutate(
       { id, data: { ataMediaId: mediaId } as any },
-      { onSuccess: () => toast({ title: "Ata anexada" }) },
+      { onSuccess: () => toast({ title: "Ata vinculada" }) },
     );
   }
 

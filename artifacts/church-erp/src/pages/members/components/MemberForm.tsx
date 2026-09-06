@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -6,7 +6,6 @@ import {
   useCreateMember,
   useUpdateMember,
   useLookupCep,
-  useRequestUploadUrl,
   useListMembers,
   useAddMemberChild,
   useRemoveMemberChild,
@@ -17,7 +16,7 @@ import {
 } from '@workspace/api-client-react';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, UploadCloud, MapPin, User, Save, ShieldCheck, Users, Search, Plus, X, Heart } from 'lucide-react';
+import { Loader2, MapPin, User, Save, ShieldCheck, Users, Search, Plus, X, Heart } from 'lucide-react';
 
 import { ALL_RECEPTION_MODES } from "../../../../../../lib/db/src/schema/member-rules";
 
@@ -72,10 +71,7 @@ interface MemberFormProps {
 export default function MemberForm({ initialData, isEditing = false }: MemberFormProps) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(initialData?.photoPath ? `/api/storage${initialData.photoPath}` : null);
+  const photoUrl = initialData?.photoPath ? `/api/storage${initialData.photoPath}` : null;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cepToLookup, setCepToLookup] = useState<string>('');
   // Filhos draft (para modo criação) — enviados inline no POST /members
@@ -83,7 +79,6 @@ export default function MemberForm({ initialData, isEditing = false }: MemberFor
 
   const { mutateAsync: createMember } = useCreateMember();
   const { mutateAsync: updateMember } = useUpdateMember();
-  const { mutateAsync: requestUploadUrl } = useRequestUploadUrl();
 
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -141,15 +136,6 @@ export default function MemberForm({ initialData, isEditing = false }: MemberFor
     }
   };
 
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setPhotoFile(file);
-      const url = URL.createObjectURL(file);
-      setPhotoPreview(url);
-    }
-  };
-
   const onSubmit = async (data: FormValues) => {
     if (!isEditing && !data.lgpdConsentAccepted) {
       toast({ title: "Atenção", description: "O aceite do termo LGPD é obrigatório.", variant: "destructive" });
@@ -158,33 +144,9 @@ export default function MemberForm({ initialData, isEditing = false }: MemberFor
 
     setIsSubmitting(true);
     try {
-      let finalPhotoPath = initialData?.photoPath;
-
-      if (photoFile) {
-        const { uploadURL, objectPath } = await requestUploadUrl({
-          data: {
-            name: photoFile.name,
-            size: photoFile.size,
-            contentType: photoFile.type
-          }
-        });
-
-        await fetch(uploadURL, {
-          method: 'PUT',
-          headers: { 'Content-Type': photoFile.type },
-          body: photoFile
-        });
-
-        finalPhotoPath = objectPath;
-      }
-
       const payload = Object.fromEntries(
         Object.entries(data).map(([k, v]) => [k, v === '' ? undefined : v])
       ) as any;
-
-      if (finalPhotoPath) {
-        payload.photoPath = finalPhotoPath;
-      }
 
       if (isEditing && initialData) {
         await updateMember({ id: initialData.id, data: payload });
@@ -225,30 +187,18 @@ export default function MemberForm({ initialData, isEditing = false }: MemberFor
           <div className="p-6 flex flex-col md:flex-row gap-6">
             {/* Foto */}
             <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-border rounded-xl bg-secondary/10 md:w-48 shrink-0">
-              {photoPreview ? (
+              {photoUrl ? (
                 <div className="w-32 h-32 rounded-full overflow-hidden mb-4 shadow-md border-4 border-background">
-                  <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                  <img src={photoUrl} alt={initialData?.fullName || "Foto do membro"} className="w-full h-full object-cover" />
                 </div>
               ) : (
                 <div className="w-32 h-32 rounded-full bg-secondary flex items-center justify-center mb-4 text-muted-foreground">
                   <User className="w-12 h-12" />
                 </div>
               )}
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handlePhotoSelect}
-                accept="image/*"
-                className="hidden"
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 px-4 py-2 rounded-lg transition-colors"
-              >
-                <UploadCloud className="w-4 h-4 mr-2" />
-                {photoPreview ? 'Trocar Foto' : 'Enviar Foto'}
-              </button>
+              <p className="text-center text-xs text-muted-foreground">
+                Envio de foto temporariamente indisponível.
+              </p>
             </div>
 
             {/* Campos ao lado da foto */}

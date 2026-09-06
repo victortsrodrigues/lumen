@@ -20,6 +20,7 @@ export default function NewConselhoPage() {
   const [status, setStatus] = useState<"agendada" | "realizada" | "cancelada">("agendada");
   const [ataMediaId, setAtaMediaId] = useState<string | null>(null);
   const [ataTitle, setAtaTitle] = useState<string | null>(null);
+  const [ataUrl, setAtaUrl] = useState<string | null>(null);
 
   const createMut = useCreateCouncilMeeting({
     mutation: {
@@ -137,13 +138,14 @@ export default function NewConselhoPage() {
         <div className="bg-card rounded-2xl border p-6 space-y-3">
           <h3 className="font-semibold">Ata da Reunião</h3>
           <p className="text-xs text-muted-foreground">
-            Anexe o documento oficial em PDF, DOC ou DOCX. Opcional ao criar — pode anexar depois.
+            Informe a URL HTTPS do documento oficial armazenado na nuvem. É opcional ao criar e pode ser vinculada depois.
           </p>
           <AtaUploader
             currentMediaId={ataMediaId}
             currentTitle={ataTitle}
-            onUploaded={(id, t) => { setAtaMediaId(id); setAtaTitle(t); }}
-            onClear={() => { setAtaMediaId(null); setAtaTitle(null); }}
+            currentUrl={ataUrl}
+            onUploaded={(id, t, url) => { setAtaMediaId(id); setAtaTitle(t); setAtaUrl(url); }}
+            onClear={() => { setAtaMediaId(null); setAtaTitle(null); setAtaUrl(null); }}
           />
         </div>
 

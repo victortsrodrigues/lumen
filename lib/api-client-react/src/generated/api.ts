@@ -238,7 +238,6 @@ import type {
   ReorderCouncilMeetingItemsRequest,
   ReorderCultoSongsRequest,
   RequestUploadUrlBody,
-  RequestUploadUrlResponse,
   ResendVerificationRequest,
   ResetPasswordRequest,
   RevealCpfResponse,
@@ -4040,7 +4039,7 @@ export const useRevertMemberExclusion = <
 };
 
 /**
- * @summary Save transfer letter PDF path after upload
+ * @summary Link a transfer letter stored at an HTTPS URL
  */
 export const getSaveTransferLetterUrl = (id: string) => {
   return `/api/members/${id}/exclusion/letter`;
@@ -4104,7 +4103,7 @@ export type SaveTransferLetterMutationBody = BodyType<TransferLetterRequest>;
 export type SaveTransferLetterMutationError = ErrorType<unknown>;
 
 /**
- * @summary Save transfer letter PDF path after upload
+ * @summary Link a transfer letter stored at an HTTPS URL
  */
 export const useSaveTransferLetter = <
   TError = ErrorType<unknown>,
@@ -5922,7 +5921,8 @@ export function useLookupCep<
 }
 
 /**
- * @summary Request a presigned upload URL for photo
+ * @deprecated
+ * @summary File uploads are temporarily disabled
  */
 export const getRequestUploadUrlUrl = () => {
   return `/api/storage/uploads/request-url`;
@@ -5931,8 +5931,8 @@ export const getRequestUploadUrlUrl = () => {
 export const requestUploadUrl = async (
   requestUploadUrlBody: RequestUploadUrlBody,
   options?: RequestInit,
-): Promise<RequestUploadUrlResponse> => {
-  return customFetch<RequestUploadUrlResponse>(getRequestUploadUrlUrl(), {
+): Promise<unknown> => {
+  return customFetch<unknown>(getRequestUploadUrlUrl(), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -5985,7 +5985,8 @@ export type RequestUploadUrlMutationBody = BodyType<RequestUploadUrlBody>;
 export type RequestUploadUrlMutationError = ErrorType<ErrorResponse>;
 
 /**
- * @summary Request a presigned upload URL for photo
+ * @deprecated
+ * @summary File uploads are temporarily disabled
  */
 export const useRequestUploadUrl = <
   TError = ErrorType<ErrorResponse>,

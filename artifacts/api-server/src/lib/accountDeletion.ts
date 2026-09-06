@@ -74,8 +74,11 @@ export async function deleteOwnAccountData(userId: string): Promise<{ deletionRe
     }
 
     const paths = new Set<string>();
-    if (member?.photoPath) paths.add(member.photoPath);
-    if (member?.exclusionLetterPath) paths.add(member.exclusionLetterPath);
+    const addManagedFile = (filePath?: string | null) => {
+      if (filePath?.startsWith("/objects/")) paths.add(filePath);
+    };
+    addManagedFile(member?.photoPath);
+    addManagedFile(member?.exclusionLetterPath);
 
     await tx.update(usersTable).set({
       status: "deleting",
@@ -90,7 +93,7 @@ export async function deleteOwnAccountData(userId: string): Promise<{ deletionRe
       const enrollments = await tx.select({ certificatePath: courseEnrollmentsTable.certificatePath })
         .from(courseEnrollmentsTable).where(eq(courseEnrollmentsTable.memberId, member.id));
       for (const enrollment of enrollments) {
-        if (enrollment.certificatePath) paths.add(enrollment.certificatePath);
+        addManagedFile(enrollment.certificatePath);
       }
 
       if (member.spouseMemberId) {

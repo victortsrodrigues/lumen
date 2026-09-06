@@ -414,7 +414,6 @@ export interface CreateMemberRequest {
   academicEducation?: string;
   profession?: string;
   status?: MemberStatus;
-  photoPath?: string;
   lgpdConsentAccepted: boolean;
   children?: CreateMemberRequestChildrenItem[];
 }
@@ -456,7 +455,6 @@ export interface UpdateMemberRequest {
   academicEducation?: string;
   profession?: string;
   status?: MemberStatus;
-  photoPath?: string;
 }
 
 export type UpdateOwnProfileRequestSex =
@@ -482,7 +480,6 @@ export interface UpdateOwnProfileRequest {
   addressNeighborhood?: string;
   addressCity?: string;
   addressState?: string;
-  photoPath?: string;
   maritalStatus?: MemberMaritalStatus;
   externalSpouseName?: string | null;
   academicEducation?: string;
@@ -496,6 +493,7 @@ export interface RegisterExclusionRequest {
 }
 
 export interface TransferLetterRequest {
+  /** HTTPS URL of the transfer letter stored in a cloud service. */
   letterPath: string;
   destinationChurch?: string;
   responsiblePastor?: string;

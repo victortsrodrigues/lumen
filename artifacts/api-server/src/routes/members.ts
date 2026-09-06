@@ -23,6 +23,15 @@ function getIp(req: Request): string {
   return req.socket?.remoteAddress ?? "unknown";
 }
 
+function isValidHttpsUrl(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  try {
+    return new URL(value.trim()).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 // ─── ENUMS / VALIDATIONS ────────────────────────────────────────────────────
 
 // Allowlist for PUT /members/me — own profile updates
@@ -30,7 +39,7 @@ const SELF_PROFILE_ALLOWED_FIELDS = new Set([
   "fullName", "dateOfBirth", "sex", "phone",
   "addressZip", "addressStreet", "addressNumber", "addressComplement",
   "addressNeighborhood", "addressCity", "addressState",
-  "photoPath", "maritalStatus", "externalSpouseName", "academicEducation", "profession",
+  "maritalStatus", "externalSpouseName", "academicEducation", "profession",
 ]);
 
 // ─── DISCIPLESHIP AREAS ─────────────────────────────────────────────────────
@@ -314,7 +323,7 @@ router.post("/", requireAuth, requireRole("admin", "leader"), async (req: Reques
     classification, receptionMode, receptionDate, conversionYear,
     religiousOrigin, infantBaptism, infantBaptismChurch, infantBaptismPastor, parentsOrGuardians,
     maritalStatus, spouseMemberId, externalSpouseName, academicEducation, profession,
-    status, photoPath, lgpdConsentAccepted,
+    status, lgpdConsentAccepted,
     children, // [{ childMemberId? } | { externalName? }]
   } = req.body;
 
@@ -377,7 +386,7 @@ router.post("/", requireAuth, requireRole("admin", "leader"), async (req: Reques
     academicEducation: academicEducation || null,
     profession: profession || null,
     status: (status || "ativo") as any,
-    photoPath: photoPath || null,
+    photoPath: null,
     createdByUserId: userId,
     updatedByUserId: userId,
   }).returning();
@@ -580,7 +589,7 @@ router.put("/me", requireAuth, async (req: Request, res: Response) => {
   const {
     fullName, dateOfBirth, sex, phone, addressZip, addressStreet, addressNumber,
     addressComplement, addressNeighborhood, addressCity, addressState,
-    photoPath, maritalStatus, externalSpouseName, academicEducation, profession,
+    maritalStatus, externalSpouseName, academicEducation, profession,
   } = req.body;
 
   const updateData: Partial<typeof membersTable.$inferInsert> = {
@@ -598,7 +607,6 @@ router.put("/me", requireAuth, async (req: Request, res: Response) => {
   if (addressNeighborhood !== undefined) updateData.addressNeighborhoodEncrypted = encryptIfPresent(addressNeighborhood);
   if (addressCity !== undefined) updateData.addressCity = addressCity || null;
   if (addressState !== undefined) updateData.addressState = addressState || null;
-  if (photoPath !== undefined) updateData.photoPath = photoPath || null;
   if (maritalStatus !== undefined) updateData.maritalStatus = maritalStatus || null;
   if (externalSpouseName !== undefined) updateData.externalSpouseName = externalSpouseName || null;
   if (academicEducation !== undefined) updateData.academicEducation = academicEducation || null;
@@ -728,7 +736,7 @@ router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Requ
     classification, receptionMode, receptionDate, conversionYear,
     religiousOrigin, infantBaptism, infantBaptismChurch, infantBaptismPastor, parentsOrGuardians,
     maritalStatus, spouseMemberId, externalSpouseName, academicEducation, profession,
-    status, photoPath,
+    status,
   } = req.body;
 
   const finalClassification = classification ?? existing.classification;
@@ -777,7 +785,6 @@ router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Requ
   if (academicEducation !== undefined) updateData.academicEducation = academicEducation || null;
   if (profession !== undefined) updateData.profession = profession || null;
   if (status !== undefined) updateData.status = status;
-  if (photoPath !== undefined) updateData.photoPath = photoPath || null;
 
   await db.update(membersTable).set(updateData).where(eq(membersTable.id, req.params.id));
 
@@ -1162,7 +1169,7 @@ router.post("/:id/exclusion/revert", requireAuth, requireRole("admin"), async (r
   res.json(serializeMemberDetail(reloaded, extras));
 });
 
-// POST /members/:id/exclusion/letter — save letter PDF path after frontend upload
+// POST /members/:id/exclusion/letter — link a cloud-hosted transfer letter
 router.post("/:id/exclusion/letter", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
@@ -1178,9 +1185,18 @@ router.post("/:id/exclusion/letter", requireAuth, requireRole("admin"), async (r
     res.status(400).json({ error: "VALIDATION_ERROR", message: "letterPath é obrigatório" });
     return;
   }
+  if (!isValidHttpsUrl(letterPath)) {
+    res.status(400).json({
+      error: "VALIDATION_ERROR",
+      message: "Informe uma URL HTTPS válida para a carta de transferência",
+    });
+    return;
+  }
+
+  const normalizedLetterUrl = letterPath.trim();
 
   await db.update(membersTable).set({
-    exclusionLetterPath: letterPath,
+    exclusionLetterPath: normalizedLetterUrl,
     updatedByUserId: userId,
     updatedAt: new Date(),
   }).where(eq(membersTable.id, existing.id));
@@ -1188,20 +1204,20 @@ router.post("/:id/exclusion/letter", requireAuth, requireRole("admin"), async (r
   await db.insert(memberHistoryTable).values({
     memberId: existing.id,
     changedByUserId: userId,
-    changeType: "transfer_letter_generated",
-    fieldChanges: { destinationChurch, letterPath, responsiblePastor, secretary, notes },
+    changeType: "transfer_letter_linked",
+    fieldChanges: { destinationChurch, letterPath: normalizedLetterUrl, responsiblePastor, secretary, notes },
   });
 
   await createAuditLog({
     userId,
-    action: "MEMBER_TRANSFER_LETTER_GENERATED",
+    action: "MEMBER_TRANSFER_LETTER_LINKED",
     resourceType: "member",
     resourceId: existing.id,
     details: { destinationChurch },
     ipAddress: ip,
   });
 
-  res.json({ letterPath });
+  res.json({ letterPath: normalizedLetterUrl });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════

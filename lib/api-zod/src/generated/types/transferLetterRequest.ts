@@ -7,6 +7,7 @@
  */
 
 export interface TransferLetterRequest {
+  /** HTTPS URL of the transfer letter stored in a cloud service. */
   letterPath: string;
   destinationChurch?: string;
   responsiblePastor?: string;

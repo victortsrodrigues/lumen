@@ -41,7 +41,6 @@ export interface CreateMemberRequest {
   academicEducation?: string;
   profession?: string;
   status?: MemberStatus;
-  photoPath?: string;
   lgpdConsentAccepted: boolean;
   children?: CreateMemberRequestChildrenItem[];
 }

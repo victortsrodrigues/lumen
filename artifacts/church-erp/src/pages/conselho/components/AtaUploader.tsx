@@ -1,145 +1,167 @@
-import { useRef, useState } from "react";
-import { useRequestUploadUrl, useCreateMedia } from "@workspace/api-client-react";
-import { FileText, Upload, X, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useCreateMedia } from "@workspace/api-client-react";
+import { FileText, Link2, Loader2, Pencil, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { CloudDocumentPreview, isHttpsDocumentUrl } from "@/components/CloudDocumentPreview";
 
 interface Props {
-  meetingId?: string; // se já criada
+  meetingId?: string;
   currentMediaId?: string | null;
   currentTitle?: string | null;
   currentUrl?: string | null;
-  onUploaded: (mediaId: string, title: string) => void;
+  onUploaded: (mediaId: string, title: string, url: string) => void;
   onClear?: () => void;
 }
-
-const ACCEPTED = ".pdf,.doc,.docx";
 
 export function AtaUploader({
   meetingId, currentMediaId, currentTitle, currentUrl, onUploaded, onClear,
 }: Props) {
   const { toast } = useToast();
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
+  const [url, setUrl] = useState("");
+  const [title, setTitle] = useState("");
+  const [savedUrl, setSavedUrl] = useState(currentUrl ?? "");
+  const [savedTitle, setSavedTitle] = useState(currentTitle ?? "");
+  const [savedMediaId, setSavedMediaId] = useState(currentMediaId ?? null);
+  const [editing, setEditing] = useState(!currentMediaId);
 
-  const requestUrlMut = useRequestUploadUrl();
   const createMediaMut = useCreateMedia();
 
-  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  useEffect(() => {
+    if (currentUrl) setSavedUrl(currentUrl);
+    if (currentTitle) setSavedTitle(currentTitle);
+    if (currentMediaId) setSavedMediaId(currentMediaId);
+  }, [currentMediaId, currentTitle, currentUrl]);
 
-    setUploading(true);
+  async function handleSave() {
+    const normalizedUrl = url.trim();
+    if (!isHttpsDocumentUrl(normalizedUrl)) {
+      toast({
+        title: "URL inválida",
+        description: "Informe uma URL completa iniciada por https://.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      // 1. Request upload URL
-      const requestRes: any = await requestUrlMut.mutateAsync({
-        data: { name: file.name, contentType: file.type || "application/octet-stream" } as any,
-      });
-      const { uploadURL, objectPath } = requestRes;
-
-      // 2. PUT file to storage
-      const putRes = await fetch(uploadURL, {
-        method: "PUT",
-        body: file,
-        headers: { "Content-Type": file.type || "application/octet-stream" },
-        credentials: "include",
-      });
-      if (!putRes.ok) throw new Error(`Upload falhou: ${putRes.status}`);
-
-      // 3. Create media row
+      const normalizedTitle = title.trim() || "Ata da reunião";
       const mediaRes: any = await createMediaMut.mutateAsync({
         data: {
-          url: objectPath,
-          title: file.name,
+          url: normalizedUrl,
+          title: normalizedTitle,
           entityType: "council_meeting",
-          entityId: meetingId ?? "pending", // se não criou ainda, frontend usa "pending"
+          entityId: meetingId ?? "pending",
         } as any,
       });
 
-      onUploaded(mediaRes.id, mediaRes.title);
-      toast({ title: "Ata anexada com sucesso" });
+      setSavedMediaId(mediaRes.id);
+      setSavedTitle(mediaRes.title || normalizedTitle);
+      setSavedUrl(normalizedUrl);
+      setUrl("");
+      setTitle("");
+      setEditing(false);
+      onUploaded(mediaRes.id, mediaRes.title || normalizedTitle, normalizedUrl);
+      toast({ title: "URL da ata salva" });
     } catch (err: any) {
       toast({
-        title: "Erro no upload",
-        description: err?.message ?? "Falha ao enviar arquivo.",
+        title: "Não foi possível salvar a ata",
+        description: err?.response?.data?.message || "Confira a URL e tente novamente.",
         variant: "destructive",
       });
-    } finally {
-      setUploading(false);
-      if (fileRef.current) fileRef.current.value = "";
     }
   }
 
-  if (currentMediaId) {
+  function handleClear() {
+    setSavedMediaId(null);
+    setSavedTitle("");
+    setSavedUrl("");
+    setEditing(true);
+    onClear?.();
+  }
+
+  if (savedMediaId && savedUrl && !editing) {
     return (
-      <div className="flex items-center gap-3 p-3 rounded-lg border bg-background/50">
-        <FileText className="h-5 w-5 text-primary shrink-0" />
-        <div className="flex-1 min-w-0">
-          <p className="font-medium text-sm truncate">{currentTitle ?? "Ata anexada"}</p>
-          {currentUrl && (
-            <a
-              href={currentUrl.startsWith("http") ? currentUrl : `/api/storage/objects/${currentUrl.replace(/^\//, "")}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-primary hover:underline"
-            >
-              Baixar / abrir
-            </a>
-          )}
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
+      <div className="space-y-3">
+        <CloudDocumentPreview url={savedUrl} title={savedTitle || "Ata da reunião"} />
+        <div className="flex justify-end gap-2">
           <button
             type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading}
-            className="p-2 rounded hover:bg-muted text-muted-foreground"
-            title="Substituir ata"
+            onClick={() => {
+              setUrl(savedUrl.startsWith("https://") ? savedUrl : "");
+              setTitle(savedTitle);
+              setEditing(true);
+            }}
+            className="flex items-center gap-2 rounded-xl border px-3 py-2 text-sm hover:bg-muted"
           >
-            <Upload className="h-4 w-4" />
+            <Pencil className="h-4 w-4" /> Substituir URL
           </button>
           {onClear && (
             <button
               type="button"
-              onClick={onClear}
-              className="p-2 rounded hover:bg-destructive/10 text-destructive"
-              title="Remover anexo"
+              onClick={handleClear}
+              className="flex items-center gap-2 rounded-xl border border-destructive/30 px-3 py-2 text-sm text-destructive hover:bg-destructive/10"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4" /> Remover
             </button>
           )}
         </div>
-        <input
-          ref={fileRef}
-          type="file"
-          accept={ACCEPTED}
-          className="hidden"
-          onChange={handleFile}
-        />
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border-2 border-dashed border-border bg-background/50 p-6 text-center">
-      <FileText className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-      <p className="text-sm text-muted-foreground mb-3">
-        Anexe a ata da reunião (PDF, DOC ou DOCX)
-      </p>
-      <input
-        ref={fileRef}
-        type="file"
-        accept={ACCEPTED}
-        className="hidden"
-        onChange={handleFile}
-      />
-      <button
-        type="button"
-        onClick={() => fileRef.current?.click()}
-        disabled={uploading}
-        className="flex items-center gap-2 px-4 py-2 mx-auto bg-primary text-primary-foreground rounded-xl text-sm hover:opacity-90 disabled:opacity-50"
-      >
-        {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-        {uploading ? "Enviando..." : "Selecionar arquivo"}
-      </button>
+    <div className="space-y-4 rounded-xl border bg-background/50 p-5">
+      <div className="flex items-start gap-3">
+        <FileText className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+        <div>
+          <p className="text-sm font-medium">Documento da ata</p>
+          <p className="text-xs text-muted-foreground">
+            Cole a URL HTTPS do PDF, DOC ou DOCX armazenado na nuvem.
+          </p>
+        </div>
+      </div>
+
+      <div>
+        <label className="text-sm font-medium">URL do documento *</label>
+        <input
+          type="url"
+          value={url}
+          onChange={(event) => setUrl(event.target.value)}
+          placeholder="https://drive.google.com/..."
+          className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm"
+        />
+      </div>
+      <div>
+        <label className="text-sm font-medium">Título</label>
+        <input
+          type="text"
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          placeholder="Ata da reunião"
+          className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm"
+        />
+      </div>
+
+      <div className="flex justify-end gap-2">
+        {savedMediaId && (
+          <button
+            type="button"
+            onClick={() => setEditing(false)}
+            className="rounded-xl border px-4 py-2 text-sm"
+          >
+            Cancelar
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={!url.trim() || createMediaMut.isPending}
+          className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
+        >
+          {createMediaMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
+          Salvar URL
+        </button>
+      </div>
     </div>
   );
 }
