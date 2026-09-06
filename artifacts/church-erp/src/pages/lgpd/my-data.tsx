@@ -36,10 +36,18 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const CONSENT_TYPE_LABELS: Record<string, string> = {
-  lgpd_member_registration: "Registro de membro (LGPD)",
-  lgpd_csv_import: "Importação CSV (LGPD)",
-  terms_of_service: "Termos de serviço",
+  lgpd_member_registration: "Declaração no registro de membro",
+  lgpd_csv_import: "Declaração na importação CSV",
+  terms_of_service: "Aceite do cadastro anterior aos textos publicados",
+  privacy_notice: "Ciência da Política de Privacidade",
 };
+
+function consentLabel(value: string): string {
+  const [type, version] = value.split('@');
+  if (type === 'terms_of_service' && version) return `Termos de Uso · versão ${version}`;
+  const label = CONSENT_TYPE_LABELS[type] || type;
+  return version ? `${label} · versão ${version}` : label;
+}
 
 export default function MyDataPage() {
   const { toast } = useToast();
@@ -54,7 +62,7 @@ export default function MyDataPage() {
     mutation: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ["/api/lgpd"] });
-        toast({ title: "Sucesso", description: "Solicitação enviada. Prazo de resposta: 15 dias." });
+        toast({ title: "Sucesso", description: "Solicitação enviada. Acompanhe a resposta nesta página." });
         setShowRequestModal(false);
         setRequestType("");
         setRequestDescription("");
@@ -167,15 +175,15 @@ export default function MyDataPage() {
         <div className="space-y-8">
           {/* Consents */}
           <div className="rounded-2xl border bg-card p-6">
-            <h2 className="text-lg font-semibold mb-4">Consentimentos Dados</h2>
+            <h2 className="text-lg font-semibold mb-4">Aceites e declarações</h2>
             {consents.length === 0 ? (
-              <p className="text-muted-foreground text-sm">Nenhum consentimento registrado.</p>
+              <p className="text-muted-foreground text-sm">Nenhum registro encontrado.</p>
             ) : (
               <div className="space-y-2">
                 {consents.map((c) => (
                   <div key={c.id as string} className="flex items-center justify-between p-3 rounded-xl bg-muted/50 text-sm">
                     <div>
-                      <p className="font-medium">{CONSENT_TYPE_LABELS[String(c.consentType)] || String(c.consentType)}</p>
+                      <p className="font-medium">{consentLabel(String(c.consentType))}</p>
                       <p className="text-xs text-muted-foreground">
                         {new Date(c.createdAt as string).toLocaleDateString("pt-BR")}
                       </p>

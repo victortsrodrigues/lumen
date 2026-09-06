@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { LegalDocumentsVersion } from "../../lib/api-client-react/src/generated/api.schemas";
 
 async function anonymousApi(page: Page) {
   await page.route(/^https:\/\//, (route) => route.abort());
@@ -11,6 +12,49 @@ async function anonymousApi(page: Page) {
     });
   });
 }
+
+test("privacy and terms are public on desktop and mobile even when the session returns 401", async ({ page }) => {
+  await anonymousApi(page);
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto("/privacidade");
+    await expect(page.getByRole("heading", { name: "Política de Privacidade", exact: true })).toBeVisible();
+    await expect(page.getByText("Igreja Presbiteriana Lumen", { exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "(32) 98454-9686" })).toHaveAttribute("href", "tel:+5532984549686");
+    await expect(page.locator("article")).toContainText("400 dias");
+    await expect(page).toHaveURL(/\/privacidade$/);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.getByRole("navigation", { name: "Informações legais" }).getByRole("link", { name: "Termos de uso" }).click();
+    await expect(page.getByRole("heading", { name: "Termos de Uso", exact: true })).toBeVisible();
+    await expect(page).toHaveURL(/\/termos$/);
+  }
+});
+
+test("registration links open separately and require an unchecked, versioned legal acceptance", async ({ page }) => {
+  await anonymousApi(page);
+  let submitted: Record<string, unknown> | undefined;
+  await page.route("**/api/auth/register", (route) => {
+    submitted = route.request().postDataJSON();
+    return route.fulfill({ status: 202, json: { emailVerificationRequired: true } });
+  });
+  await page.goto("/register");
+  const checkbox = page.getByRole("checkbox", { name: "Li a Política de Privacidade e aceito os Termos de Uso." });
+  await expect(checkbox).not.toBeChecked();
+  const link = page.getByRole("link", { name: "Ler Política de Privacidade (nova aba)" });
+  await expect(link).toHaveAttribute("target", "_blank");
+  await expect(link).toHaveAttribute("href", "/privacidade");
+  await expect(page.getByRole("link", { name: "Ler Termos de Uso (nova aba)" })).toHaveAttribute("href", "/termos");
+  await page.getByPlaceholder("João Silva").fill("Pessoa de Teste");
+  await page.getByPlaceholder("seu@email.com").fill("person@example.test");
+  await page.getByPlaceholder("Mínimo 8 caracteres").fill("Test-password123!");
+  await page.getByRole("button", { name: "Criar minha conta" }).click();
+  await expect(page.getByText("Você deve aceitar os termos")).toBeVisible();
+  expect(submitted).toBeUndefined();
+  await checkbox.check();
+  await page.getByRole("button", { name: "Criar minha conta" }).click();
+  await expect(page.getByRole("heading", { name: "Solicitação enviada", exact: true })).toBeVisible();
+  expect(submitted).toMatchObject({ consentAccepted: true, legalDocumentsVersion: Object.values(LegalDocumentsVersion)[0] });
+});
 
 test("login shows an actionable verification message without the HTTP status code", async ({
   page,

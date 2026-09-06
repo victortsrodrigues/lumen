@@ -121,6 +121,7 @@ import ContributionsPage from "./pages/contributions";
 import PublicSite from "./pages/public/site";
 import PublicPage from "./pages/public/page";
 import PublicDonate from "./pages/public/donate";
+import { PrivacyPolicy, TermsOfUse } from "./pages/public/legal";
 
 // LGPD Module
 import LgpdMyData from "./pages/lgpd/my-data";
@@ -168,6 +169,8 @@ function Router() {
       <Route path="/site/:slug" component={PublicPage} />
       <Route path="/site" component={PublicSite} />
       <Route path="/donate" component={PublicDonate} />
+      <Route path="/privacidade" component={PrivacyPolicy} />
+      <Route path="/termos" component={TermsOfUse} />
 
       {/* Public / Auth Routes */}
       <Route path="/login" component={Login} />

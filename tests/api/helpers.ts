@@ -2,6 +2,7 @@ import pg from "pg";
 import jwt from "jsonwebtoken";
 import speakeasy from "speakeasy";
 import crypto from "node:crypto";
+import { RegisterBody } from "../../lib/api-zod/src/generated/api";
 
 const { Pool } = pg;
 
@@ -110,6 +111,7 @@ export async function registerUser(
     password,
     name,
     consentAccepted: true,
+    legalDocumentsVersion: RegisterBody.shape.legalDocumentsVersion.options[0],
     csrfToken,
   });
   if (res.status !== 202) {

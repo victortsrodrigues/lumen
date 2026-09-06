@@ -5950,6 +5950,11 @@ components:
       required:
         - csrfToken
 
+    LegalDocumentsVersion:
+      type: string
+      description: Versão publicada dos termos e do aviso de privacidade apresentados no cadastro.
+      enum: ["2026-09-06"]
+
     RegisterRequest:
       type: object
       properties:
@@ -5963,11 +5968,15 @@ components:
           type: string
         consentAccepted:
           type: boolean
+          description: Aceite dos termos e ciência do aviso de privacidade; não é consentimento genérico para dados sensíveis.
+        legalDocumentsVersion:
+          $ref: "#/components/schemas/LegalDocumentsVersion"
       required:
         - email
         - password
         - name
         - consentAccepted
+        - legalDocumentsVersion
 
     LoginRequest:
       type: object

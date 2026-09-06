@@ -177,7 +177,16 @@ export const RegisterBody = zod.object({
   email: zod.string().email(),
   password: zod.string().min(registerBodyPasswordMin),
   name: zod.string(),
-  consentAccepted: zod.boolean(),
+  consentAccepted: zod
+    .boolean()
+    .describe(
+      "Aceite dos termos e ciência do aviso de privacidade; não é consentimento genérico para dados sensíveis.",
+    ),
+  legalDocumentsVersion: zod
+    .enum(["2026-09-06"])
+    .describe(
+      "Versão publicada dos termos e do aviso de privacidade apresentados no cadastro.",
+    ),
 });
 
 export const RegisterResponse = zod.object({

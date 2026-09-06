@@ -11,8 +11,10 @@ import * as emailService from "../../artifacts/api-server/src/lib/email";
 import { decrypt } from "../../artifacts/api-server/src/lib/crypto";
 import { notifyMember } from "../../artifacts/api-server/src/lib/notifications";
 import { deleteOwnAccountData } from "../../artifacts/api-server/src/lib/accountDeletion";
+import { RegisterBody } from "../../lib/api-zod/src/generated/api";
 
 const prefix = `accounts-${randomUUID()}`;
+const legalDocumentsVersion = RegisterBody.shape.legalDocumentsVersion.options[0];
 let server: Server;
 let base: string;
 let adminId: string;
@@ -206,6 +208,7 @@ describe("account lifecycle and member identity", () => {
             name: "Test",
             password: "TestPassword123!",
             consentAccepted: true,
+            legalDocumentsVersion,
           },
           null,
         )
@@ -547,6 +550,25 @@ describe("account lifecycle and member identity", () => {
 });
 
 describe("critical release flows", () => {
+  it("refuses missing or stale legal versions and truthy non-boolean acceptance without creating accounts", async () => {
+    const email = `${randomUUID()}@example.test`;
+    const data = { email, name: `${prefix} legal`, password: "Test-password123!" };
+    for (const acceptance of [undefined, false, "true", 1]) {
+      const result = await request("POST", "/auth/register", {
+        ...data, consentAccepted: acceptance, legalDocumentsVersion,
+      }, null);
+      expect(result.status).toBe(400);
+    }
+    for (const version of [undefined, "old-version", null]) {
+      const result = await request("POST", "/auth/register", {
+        ...data, consentAccepted: true, legalDocumentsVersion: version,
+      }, null);
+      expect(result.status).toBe(409);
+      expect(result.body.error).toBe("LEGAL_DOCUMENTS_UPDATED");
+    }
+    expect((await pool.query("SELECT id FROM users WHERE email=$1", [email])).rowCount).toBe(0);
+  });
+
   it("requires verification and approval, then resets the password once and invalidates old sessions", async () => {
     // Only delivery is stubbed. Token creation, encrypted outbox, HTTP routes,
     // password hashing and the PostgreSQL transactions remain real.
@@ -571,12 +593,23 @@ describe("critical release flows", () => {
           password,
           name: `${prefix} signup`,
           consentAccepted: true,
+          legalDocumentsVersion,
         },
         null,
       );
       expect(registered.status).toBe(202);
       expect(registered.cookie).toBe("");
       const id = registered.body.user.id;
+      const legalRecords = (await pool.query(
+        "SELECT consent_type,accepted,created_at FROM consent_records WHERE user_id=$1 ORDER BY consent_type",
+        [id],
+      )).rows;
+      expect(legalRecords).toHaveLength(2);
+      expect(legalRecords.map((record) => record.consent_type)).toEqual([
+        `privacy_notice@${legalDocumentsVersion}`,
+        `terms_of_service@${legalDocumentsVersion}`,
+      ]);
+      expect(legalRecords.every((record) => record.accepted === true && record.created_at)).toBe(true);
       expect(await row(id)).toMatchObject({
         status: "pending",
         email_verified_at: null,

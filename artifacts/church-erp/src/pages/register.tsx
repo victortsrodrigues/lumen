@@ -8,6 +8,8 @@ import { AuthLayout } from '@/components/layout/AuthLayout';
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle2, Loader2, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { LEGAL_DOCUMENTS_VERSION } from './public/legal';
+import { getErrorMessage } from '@/lib/api-error';
 
 const registerSchema = z.object({
   name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
@@ -35,7 +37,7 @@ export default function Register() {
     setIsSubmitting(true);
     try {
       const response = await registerMutation({
-        data
+        data: { ...data, legalDocumentsVersion: LEGAL_DOCUMENTS_VERSION }
       });
 
       setSubmission({ email: data.email, verificationRequired: response.emailVerificationRequired === true });
@@ -45,10 +47,10 @@ export default function Register() {
           ? "Confira seu e-mail e aguarde a aprovação de um administrador."
           : "Aguarde a aprovação de um administrador.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro no registro",
-        description: error?.message || "Ocorreu um erro ao criar a conta.",
+        description: getErrorMessage(error, "Ocorreu um erro ao criar a conta."),
         variant: "destructive"
       });
     } finally {
@@ -135,16 +137,25 @@ export default function Register() {
           <div className="flex items-center h-5">
             <input
               {...register('consentAccepted')}
+              id="legal-acceptance"
               type="checkbox"
+              aria-describedby={errors.consentAccepted ? 'legal-acceptance-error' : undefined}
+              aria-invalid={!!errors.consentAccepted}
               className="w-5 h-5 rounded border-2 border-border text-primary focus:ring-primary focus:ring-offset-2 bg-background transition-all"
             />
           </div>
           <div className="ml-3 text-sm">
-            <label className="font-medium text-foreground">Política de Privacidade</label>
-            <p className="text-muted-foreground">Eu concordo com o processamento dos meus dados.</p>
+            <label htmlFor="legal-acceptance" className="font-medium text-foreground cursor-pointer">
+              Li a Política de Privacidade e aceito os Termos de Uso.
+            </label>
+            <p className="mt-1 text-muted-foreground">
+              <Link href="/privacidade" target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">Ler Política de Privacidade (nova aba)</Link>
+              {' · '}
+              <Link href="/termos" target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">Ler Termos de Uso (nova aba)</Link>
+            </p>
           </div>
         </div>
-        {errors.consentAccepted && <p className="text-sm text-destructive">{errors.consentAccepted.message}</p>}
+        {errors.consentAccepted && <p id="legal-acceptance-error" className="text-sm text-destructive">{errors.consentAccepted.message}</p>}
 
         <button
           type="submit"

@@ -5,11 +5,14 @@
  * Church ERP API
  * OpenAPI spec version: 0.2.0
  */
+import type { LegalDocumentsVersion } from "./legalDocumentsVersion";
 
 export interface RegisterRequest {
   email: string;
   /** @minLength 8 */
   password: string;
   name: string;
+  /** Aceite dos termos e ciência do aviso de privacidade; não é consentimento genérico para dados sensíveis. */
   consentAccepted: boolean;
+  legalDocumentsVersion: LegalDocumentsVersion;
 }

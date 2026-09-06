@@ -1,4 +1,5 @@
 import React from 'react';
+import { LegalLinks } from '@/components/legal/LegalLinks';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -23,6 +24,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
         </div>
 
         {children}
+        <LegalLinks />
       </div>
     </div>
   );

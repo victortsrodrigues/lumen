@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { LegalLinks } from "@/components/legal/LegalLinks";
 
 export function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -17,6 +18,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">{children}</main>
+      <footer className="border-t px-4 pb-8"><LegalLinks /></footer>
     </div>
   );
 }

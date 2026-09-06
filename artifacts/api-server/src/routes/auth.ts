@@ -2,6 +2,7 @@ import { Router, type IRouter, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import speakeasy from "speakeasy";
 import QRCode from "qrcode";
+import { RegisterBody } from "@workspace/api-zod";
 import {
   authTokensTable,
   consentRecordsTable,
@@ -50,7 +51,7 @@ function setAuthCookie(res: Response, token: string): void {
 router.get("/csrf", issueCsrfToken);
 
 router.post("/register", async (req: Request, res: Response) => {
-  const { email, password, name, consentAccepted } = req.body;
+  const { email, password, name, consentAccepted, legalDocumentsVersion } = req.body;
   const ip = getClientIp(req);
 
   if (typeof email !== "string" || typeof password !== "string" || typeof name !== "string") {
@@ -75,8 +76,16 @@ router.post("/register", async (req: Request, res: Response) => {
     res.status(400).json({ error: "VALIDATION_ERROR", message: "Senha excede o tamanho permitido" });
     return;
   }
-  if (!consentAccepted) {
-    res.status(400).json({ error: "VALIDATION_ERROR", message: "Consentimento necessário" });
+  if (consentAccepted !== true) {
+    res.status(400).json({ error: "VALIDATION_ERROR", message: "Leia a Política de Privacidade e aceite os Termos de Uso para criar sua conta." });
+    return;
+  }
+  const legalVersion = RegisterBody.shape.legalDocumentsVersion.safeParse(legalDocumentsVersion);
+  if (!legalVersion.success) {
+    res.status(409).json({
+      error: "LEGAL_DOCUMENTS_UPDATED",
+      message: "Recarregue a página e leia a versão atual da Política de Privacidade e dos Termos de Uso antes de continuar.",
+    });
     return;
   }
 
@@ -113,12 +122,19 @@ router.post("/register", async (req: Request, res: Response) => {
       mfaEnabled: false,
     }).returning();
 
-    await tx.insert(consentRecordsTable).values({
+    // Terms acceptance and notice acknowledgment are NOT blanket consent for
+    // sensitive data. Keep the exact presented version; never backfill old users.
+    await tx.insert(consentRecordsTable).values([{
       userId: user.id,
-      consentType: "terms_of_service",
+      consentType: `terms_of_service@${legalVersion.data}`,
       accepted: true,
       ipAddress: ip,
-    });
+    }, {
+      userId: user.id,
+      consentType: `privacy_notice@${legalVersion.data}`,
+      accepted: true,
+      ipAddress: ip,
+    }]);
 
     if (!emailVerificationRequired) return { user, outboxId: null as string | null };
     const prepared = prepareAuthEmail(user, "verify_email");

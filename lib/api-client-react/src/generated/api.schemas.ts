@@ -22,12 +22,24 @@ export interface CsrfTokenResponse {
   csrfToken: string;
 }
 
+/**
+ * Versão publicada dos termos e do aviso de privacidade apresentados no cadastro.
+ */
+export type LegalDocumentsVersion =
+  (typeof LegalDocumentsVersion)[keyof typeof LegalDocumentsVersion];
+
+export const LegalDocumentsVersion = {
+  "2026-09-06": "2026-09-06",
+} as const;
+
 export interface RegisterRequest {
   email: string;
   /** @minLength 8 */
   password: string;
   name: string;
+  /** Aceite dos termos e ciência do aviso de privacidade; não é consentimento genérico para dados sensíveis. */
   consentAccepted: boolean;
+  legalDocumentsVersion: LegalDocumentsVersion;
 }
 
 export interface LoginRequest {

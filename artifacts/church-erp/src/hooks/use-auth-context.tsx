@@ -81,7 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (error && (error as any)?.status === 401) {
       // Don't redirect immediately if they are on auth pages
-      const isAuthPage = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email', '/site', '/donate'].some(p => window.location.pathname.startsWith(p));
+      const isAuthPage = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email', '/site', '/donate', '/privacidade', '/termos'].some(p => window.location.pathname.startsWith(p));
       if (!isAuthPage) {
         setLocation('/login');
       }

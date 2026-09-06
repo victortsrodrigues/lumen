@@ -1,11 +1,13 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import speakeasy from "speakeasy";
+import { RegisterBody } from "../../lib/api-zod/src/generated/api";
 import {
   request, getCsrfToken, registerUser, loginUser, registerAdmin,
   getAuthEmailToken, getResetToken, generateExpiredToken, assertErrorShape, pool,
 } from "./helpers";
 
 const PREFIX = "auth-test-" + crypto.randomUUID().slice(0, 6);
+const legalDocumentsVersion = RegisterBody.shape.legalDocumentsVersion.options[0];
 
 describe("01-auth", () => {
   const email = `${PREFIX}@test.local`;
@@ -21,7 +23,7 @@ describe("01-auth", () => {
   it("2. Register OK", async () => {
     const csrfToken = await getCsrfToken();
     const res = await request("POST", "/auth/register", {
-      email, password, name: "Auth Test User", consentAccepted: true, csrfToken,
+      email, password, name: "Auth Test User", consentAccepted: true, legalDocumentsVersion, csrfToken,
     });
     expect(res.status).toBe(202);
     expect(res.body.user.role).toBe("member");
@@ -34,7 +36,7 @@ describe("01-auth", () => {
   it("3. Register duplicate email → 409", async () => {
     const csrfToken = await getCsrfToken();
     const res = await request("POST", "/auth/register", {
-      email, password, name: "Dup", consentAccepted: true, csrfToken,
+      email, password, name: "Dup", consentAccepted: true, legalDocumentsVersion, csrfToken,
     });
     expect(res.status).toBe(409);
     expect(res.body.error).toBe("EMAIL_IN_USE");
@@ -44,7 +46,7 @@ describe("01-auth", () => {
   it("4. Register short password → 400", async () => {
     const csrfToken = await getCsrfToken();
     const res = await request("POST", "/auth/register", {
-      email: `short-${PREFIX}@test.local`, password: "123", name: "Short", consentAccepted: true, csrfToken,
+      email: `short-${PREFIX}@test.local`, password: "123", name: "Short", consentAccepted: true, legalDocumentsVersion, csrfToken,
     });
     expect(res.status).toBe(400);
     expect(res.body.message).toContain("8 caracteres");

@@ -1,6 +1,7 @@
 import { type Page, expect } from "@playwright/test";
 import pg from "pg";
 import speakeasy from "speakeasy";
+import { RegisterBody } from "../../lib/api-zod/src/generated/api";
 
 const { Pool } = pg;
 
@@ -82,6 +83,7 @@ export async function apiRegisterUser(
     password,
     name,
     consentAccepted: true,
+    legalDocumentsVersion: RegisterBody.shape.legalDocumentsVersion.options[0],
     csrfToken,
   });
   if (res.status !== 202) {

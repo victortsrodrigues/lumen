@@ -5,6 +5,7 @@ import { Header, type BreadcrumbItem } from './Header';
 import { useAuth } from '@/hooks/use-auth-context';
 import { Redirect } from 'wouter';
 import { Loader2 } from 'lucide-react';
+import { LegalLinks } from '@/components/legal/LegalLinks';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -64,6 +65,7 @@ export function AppLayout({ children, breadcrumbs }: AppLayoutProps) {
         <main className="flex-1 overflow-y-auto p-4 md:p-8">
           <div className="max-w-6xl mx-auto">
             {children}
+            <LegalLinks />
           </div>
         </main>
       </div>
