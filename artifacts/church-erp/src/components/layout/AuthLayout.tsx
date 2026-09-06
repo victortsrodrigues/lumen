@@ -3,10 +3,33 @@ import React from 'react';
 interface AuthLayoutProps {
   children: React.ReactNode;
   title: string;
-  subtitle: string;
+  subtitle?: string;
+  centered?: boolean;
 }
 
-export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
+export function AuthLayout({ children, title, subtitle, centered = false }: AuthLayoutProps) {
+  if (centered) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-6 py-10 selection:bg-primary/20">
+        <div className="w-full max-w-md">
+          <div className="mb-10 flex items-center justify-center">
+            <img src="/lumen-symbol.svg" alt="" className="mr-3 h-9 w-9" />
+            <span className="font-display text-2xl font-bold tracking-tight text-foreground">
+              LUMEN
+            </span>
+          </div>
+
+          <div className="mb-8 text-center">
+            <h1 className="font-display text-3xl font-bold text-foreground">{title}</h1>
+            {subtitle && <p className="mt-2 text-muted-foreground">{subtitle}</p>}
+          </div>
+
+          {children}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex bg-background selection:bg-primary/20">
       {/* Left side - Form */}
@@ -21,7 +44,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
         <div className="w-full max-w-md mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-display font-bold text-foreground mb-2">{title}</h1>
-            <p className="text-muted-foreground">{subtitle}</p>
+            {subtitle && <p className="text-muted-foreground">{subtitle}</p>}
           </div>
 
           {children}

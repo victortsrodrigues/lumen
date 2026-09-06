@@ -56,7 +56,7 @@ export default function Login() {
   };
 
   return (
-    <AuthLayout title="Acessar conta" subtitle="Insira suas credenciais para entrar no sistema.">
+    <AuthLayout title="Acessar conta" centered>
       <motion.form 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
