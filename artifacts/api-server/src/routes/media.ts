@@ -1,8 +1,9 @@
 import { Router, type IRouter, Request, Response } from "express";
 import { db, mediaLinksTable } from "@workspace/db";
-import { eq, and, isNull, count } from "drizzle-orm";
+import { eq, and, count } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middlewares/auth.js";
 import { createAuditLog } from "../lib/audit.js";
+import { mediaAccessCondition } from "../lib/mediaAccess.js";
 
 const router: IRouter = Router();
 
@@ -71,7 +72,7 @@ router.get("/", requireAuth, async (req: Request, res: Response) => {
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
   const offset = (page - 1) * limit;
 
-  const conditions = [isNull(mediaLinksTable.deletedAt)];
+  const conditions = [mediaAccessCondition(req.user!.role)];
   if (entityType) conditions.push(eq(mediaLinksTable.entityType, entityType as any));
   if (entityId) conditions.push(eq(mediaLinksTable.entityId, entityId));
 
@@ -104,6 +105,11 @@ router.post("/", requireAuth, requireRole("admin", "leader"), async (req: Reques
 
   if (!VALID_ENTITY_TYPES.includes(entityType)) {
     res.status(400).json({ error: `entityType invalido. Valores aceitos: ${VALID_ENTITY_TYPES.join(", ")}` });
+    return;
+  }
+
+  if (entityType === "council_meeting" && user.role !== "admin") {
+    res.status(403).json({ error: "Sem permissao para gerenciar atas do Conselho" });
     return;
   }
 
@@ -146,15 +152,17 @@ router.put("/:id", requireAuth, async (req: Request<{ id: string }>, res: Respon
   const { id } = req.params;
   const user = req.user!;
 
+  const accessibleMedia = and(eq(mediaLinksTable.id, id), mediaAccessCondition(user.role));
   const [existing] = await db.select().from(mediaLinksTable)
-    .where(and(eq(mediaLinksTable.id, id), isNull(mediaLinksTable.deletedAt)));
+    .where(accessibleMedia);
 
   if (!existing) {
     res.status(404).json({ error: "Midia nao encontrada" });
     return;
   }
 
-  // Access control: admin, leader, or creator
+  // Council media has already been restricted to administrators above.
+  // Other media: admin, leader, or creator.
   if (user.role !== "admin" && user.role !== "leader" && existing.createdByUserId !== user.userId) {
     res.status(403).json({ error: "Sem permissao para editar esta midia" });
     return;
@@ -184,7 +192,12 @@ router.put("/:id", requireAuth, async (req: Request<{ id: string }>, res: Respon
   if (title !== undefined) updates.title = title || null;
 
   const [updated] = await db.update(mediaLinksTable).set(updates)
-    .where(eq(mediaLinksTable.id, id)).returning();
+    .where(accessibleMedia).returning();
+
+  if (!updated) {
+    res.status(404).json({ error: "Midia nao encontrada" });
+    return;
+  }
 
   await createAuditLog({
     userId: user.userId,
@@ -203,25 +216,32 @@ router.delete("/:id", requireAuth, async (req: Request<{ id: string }>, res: Res
   const { id } = req.params;
   const user = req.user!;
 
+  const accessibleMedia = and(eq(mediaLinksTable.id, id), mediaAccessCondition(user.role));
   const [existing] = await db.select().from(mediaLinksTable)
-    .where(and(eq(mediaLinksTable.id, id), isNull(mediaLinksTable.deletedAt)));
+    .where(accessibleMedia);
 
   if (!existing) {
     res.status(404).json({ error: "Midia nao encontrada" });
     return;
   }
 
-  // Access control: admin or creator
+  // Council media has already been restricted to administrators above.
+  // Other media: admin or creator.
   if (user.role !== "admin" && existing.createdByUserId !== user.userId) {
     res.status(403).json({ error: "Sem permissao para deletar esta midia" });
     return;
   }
 
-  await db.update(mediaLinksTable).set({
+  const [deleted] = await db.update(mediaLinksTable).set({
     deletedAt: new Date(),
     updatedByUserId: user.userId,
     updatedAt: new Date(),
-  }).where(eq(mediaLinksTable.id, id));
+  }).where(accessibleMedia).returning({ id: mediaLinksTable.id });
+
+  if (!deleted) {
+    res.status(404).json({ error: "Midia nao encontrada" });
+    return;
+  }
 
   await createAuditLog({
     userId: user.userId,

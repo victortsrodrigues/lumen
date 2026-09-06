@@ -919,6 +919,319 @@ describe("critical release flows", () => {
   });
 });
 
+describe("Council minutes media permissions", () => {
+  // Synthetic URLs only; never fetch a document or use application data.
+  async function withMediaFixture(
+    actor: string,
+    run: (fixture: {
+      entityId: string;
+      restrictedIds: string[];
+      ordinaryIds: string[];
+      meetingId: string;
+    }) => Promise<void>,
+  ) {
+    const entityId = randomUUID();
+    const ids = Array.from({ length: 6 }, () => randomUUID());
+    const meetingIds = Array.from({ length: 4 }, () => randomUUID());
+    try {
+      await pool.query(
+        `INSERT INTO contents(id,title,category,created_by_user_id,updated_by_user_id)
+         VALUES($1,$2,'estudo_biblico',$3,$3)`,
+        [entityId, `${prefix} teaching`, adminId],
+      );
+      // Include unattached Council media, actual minutes with a legacy type,
+      // minutes of a soft-deleted meeting, and ordinary teaching links.
+      for (const [i, type] of [
+        "council_meeting",
+        "council_meeting",
+        "content",
+        "content",
+        "content",
+        "course_lesson",
+      ].entries()) {
+        await pool.query(
+          `INSERT INTO media_links(id,url,title,entity_type,entity_id,created_by_user_id,updated_by_user_id,created_at)
+           VALUES($1,$2,$3,$4,$5,$6,$6,$7)`,
+          [
+            ids[i],
+            `https://example.invalid/${ids[i]}.pdf`,
+            `${prefix} media`,
+            type,
+            entityId,
+            actor,
+            new Date(2000, 0, i + 1),
+          ],
+        );
+      }
+      for (let i = 0; i < meetingIds.length; i++) {
+        await pool.query(
+          `INSERT INTO council_meetings(id,meeting_date,title,ata_media_id,deleted_at,created_by_user_id,updated_by_user_id)
+           VALUES($1,'2000-01-01',$2,$3,$4,$5,$5)`,
+          [
+            meetingIds[i],
+            `${prefix} council`,
+            i === 3 ? null : ids[i + 1],
+            i === 2 ? new Date() : null,
+            adminId,
+          ],
+        );
+      }
+      await run({
+        entityId,
+        restrictedIds: ids.slice(0, 4),
+        ordinaryIds: ids.slice(4),
+        meetingId: meetingIds[0],
+      });
+    } finally {
+      await pool.query(
+        "DELETE FROM council_meetings WHERE id=ANY($1::text[])",
+        [meetingIds],
+      );
+      await pool.query("DELETE FROM media_links WHERE entity_id=$1", [
+        entityId,
+      ]);
+      await pool.query("DELETE FROM contents WHERE id=$1", [entityId]);
+    }
+  }
+
+  it.each(["member", "leader"])(
+    "hides minutes from %s in every media listing, total and page",
+    async (role) => {
+      const actor = await account({ role, status: "active" });
+      await withMediaFixture(
+        actor,
+        async ({ entityId, restrictedIds, ordinaryIds, meetingId }) => {
+          expect(
+            (await request("GET", "/council", undefined, actor)).status,
+          ).toBe(403);
+          expect(
+            (await request("GET", `/council/${meetingId}`, undefined, actor))
+              .status,
+          ).toBe(403);
+
+          const filtered = await request(
+            "GET",
+            `/media?entityId=${entityId}`,
+            undefined,
+            actor,
+          );
+          expect(filtered.status).toBe(200);
+          expect(filtered.body.total).toBe(2);
+          expect(filtered.body.media.map((m: { id: string }) => m.id)).toEqual(
+            ordinaryIds,
+          );
+          const councilOnly = await request(
+            "GET",
+            `/media?entityType=council_meeting&entityId=${entityId}`,
+            undefined,
+            actor,
+          );
+          expect(councilOnly.body).toMatchObject({ media: [], total: 0 });
+          expect(
+            (
+              await request(
+                "GET",
+                "/media?entityType=council_meeting",
+                undefined,
+                actor,
+              )
+            ).body,
+          ).toMatchObject({ media: [], total: 0 });
+          const legacyType = await request(
+            "GET",
+            `/media?entityType=content&entityId=${entityId}`,
+            undefined,
+            actor,
+          );
+          expect(legacyType.body.total).toBe(1);
+          expect(
+            legacyType.body.media.map((m: { id: string }) => m.id),
+          ).toEqual([ordinaryIds[0]]);
+
+          for (let page = 1; page <= 3; page++) {
+            const result = await request(
+              "GET",
+              `/media?entityId=${entityId}&limit=1&page=${page}`,
+              undefined,
+              actor,
+            );
+            expect(result.body).toMatchObject({ total: 2, page, limit: 1 });
+            expect(result.body.media.map((m: { id: string }) => m.id)).toEqual(
+              ordinaryIds.slice(page - 1, page),
+            );
+          }
+          // No filter at all must not bypass authorization, including later pages.
+          for (let page = 1; ; page++) {
+            const result = await request(
+              "GET",
+              `/media?limit=100&page=${page}`,
+              undefined,
+              actor,
+            );
+            expect(result.status).toBe(200);
+            expect(
+              result.body.media.some((m: { id: string }) =>
+                restrictedIds.includes(m.id),
+              ),
+            ).toBe(false);
+            if (page * 100 >= result.body.total) break;
+          }
+          const contents = await request(
+            "GET",
+            "/contents?limit=100",
+            undefined,
+            actor,
+          );
+          expect(
+            contents.body.contents.find(
+              (c: { id: string }) => c.id === entityId,
+            ).mediaCount,
+          ).toBe(1);
+        },
+      );
+    },
+  );
+
+  it.each(["member", "leader"])(
+    "prevents %s from creating or modifying minutes even as the original creator",
+    async (role) => {
+      const actor = await account({ role, status: "active" });
+      await withMediaFixture(
+        actor,
+        async ({ entityId, restrictedIds, ordinaryIds }) => {
+          const created = await request(
+            "POST",
+            "/media",
+            {
+              entityType: "council_meeting",
+              entityId,
+              url: "https://example.invalid/new-ata.pdf",
+            },
+            actor,
+          );
+          expect(created.status).toBe(403);
+          for (const id of restrictedIds) {
+            const before = (
+              await pool.query("SELECT * FROM media_links WHERE id=$1", [id])
+            ).rows[0];
+            const edited = await request(
+              "PUT",
+              `/media/${id}`,
+              { title: "Not allowed" },
+              actor,
+            );
+            expect(edited.status).toBe(404);
+            expect(edited.body.url).toBeUndefined();
+            expect(
+              (await request("DELETE", `/media/${id}`, undefined, actor))
+                .status,
+            ).toBe(404);
+            expect(
+              (await pool.query("SELECT * FROM media_links WHERE id=$1", [id]))
+                .rows[0],
+            ).toEqual(before);
+          }
+          // Existing creator permissions remain available for ordinary media.
+          expect(
+            (
+              await request(
+                "PUT",
+                `/media/${ordinaryIds[0]}`,
+                { title: "Teaching" },
+                actor,
+              )
+            ).status,
+          ).toBe(200);
+          expect(
+            (
+              await request(
+                "DELETE",
+                `/media/${ordinaryIds[0]}`,
+                undefined,
+                actor,
+              )
+            ).status,
+          ).toBe(200);
+          if (role === "leader") {
+            expect(
+              (
+                await request(
+                  "POST",
+                  "/media",
+                  {
+                    entityType: "course_lesson",
+                    entityId,
+                    url: "https://example.invalid/lesson",
+                  },
+                  actor,
+                )
+              ).status,
+            ).toBe(201);
+          }
+        },
+      );
+    },
+  );
+
+  it("keeps administrator access and enforces authentication and CSRF", async () => {
+    await withMediaFixture(
+      adminId,
+      async ({ entityId, restrictedIds, meetingId }) => {
+        expect(
+          (await request("GET", `/media?entityId=${entityId}`, undefined, null))
+            .status,
+        ).toBe(401);
+        const listed = await request("GET", `/media?entityId=${entityId}`);
+        expect(listed.body.total).toBe(6);
+        expect(listed.body.media.map((m: { id: string }) => m.id)).toEqual(
+          expect.arrayContaining(restrictedIds),
+        );
+        expect(
+          (
+            await request(
+              "GET",
+              `/media?entityType=council_meeting&entityId=${entityId}`,
+            )
+          ).body.total,
+        ).toBe(2);
+        const detail = await request("GET", `/council/${meetingId}`);
+        expect(detail.status).toBe(200);
+        expect(detail.body.ataUrl).toBe(
+          `https://example.invalid/${restrictedIds[1]}.pdf`,
+        );
+        const payload = {
+          entityType: "council_meeting",
+          entityId,
+          url: "https://example.invalid/admin-ata.pdf",
+        };
+        expect(
+          (await request("POST", "/media", payload, adminId, false)).status,
+        ).toBe(403);
+        expect((await request("POST", "/media", payload)).status).toBe(201);
+        for (const id of restrictedIds) {
+          for (const method of ["PUT", "DELETE"]) {
+            expect(
+              (await request(method, `/media/${id}`, {}, null)).status,
+            ).toBe(401);
+            expect(
+              (await request(method, `/media/${id}`, {}, adminId, false))
+                .status,
+            ).toBe(403);
+          }
+          expect(
+            (
+              await request("PUT", `/media/${id}`, {
+                title: "Updated by admin",
+              })
+            ).status,
+          ).toBe(200);
+          expect((await request("DELETE", `/media/${id}`)).status).toBe(200);
+        }
+      },
+    );
+  });
+});
+
 describe("versioned migration", () => {
   it("upgrades the legacy schema and refuses duplicate/orphan links without altering them", async () => {
     const migration3 = await readFile(

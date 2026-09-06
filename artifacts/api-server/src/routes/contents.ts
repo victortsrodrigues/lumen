@@ -3,6 +3,7 @@ import { db, contentsTable, mediaLinksTable } from "@workspace/db";
 import { eq, and, isNull, count, desc } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middlewares/auth.js";
 import { createAuditLog } from "../lib/audit.js";
+import { mediaAccessCondition } from "../lib/mediaAccess.js";
 
 const router: IRouter = Router();
 
@@ -58,7 +59,7 @@ router.get("/", requireAuth, async (req: Request, res: Response) => {
       .where(and(
         eq(mediaLinksTable.entityType, "content"),
         eq(mediaLinksTable.entityId, c.id),
-        isNull(mediaLinksTable.deletedAt),
+        mediaAccessCondition(req.user!.role),
       ));
     return { ...serializeContent(c), mediaCount: Number(mediaCount) };
   }));
