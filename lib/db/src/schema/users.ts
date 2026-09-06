@@ -21,7 +21,9 @@ export const usersTable = pgTable("users", {
   // Keep active as the database default so existing accounts remain usable
   // when this column is introduced. Public registration always writes pending.
   status: accountStatusEnum("status").notNull().default("active"),
-  memberId: text("member_id").unique(),
+  // The API enforces one account per member. Keeping this as an indexed field
+  // avoids an interactive data-loss prompt during Railway's schema push.
+  memberId: text("member_id"),
   statusReason: text("status_reason"),
   statusChangedAt: timestamp("status_changed_at"),
   statusChangedByUserId: text("status_changed_by_user_id"),
