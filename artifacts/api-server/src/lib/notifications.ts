@@ -1,5 +1,5 @@
 import { db, notificationsTable, usersTable, membersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { logger } from "./logger.js";
 
 interface CreateNotificationArgs {
@@ -51,8 +51,18 @@ export async function notifyMember(
       .from(membersTable).where(eq(membersTable.id, memberId)).limit(1);
     if (!member?.email) return false;
 
-    const [user] = await db.select({ id: usersTable.id })
-      .from(usersTable).where(eq(usersTable.email, member.email)).limit(1);
+    let [user] = await db.select({ id: usersTable.id })
+      .from(usersTable).where(and(
+        eq(usersTable.memberId, memberId),
+        eq(usersTable.status, "active"),
+      )).limit(1);
+    if (!user) {
+      [user] = await db.select({ id: usersTable.id })
+        .from(usersTable).where(and(
+          eq(usersTable.email, member.email),
+          eq(usersTable.status, "active"),
+        )).limit(1);
+    }
     if (!user) return false;
 
     await createNotification({ ...args, userId: user.id });
@@ -71,7 +81,8 @@ export async function notifyAllUsers(
   args: Omit<CreateNotificationArgs, "userId">,
 ): Promise<void> {
   try {
-    const users = await db.select({ id: usersTable.id }).from(usersTable);
+    const users = await db.select({ id: usersTable.id }).from(usersTable)
+      .where(eq(usersTable.status, "active"));
     await Promise.all(
       users.map(u => createNotification({ ...args, userId: u.id })),
     );
@@ -90,7 +101,7 @@ export async function notifyRole(
 ): Promise<void> {
   try {
     const users = await db.select({ id: usersTable.id }).from(usersTable)
-      .where(eq(usersTable.role, role));
+      .where(and(eq(usersTable.role, role), eq(usersTable.status, "active")));
 
     await Promise.all(
       users.map(u => createNotification({ ...args, userId: u.id })),

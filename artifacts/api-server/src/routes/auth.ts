@@ -2,14 +2,15 @@ import { Router, type IRouter, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import speakeasy from "speakeasy";
 import QRCode from "qrcode";
-import { db, usersTable, consentRecordsTable, membersTable, memberHistoryTable } from "@workspace/db";
+import { db, usersTable, consentRecordsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { signToken } from "../lib/jwt.js";
 import { generateCsrfToken, validateCsrfToken } from "../lib/csrf.js";
 import { createAuditLog } from "../lib/audit.js";
 import { checkLoginRateLimit, resetLoginRateLimit } from "../lib/rateLimit.js";
 import { requireAuth } from "../middlewares/auth.js";
-import { ensureMemberAreas } from "./members.js";
+import { notifyRole } from "../lib/notifications.js";
+import { deleteOwnAccountData, LastActiveAdminError } from "../lib/accountDeletion.js";
 
 const router: IRouter = Router();
 
@@ -35,15 +36,34 @@ router.get("/csrf", (_req, res) => {
 });
 
 router.post("/register", async (req: Request, res: Response) => {
-  const { email, password, name, consentAccepted } = req.body;
+  const { email, password, name, consentAccepted, csrfToken } = req.body;
   const ip = getClientIp(req);
 
-  if (!email || !password || !name) {
+  if (!csrfToken || !validateCsrfToken(csrfToken)) {
+    res.status(400).json({ error: "CSRF_ERROR", message: "Token CSRF inválido" });
+    return;
+  }
+
+  if (typeof email !== "string" || typeof password !== "string" || typeof name !== "string") {
     res.status(400).json({ error: "VALIDATION_ERROR", message: "Campos obrigatórios ausentes" });
+    return;
+  }
+  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedName = name.trim();
+  if (!normalizedName || normalizedName.length > 120) {
+    res.status(400).json({ error: "VALIDATION_ERROR", message: "Nome inválido" });
+    return;
+  }
+  if (normalizedEmail.length > 320 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    res.status(400).json({ error: "VALIDATION_ERROR", message: "E-mail inválido" });
     return;
   }
   if (password.length < 8) {
     res.status(400).json({ error: "VALIDATION_ERROR", message: "Senha deve ter pelo menos 8 caracteres" });
+    return;
+  }
+  if (password.length > 128) {
+    res.status(400).json({ error: "VALIDATION_ERROR", message: "Senha excede o tamanho permitido" });
     return;
   }
   if (!consentAccepted) {
@@ -51,7 +71,7 @@ router.post("/register", async (req: Request, res: Response) => {
     return;
   }
 
-  const existing = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase())).limit(1);
+  const existing = await db.select().from(usersTable).where(eq(usersTable.email, normalizedEmail)).limit(1);
   if (existing.length > 0) {
     res.status(409).json({ error: "EMAIL_IN_USE", message: "E-mail já cadastrado" });
     return;
@@ -59,10 +79,12 @@ router.post("/register", async (req: Request, res: Response) => {
 
   const passwordHash = await bcrypt.hash(password, 12);
   const [user] = await db.insert(usersTable).values({
-    email: email.toLowerCase(),
+    email: normalizedEmail,
     passwordHash,
-    name,
+    name: normalizedName,
     role: "member",
+    status: "pending",
+    requestedAt: new Date(),
     mfaEnabled: false,
   }).returning();
 
@@ -73,33 +95,30 @@ router.post("/register", async (req: Request, res: Response) => {
     ipAddress: ip,
   });
 
-  // Auto-create linked member record so the user can view/edit their profile
-  const [newMember] = await db.insert(membersTable).values({
-    fullName: name,
-    email: email.toLowerCase(),
-    status: "ativo" as const, // público registra como ativo; visitor é módulo separado
-    createdByUserId: user.id,
-    updatedByUserId: user.id,
-  }).returning();
+  await createAuditLog({ userId: user.id, action: "ACCOUNT_REQUESTED", resourceType: "user", resourceId: user.id, ipAddress: ip });
 
-  await ensureMemberAreas(newMember.id, user.id);
-
-  await db.insert(memberHistoryTable).values({
-    memberId: newMember.id,
-    changedByUserId: user.id,
-    changeType: "created",
-    fieldChanges: { fullName: name, email: email.toLowerCase(), autoCreated: true },
+  await notifyRole("admin", {
+    type: "account.requested",
+    title: "Nova solicitação de acesso",
+    message: `${user.name} solicitou acesso à plataforma.`,
+    link: "/admin/accounts?status=pending",
+    entityType: "user",
+    entityId: user.id,
   });
 
-  await createAuditLog({ userId: user.id, action: "USER_REGISTERED", resourceType: "user", resourceId: user.id, ipAddress: ip });
-
-  const token = signToken({ userId: user.id, email: user.email, role: user.role, mfaVerified: false });
-  setAuthCookie(res, token);
-
-  res.status(201).json({
-    user: { id: user.id, email: user.email, name: user.name, role: user.role, mfaEnabled: user.mfaEnabled, mfaVerified: false, createdAt: user.createdAt },
+  res.status(202).json({
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      status: user.status,
+      mfaEnabled: user.mfaEnabled,
+      mfaVerified: false,
+      createdAt: user.createdAt,
+    },
     requiresMfa: false,
-    message: "Conta criada com sucesso",
+    message: "Solicitação enviada. Você poderá acessar após a aprovação.",
   });
 });
 
@@ -138,18 +157,48 @@ router.post("/login", async (req: Request, res: Response) => {
     return;
   }
 
+  // A correct password should not consume the invalid-credentials allowance,
+  // even when the account is still pending or administratively disabled.
   resetLoginRateLimit(ip);
+
+  const unavailable: Record<string, { error: string; message: string }> = {
+    pending: { error: "ACCOUNT_PENDING", message: "Sua solicitação ainda aguarda aprovação" },
+    blocked: { error: "ACCOUNT_BLOCKED", message: "Sua conta está temporariamente bloqueada" },
+    revoked: { error: "ACCOUNT_REVOKED", message: "O acesso desta conta foi revogado" },
+    deleting: { error: "ACCOUNT_DELETING", message: "A exclusão desta conta está em processamento" },
+  };
+  if (user.status !== "active") {
+    const statusError = unavailable[user.status];
+    await createAuditLog({
+      userId: user.id,
+      action: "LOGIN_DENIED",
+      details: { accountStatus: user.status },
+      ipAddress: ip,
+    });
+    res.status(403).json(statusError);
+    return;
+  }
 
   const requiresMfa = user.role === "admin" && user.mfaEnabled;
   const mfaVerified = !requiresMfa;
 
-  const token = signToken({ userId: user.id, email: user.email, role: user.role, mfaVerified });
+  const token = signToken({
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+    memberId: user.memberId,
+    mfaVerified,
+    sessionVersion: user.sessionVersion,
+  });
   setAuthCookie(res, token);
+
+  await db.update(usersTable).set({ lastLoginAt: new Date(), updatedAt: new Date() })
+    .where(eq(usersTable.id, user.id));
 
   await createAuditLog({ userId: user.id, action: "LOGIN_SUCCESS", ipAddress: ip });
 
   res.json({
-    user: { id: user.id, email: user.email, name: user.name, role: user.role, mfaEnabled: user.mfaEnabled, mfaVerified, createdAt: user.createdAt },
+    user: { id: user.id, email: user.email, name: user.name, role: user.role, status: user.status, mfaEnabled: user.mfaEnabled, mfaVerified, createdAt: user.createdAt },
     requiresMfa: user.role === "admin" && user.mfaEnabled && !mfaVerified,
     message: "Login realizado com sucesso",
   });
@@ -176,6 +225,8 @@ router.get("/me", requireAuth, async (req: Request, res: Response) => {
     email: user.email,
     name: user.name,
     role: user.role,
+    status: user.status,
+    memberId: user.memberId,
     mfaEnabled: user.mfaEnabled,
     mfaVerified: req.user!.mfaVerified,
     createdAt: user.createdAt,
@@ -235,6 +286,44 @@ router.post("/reset-password", async (req: Request, res: Response) => {
   await createAuditLog({ userId: user.id, action: "PASSWORD_RESET", ipAddress: ip });
 
   res.json({ message: "Senha redefinida com sucesso" });
+});
+
+router.delete("/account", requireAuth, async (req: Request, res: Response) => {
+  const { password, confirmation, csrfToken } = req.body;
+
+  if (!csrfToken || !validateCsrfToken(csrfToken)) {
+    res.status(400).json({ error: "CSRF_ERROR", message: "Token CSRF inválido" });
+    return;
+  }
+  if (!password || confirmation !== "EXCLUIR") {
+    res.status(400).json({
+      error: "VALIDATION_ERROR",
+      message: "Informe sua senha e digite EXCLUIR para confirmar",
+    });
+    return;
+  }
+
+  const [user] = await db.select().from(usersTable)
+    .where(eq(usersTable.id, req.user!.userId)).limit(1);
+  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+    res.status(401).json({ error: "INVALID_PASSWORD", message: "Senha atual incorreta" });
+    return;
+  }
+
+  try {
+    const result = await deleteOwnAccountData(user.id);
+    res.clearCookie("auth_token", { path: "/" });
+    res.json({
+      message: "Sua conta e seus dados pessoais foram excluídos",
+      deletionReference: result.deletionReference,
+    });
+  } catch (error) {
+    if (error instanceof LastActiveAdminError) {
+      res.status(409).json({ error: "LAST_ACTIVE_ADMIN", message: error.message });
+      return;
+    }
+    throw error;
+  }
 });
 
 router.post("/mfa/setup", requireAuth, async (req: Request, res: Response) => {
@@ -307,11 +396,18 @@ router.post("/mfa/verify", requireAuth, async (req: Request, res: Response) => {
 
   await createAuditLog({ userId, action: "MFA_VERIFIED", ipAddress: ip });
 
-  const token = signToken({ userId: user.id, email: user.email, role: user.role, mfaVerified: true });
+  const token = signToken({
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+    memberId: user.memberId,
+    mfaVerified: true,
+    sessionVersion: user.sessionVersion,
+  });
   setAuthCookie(res, token);
 
   res.json({
-    user: { id: user.id, email: user.email, name: user.name, role: user.role, mfaEnabled: true, mfaVerified: true, createdAt: user.createdAt },
+    user: { id: user.id, email: user.email, name: user.name, role: user.role, status: user.status, mfaEnabled: true, mfaVerified: true, createdAt: user.createdAt },
     requiresMfa: false,
     message: "MFA verificado com sucesso",
   });

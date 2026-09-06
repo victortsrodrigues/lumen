@@ -16,4 +16,7 @@ export interface StorageProvider {
 
   /** Check if a file exists at the given path */
   fileExists(objectPath: string): Promise<boolean>;
+
+  /** Permanently delete a stored file. Missing files are treated as deleted. */
+  deleteFile(objectPath: string): Promise<void>;
 }

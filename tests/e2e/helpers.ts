@@ -57,13 +57,22 @@ export async function apiRegisterUser(
   password: string,
   name: string
 ): Promise<{ cookie: string; user: any }> {
+  const csrfToken = await apiGetCsrf();
   const res = await apiRequest("POST", "/auth/register", {
     email,
     password,
     name,
     consentAccepted: true,
+    csrfToken,
   });
-  return { cookie: res.cookie, user: res.body.user };
+  if (res.status !== 202) {
+    throw new Error(`Failed to register E2E user: ${res.status} ${JSON.stringify(res.body)}`);
+  }
+  await pool.query(
+    "UPDATE users SET status = 'active', approved_at = NOW() WHERE id = $1",
+    [res.body.user.id]
+  );
+  return { cookie: "", user: res.body.user };
 }
 
 export async function apiLoginUser(

@@ -1,11 +1,17 @@
 import { useState } from "react";
-import { useGetMyData, useExportMyData, useCreateLgpdRequest, useGetMyLgpdRequests } from "@workspace/api-client-react";
+import {
+  type CreateLgpdRequestBodyRequestType,
+  type LgpdRequest,
+  useGetMyData,
+  useCreateLgpdRequest,
+} from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { DeleteAccountSection } from "@/components/account/DeleteAccountSection";
 import {
-  Shield, Download, FileEdit, Trash2, XCircle,
-  Loader2, AlertTriangle, CheckCircle, Clock, Info
+  Shield, Download, FileEdit, XCircle,
+  Loader2, CheckCircle, Clock, Info
 } from "lucide-react";
 
 const REQUEST_TYPE_LABELS: Record<string, string> = {
@@ -39,7 +45,7 @@ export default function MyDataPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showRequestModal, setShowRequestModal] = useState(false);
-  const [requestType, setRequestType] = useState("");
+  const [requestType, setRequestType] = useState<CreateLgpdRequestBodyRequestType | "">("");
   const [requestDescription, setRequestDescription] = useState("");
 
   const { data, isLoading, isError } = useGetMyData();
@@ -63,7 +69,7 @@ export default function MyDataPage() {
     toast({ title: "Exportação iniciada", description: "Seus dados estão sendo baixados em formato JSON." });
   }
 
-  function openRequest(type: string) {
+  function openRequest(type: CreateLgpdRequestBodyRequestType) {
     setRequestType(type);
     setRequestDescription("");
     setShowRequestModal(true);
@@ -94,7 +100,7 @@ export default function MyDataPage() {
 
   const member = data.member as Record<string, unknown>;
   const consents = (data.consents || []) as Array<Record<string, unknown>>;
-  const requests = (data.requests || []) as Array<Record<string, unknown>>;
+  const requests = (data.requests || []) as LgpdRequest[];
 
   return (
     <AppLayout breadcrumbs={[{ label: "LGPD", href: "/lgpd" }, { label: "Meus Dados" }]}>
@@ -108,15 +114,12 @@ export default function MyDataPage() {
       </div>
 
       {/* Actions */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
         <button onClick={handleExport} className="flex items-center gap-2 p-3 rounded-xl border hover:bg-muted transition-colors text-sm">
           <Download className="h-4 w-4 text-blue-500" /> Exportar Dados
         </button>
         <button onClick={() => openRequest("correcao")} className="flex items-center gap-2 p-3 rounded-xl border hover:bg-muted transition-colors text-sm">
           <FileEdit className="h-4 w-4 text-amber-500" /> Solicitar Correção
-        </button>
-        <button onClick={() => openRequest("exclusao")} className="flex items-center gap-2 p-3 rounded-xl border hover:bg-destructive/10 transition-colors text-sm text-destructive">
-          <Trash2 className="h-4 w-4" /> Solicitar Exclusão
         </button>
         <button onClick={() => openRequest("revogacao_consentimento")} className="flex items-center gap-2 p-3 rounded-xl border hover:bg-muted transition-colors text-sm">
           <XCircle className="h-4 w-4 text-orange-500" /> Revogar Consentimento
@@ -137,7 +140,7 @@ export default function MyDataPage() {
               ["Email", member.email || "—"],
             ].map(([label, value]) => (
               <div key={label as string} className="flex justify-between py-2 border-b border-border/50">
-                <span className="text-muted-foreground">{label}</span>
+                <span className="text-muted-foreground">{String(label)}</span>
                 <span className="font-medium">{value as string}</span>
               </div>
             ))}
@@ -153,7 +156,7 @@ export default function MyDataPage() {
               ["Estado", member.addressState || "—"],
             ].map(([label, value]) => (
               <div key={label as string} className="flex justify-between py-2 border-b border-border/50">
-                <span className="text-muted-foreground">{label}</span>
+                <span className="text-muted-foreground">{String(label)}</span>
                 <span className="font-medium">{value as string}</span>
               </div>
             ))}
@@ -172,7 +175,7 @@ export default function MyDataPage() {
                 {consents.map((c) => (
                   <div key={c.id as string} className="flex items-center justify-between p-3 rounded-xl bg-muted/50 text-sm">
                     <div>
-                      <p className="font-medium">{CONSENT_TYPE_LABELS[(c.consentType as string)] || c.consentType}</p>
+                      <p className="font-medium">{CONSENT_TYPE_LABELS[String(c.consentType)] || String(c.consentType)}</p>
                       <p className="text-xs text-muted-foreground">
                         {new Date(c.createdAt as string).toLocaleDateString("pt-BR")}
                       </p>
@@ -196,15 +199,15 @@ export default function MyDataPage() {
                 {requests.map((r) => (
                   <div key={r.id as string} className="p-3 rounded-xl bg-muted/50 text-sm">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium">{REQUEST_TYPE_LABELS[(r.requestType as string)] || r.requestType}</span>
-                      <span className={`flex items-center gap-1 text-xs font-medium ${STATUS_COLORS[(r.status as string)] || ""}`}>
-                        <Clock className="h-3 w-3" /> {STATUS_LABELS[(r.status as string)] || r.status}
+                      <span className="font-medium">{REQUEST_TYPE_LABELS[r.requestType] || r.requestType}</span>
+                      <span className={`flex items-center gap-1 text-xs font-medium ${STATUS_COLORS[r.status] || ""}`}>
+                        <Clock className="h-3 w-3" /> {STATUS_LABELS[r.status] || r.status}
                       </span>
                     </div>
-                    {r.description && <p className="text-xs text-muted-foreground">{r.description as string}</p>}
+                    {r.description && <p className="text-xs text-muted-foreground">{r.description}</p>}
                     {r.adminNotes && (
                       <p className="text-xs mt-1 p-2 bg-background rounded">
-                        <strong>Resposta:</strong> {r.adminNotes as string}
+                        <strong>Resposta:</strong> {r.adminNotes}
                       </p>
                     )}
                     <p className="text-xs text-muted-foreground mt-1">
@@ -218,6 +221,8 @@ export default function MyDataPage() {
         </div>
       </div>
 
+      <DeleteAccountSection />
+
       {/* Request Modal */}
       {showRequestModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowRequestModal(false)}>
@@ -226,21 +231,6 @@ export default function MyDataPage() {
               <h2 className="text-lg font-bold">{REQUEST_TYPE_LABELS[requestType] || "Nova Solicitação"}</h2>
             </div>
             <div className="p-6 space-y-4">
-              {requestType === "exclusao" && (
-                <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
-                    <div className="text-sm">
-                      <p className="font-medium text-destructive">Atenção: esta ação é irreversível</p>
-                      <p className="text-muted-foreground mt-1">
-                        Ao solicitar a exclusão, seus dados pessoais serão anonimizados.
-                        Registros financeiros serão mantidos por obrigação fiscal (5 anos),
-                        mas sem vínculo com seu nome. Sua conta será desativada.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
               {requestType === "revogacao_consentimento" && (
                 <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800">
                   <div className="flex items-start gap-2">
@@ -269,11 +259,7 @@ export default function MyDataPage() {
                 <button
                   onClick={submitRequest}
                   disabled={createRequest.isPending}
-                  className={`px-4 py-2 rounded-lg text-sm flex items-center gap-2 ${
-                    requestType === "exclusao"
-                      ? "bg-destructive text-destructive-foreground"
-                      : "bg-primary text-primary-foreground"
-                  } disabled:opacity-50`}
+                  className="px-4 py-2 rounded-lg text-sm flex items-center gap-2 bg-primary text-primary-foreground disabled:opacity-50"
                 >
                   {createRequest.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                   Enviar Solicitação

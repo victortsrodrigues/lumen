@@ -138,8 +138,8 @@ paths:
             schema:
               $ref: "#/components/schemas/RegisterRequest"
       responses:
-        "201":
-          description: User created
+        "202":
+          description: Account request created and pending approval
           content:
             application/json:
               schema:
@@ -346,6 +346,244 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CsrfTokenResponse"
+
+  /auth/account:
+    delete:
+      operationId: deleteOwnAccount
+      tags: [auth]
+      summary: Permanently delete the current account and personal data
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeleteOwnAccountRequest"
+      responses:
+        "200":
+          description: Account deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteOwnAccountResponse"
+        "400":
+          description: Invalid confirmation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Invalid password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Last active administrator
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/accounts:
+    get:
+      operationId: listAccounts
+      tags: [accounts]
+      summary: List and filter user accounts (Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: limit, schema: { type: integer, default: 20 } }
+        - { in: query, name: status, schema: { $ref: "#/components/schemas/AccountStatus" } }
+        - { in: query, name: role, schema: { $ref: "#/components/schemas/AccountRole" } }
+        - { in: query, name: search, schema: { type: string } }
+      responses:
+        "200":
+          description: Accounts list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountsListResponse"
+
+  /admin/accounts/{id}:
+    get:
+      operationId: getAccount
+      tags: [accounts]
+      summary: Get an account (Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAccount"
+
+  /admin/accounts/{id}/approve:
+    post:
+      operationId: approveAccount
+      tags: [accounts]
+      summary: Approve a pending account (Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApproveAccountRequest"
+      responses:
+        "200":
+          description: Approved account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAccount"
+
+  /admin/accounts/{id}/block:
+    post:
+      operationId: blockAccount
+      tags: [accounts]
+      summary: Temporarily block an account (Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountReasonRequest"
+      responses:
+        "200":
+          description: Blocked account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAccount"
+
+  /admin/accounts/{id}/unblock:
+    post:
+      operationId: unblockAccount
+      tags: [accounts]
+      summary: Unblock an account (Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountCsrfRequest"
+      responses:
+        "200":
+          description: Active account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAccount"
+
+  /admin/accounts/{id}/revoke:
+    post:
+      operationId: revokeAccount
+      tags: [accounts]
+      summary: Revoke an account (Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountReasonRequest"
+      responses:
+        "200":
+          description: Revoked account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAccount"
+
+  /admin/accounts/{id}/reactivate:
+    post:
+      operationId: reactivateAccount
+      tags: [accounts]
+      summary: Reactivate a revoked account (Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountCsrfRequest"
+      responses:
+        "200":
+          description: Active account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAccount"
+
+  /admin/accounts/{id}/role:
+    patch:
+      operationId: updateAccountRole
+      tags: [accounts]
+      summary: Change a member or leader role (Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAccountRoleRequest"
+      responses:
+        "200":
+          description: Updated account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAccount"
+
+  /admin/accounts/{id}/member-link:
+    patch:
+      operationId: updateAccountMemberLink
+      tags: [accounts]
+      summary: Link an account to a member (Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAccountMemberLinkRequest"
+      responses:
+        "200":
+          description: Updated account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAccount"
 
   /audit/logs:
     get:
@@ -5592,11 +5830,14 @@ components:
           type: string
         consentAccepted:
           type: boolean
+        csrfToken:
+          type: string
       required:
         - email
         - password
         - name
         - consentAccepted
+        - csrfToken
 
     LoginRequest:
       type: object
@@ -5679,6 +5920,11 @@ components:
         role:
           type: string
           enum: [admin, leader, member]
+        status:
+          $ref: "#/components/schemas/AccountStatus"
+        memberId:
+          type: string
+          nullable: true
         mfaEnabled:
           type: boolean
         mfaVerified:
@@ -5691,6 +5937,7 @@ components:
         - email
         - name
         - role
+        - status
         - mfaEnabled
         - mfaVerified
         - createdAt
@@ -5707,6 +5954,107 @@ components:
       required:
         - user
         - requiresMfa
+
+    AccountStatus:
+      type: string
+      enum: [pending, active, blocked, revoked, deleting]
+
+    AccountRole:
+      type: string
+      enum: [admin, leader, member]
+
+    AdminAccount:
+      type: object
+      properties:
+        id: { type: string }
+        email: { type: string, format: email }
+        name: { type: string }
+        role: { $ref: "#/components/schemas/AccountRole" }
+        status: { $ref: "#/components/schemas/AccountStatus" }
+        memberId: { type: string, nullable: true }
+        memberName: { type: string, nullable: true }
+        statusReason: { type: string, nullable: true }
+        requestedAt: { type: string, format: date-time }
+        approvedAt: { type: string, format: date-time, nullable: true }
+        lastLoginAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required: [id, email, name, role, status, requestedAt, createdAt, updatedAt]
+
+    AccountStatusSummary:
+      type: object
+      properties:
+        pending: { type: integer }
+        active: { type: integer }
+        blocked: { type: integer }
+        revoked: { type: integer }
+        deleting: { type: integer }
+      required: [pending, active, blocked, revoked, deleting]
+
+    AccountsListResponse:
+      type: object
+      properties:
+        accounts:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminAccount"
+        summary:
+          $ref: "#/components/schemas/AccountStatusSummary"
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+      required: [accounts, summary, total, page, limit]
+
+    AccountCsrfRequest:
+      type: object
+      properties:
+        csrfToken: { type: string }
+      required: [csrfToken]
+
+    AccountReasonRequest:
+      type: object
+      properties:
+        csrfToken: { type: string }
+        reason: { type: string, minLength: 1 }
+      required: [csrfToken, reason]
+
+    ApproveAccountRequest:
+      type: object
+      properties:
+        csrfToken: { type: string }
+        memberId: { type: string, nullable: true }
+      required: [csrfToken]
+
+    UpdateAccountRoleRequest:
+      type: object
+      properties:
+        csrfToken: { type: string }
+        role:
+          type: string
+          enum: [member, leader]
+      required: [csrfToken, role]
+
+    UpdateAccountMemberLinkRequest:
+      type: object
+      properties:
+        csrfToken: { type: string }
+        memberId: { type: string, nullable: true }
+      required: [csrfToken]
+
+    DeleteOwnAccountRequest:
+      type: object
+      properties:
+        password: { type: string }
+        confirmation: { type: string, enum: [EXCLUIR] }
+        csrfToken: { type: string }
+      required: [password, confirmation, csrfToken]
+
+    DeleteOwnAccountResponse:
+      type: object
+      properties:
+        message: { type: string }
+        deletionReference: { type: string }
+      required: [message, deletionReference]
 
     AuditLog:
       type: object

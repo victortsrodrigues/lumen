@@ -245,9 +245,8 @@ router.get("/leader-widgets", requireAuth, async (req: Request, res: Response) =
     return res.status(403).json({ error: "FORBIDDEN", message: "Sem permissão" });
   }
 
-  // Find member linked to this user's email
   const [linkedMember] = await db.select().from(membersTable)
-    .where(eq(membersTable.email, user.email)).limit(1);
+    .where(user.memberId ? eq(membersTable.id, user.memberId) : eq(membersTable.email, user.email)).limit(1);
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -301,9 +300,8 @@ router.get("/leader-widgets", requireAuth, async (req: Request, res: Response) =
 router.get("/member-stats", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
 
-  // Find member record by email
   const [linkedMember] = await db.select().from(membersTable)
-    .where(eq(membersTable.email, user.email)).limit(1);
+    .where(user.memberId ? eq(membersTable.id, user.memberId) : eq(membersTable.email, user.email)).limit(1);
 
   if (!linkedMember) {
     return res.json({

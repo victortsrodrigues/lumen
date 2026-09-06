@@ -5,17 +5,21 @@
  * Church ERP API
  * OpenAPI spec version: 0.2.0
  */
+import type { AccountRole } from "./accountRole";
 import type { AccountStatus } from "./accountStatus";
-import type { UserProfileRole } from "./userProfileRole";
 
-export interface UserProfile {
+export interface AdminAccount {
   id: string;
   email: string;
   name: string;
-  role: UserProfileRole;
+  role: AccountRole;
   status: AccountStatus;
   memberId?: string | null;
-  mfaEnabled: boolean;
-  mfaVerified: boolean;
+  memberName?: string | null;
+  statusReason?: string | null;
+  requestedAt: Date;
+  approvedAt?: Date | null;
+  lastLoginAt?: Date | null;
   createdAt: Date;
+  updatedAt: Date;
 }

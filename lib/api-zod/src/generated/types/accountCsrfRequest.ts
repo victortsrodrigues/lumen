@@ -6,11 +6,6 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface RegisterRequest {
-  email: string;
-  /** @minLength 8 */
-  password: string;
-  name: string;
-  consentAccepted: boolean;
+export interface AccountCsrfRequest {
   csrfToken: string;
 }

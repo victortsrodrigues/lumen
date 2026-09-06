@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from "vitest";
-import { request, registerAdmin, registerUser, loginUser, assertErrorShape } from "./helpers";
+import { request, getCsrfToken, registerAdmin, registerUser, loginUser, assertErrorShape } from "./helpers";
 
 const P = "lgpd-" + crypto.randomUUID().slice(0, 6);
 
@@ -81,8 +81,8 @@ describe("06-lgpd", () => {
     const res = await request("POST", "/lgpd/requests", {
       requestType: "exclusao", description: "Quero sair",
     }, memberCk);
-    expect(res.status).toBe(201);
-    expect(res.body.requestType).toBe("exclusao");
+    expect(res.status).toBe(409);
+    expect(res.body.error).toBe("USE_ACCOUNT_DELETION");
   });
 
   it("7. Request without type → 400", async () => {
@@ -96,7 +96,7 @@ describe("06-lgpd", () => {
   it("8. My requests", async () => {
     const res = await request("GET", "/lgpd/requests/mine", undefined, memberCk);
     expect(res.status).toBe(200);
-    expect(res.body.requests.length).toBeGreaterThanOrEqual(2);
+    expect(res.body.requests.length).toBeGreaterThanOrEqual(1);
   });
 
   it("9. Admin queue", async () => {
@@ -107,7 +107,6 @@ describe("06-lgpd", () => {
   });
 
   let rejRequestId: string;
-  let delRequestId: string;
 
   it("10. Reject without notes → 400", async () => {
     // Get a request to reject
@@ -130,8 +129,7 @@ describe("06-lgpd", () => {
     expect(res.body.adminNotes).toBe("Dados estão corretos");
   });
 
-  it("12. Approve deletion → anonymizes member", async () => {
-    // Create a separate member for deletion test (to not affect other tests)
+  it("12. Self-delete → automatically anonymizes member", async () => {
     const delEmail = `lgpd-del-${P}@test.local`;
     await registerUser(delEmail, "DelPass1234!", `Del Member ${P}`);
     const delLogin = await loginUser(delEmail, "DelPass1234!");
@@ -146,23 +144,22 @@ describe("06-lgpd", () => {
       type: "dizimo", date: "2026-03-15", amount: 300, paymentMethod: "pix", memberId: delMemId,
     }, adminCk);
 
-    // Create deletion request
-    const delReqRes = await request("POST", "/lgpd/requests", {
-      requestType: "exclusao", description: "Excluir dados",
+    const csrfToken = await getCsrfToken();
+    const res = await request("DELETE", "/auth/account", {
+      password: "DelPass1234!", confirmation: "EXCLUIR", csrfToken,
     }, delLogin.cookie);
-    delRequestId = delReqRes.body.id;
-
-    // Approve
-    const res = await request("PUT", `/lgpd/requests/${delRequestId}`, {
-      status: "concluido", adminNotes: "Aprovado conforme LGPD",
-    }, adminCk);
     expect(res.status).toBe(200);
-    expect(res.body.status).toBe("concluido");
+    expect(res.body.deletionReference).toBeTruthy();
 
     // Verify member anonymized
     const memberCheck = await request("GET", `/members/${delMemId}`, undefined, adminCk);
     expect(memberCheck.body.fullName).toContain("Anonimizado");
-    expect(memberCheck.body.status).toBe("inativo");
+    expect(memberCheck.body.status).toBe("rol_apartado");
+
+    const loginAfterDeletion = await request("POST", "/auth/login", {
+      email: delEmail, password: "DelPass1234!", csrfToken: await getCsrfToken(),
+    });
+    expect(loginAfterDeletion.status).toBe(401);
 
     // Verify finance anonymized
     const finCheck = await request("GET", "/finance/entries", undefined, adminCk);

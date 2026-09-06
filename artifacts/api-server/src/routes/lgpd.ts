@@ -38,10 +38,10 @@ function getIp(req: Request): string {
   return req.socket?.remoteAddress ?? "unknown";
 }
 
-// Helper: find member by user email
-async function findMemberByEmail(email: string) {
+// Prefer the explicit account-member link; email is a compatibility fallback.
+async function findMemberForUser(memberId: string | null, email: string) {
   const [member] = await db.select().from(membersTable)
-    .where(eq(membersTable.email, email)).limit(1);
+    .where(memberId ? eq(membersTable.id, memberId) : eq(membersTable.email, email)).limit(1);
   return member;
 }
 
@@ -51,7 +51,7 @@ async function findMemberByEmail(email: string) {
 
 // GET /lgpd/my-data — Ver dados pessoais
 router.get("/my-data", requireAuth, async (req: Request, res: Response) => {
-  const member = await findMemberByEmail(req.user!.email);
+  const member = await findMemberForUser(req.user!.memberId, req.user!.email);
   if (!member) {
     res.status(404).json({ error: "NOT_FOUND", message: "Membro não encontrado para este usuário" });
     return;
@@ -117,7 +117,7 @@ router.get("/my-data/export", requireAuth, async (req: Request, res: Response) =
   const userId = req.user!.userId;
   const ip = getIp(req);
 
-  const member = await findMemberByEmail(req.user!.email);
+  const member = await findMemberForUser(req.user!.memberId, req.user!.email);
   if (!member) {
     res.status(404).json({ error: "NOT_FOUND", message: "Membro não encontrado" });
     return;
@@ -196,7 +196,7 @@ router.post("/requests", requireAuth, async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
 
-  const member = await findMemberByEmail(req.user!.email);
+  const member = await findMemberForUser(req.user!.memberId, req.user!.email);
   if (!member) {
     res.status(404).json({ error: "NOT_FOUND", message: "Membro não encontrado" });
     return;
@@ -205,6 +205,17 @@ router.post("/requests", requireAuth, async (req: Request, res: Response) => {
   const { requestType, description } = req.body;
   if (!requestType) {
     res.status(400).json({ error: "VALIDATION_ERROR", message: "Tipo de solicitação é obrigatório" });
+    return;
+  }
+  if (requestType === "exclusao") {
+    res.status(409).json({
+      error: "USE_ACCOUNT_DELETION",
+      message: "A exclusão da conta é automática e deve ser confirmada em Meu Perfil",
+    });
+    return;
+  }
+  if (!["correcao", "exportacao", "revogacao_consentimento"].includes(requestType)) {
+    res.status(400).json({ error: "VALIDATION_ERROR", message: "Tipo de solicitação inválido" });
     return;
   }
 

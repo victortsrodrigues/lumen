@@ -1,4 +1,5 @@
 import { createReadStream, existsSync, mkdirSync } from "fs";
+import { unlink } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
 import { lookup } from "mime-types";
@@ -55,6 +56,15 @@ export class LocalStorageProvider implements StorageProvider {
   async fileExists(objectPath: string): Promise<boolean> {
     const filePath = this.resolveFilePath(objectPath);
     return existsSync(filePath);
+  }
+
+  async deleteFile(objectPath: string): Promise<void> {
+    const filePath = this.resolveFilePath(objectPath);
+    try {
+      await unlink(filePath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
   }
 
   /** Get the absolute filesystem path for a given objectPath */

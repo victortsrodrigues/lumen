@@ -24,9 +24,14 @@ export async function ensureBootstrapAdmin(): Promise<void> {
   try {
     const [existing] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
     if (existing) {
-      if (existing.role !== "admin") {
-        await db.update(usersTable).set({ role: "admin" }).where(eq(usersTable.id, existing.id));
-        logger.info({ email }, "Bootstrap: promoted existing user to admin");
+      if (existing.role !== "admin" || existing.status !== "active") {
+        await db.update(usersTable).set({
+          role: "admin",
+          status: "active",
+          sessionVersion: existing.sessionVersion + 1,
+          updatedAt: new Date(),
+        }).where(eq(usersTable.id, existing.id));
+        logger.info({ email }, "Bootstrap: ensured existing admin access");
       }
       return;
     }
@@ -37,6 +42,8 @@ export async function ensureBootstrapAdmin(): Promise<void> {
       passwordHash,
       name,
       role: "admin",
+      status: "active",
+      approvedAt: new Date(),
       mfaEnabled: false,
     }).returning();
 
@@ -56,6 +63,9 @@ export async function ensureBootstrapAdmin(): Promise<void> {
     }).returning();
 
     await ensureMemberAreas(member.id, user.id);
+
+    await db.update(usersTable).set({ memberId: member.id, updatedAt: new Date() })
+      .where(eq(usersTable.id, user.id));
 
     await db.insert(memberHistoryTable).values({
       memberId: member.id,

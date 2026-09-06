@@ -38,6 +38,10 @@ export class ObjectStorageService {
     return this.provider.fileExists(objectPath);
   }
 
+  async deleteObjectEntityFile(objectPath: string): Promise<void> {
+    return this.provider.deleteFile(objectPath);
+  }
+
   normalizeObjectEntityPath(rawPath: string): string {
     // If it's already a normalized path, return as-is
     if (rawPath.startsWith("/objects/") || rawPath.startsWith("/api/storage/upload-target/")) {

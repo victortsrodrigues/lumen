@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 import speakeasy from "speakeasy";
 import {
   request, getCsrfToken, registerUser, loginUser, registerAdmin,
-  getResetToken, generateExpiredToken, assertErrorShape,
+  getResetToken, generateExpiredToken, assertErrorShape, pool,
 } from "./helpers";
 
 const PREFIX = "auth-test-" + crypto.randomUUID().slice(0, 6);
@@ -19,19 +19,22 @@ describe("01-auth", () => {
   });
 
   it("2. Register OK", async () => {
+    const csrfToken = await getCsrfToken();
     const res = await request("POST", "/auth/register", {
-      email, password, name: "Auth Test User", consentAccepted: true,
+      email, password, name: "Auth Test User", consentAccepted: true, csrfToken,
     });
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(202);
     expect(res.body.user.role).toBe("member");
+    expect(res.body.user.status).toBe("pending");
     expect(res.body.user.mfaEnabled).toBe(false);
-    expect(res.body.message).toBe("Conta criada com sucesso");
-    cookie = res.cookie;
+    expect(res.body.message).toContain("aprovação");
+    expect(res.cookie).toBe("");
   });
 
   it("3. Register duplicate email → 409", async () => {
+    const csrfToken = await getCsrfToken();
     const res = await request("POST", "/auth/register", {
-      email, password, name: "Dup", consentAccepted: true,
+      email, password, name: "Dup", consentAccepted: true, csrfToken,
     });
     expect(res.status).toBe(409);
     expect(res.body.error).toBe("EMAIL_IN_USE");
@@ -39,26 +42,40 @@ describe("01-auth", () => {
   });
 
   it("4. Register short password → 400", async () => {
+    const csrfToken = await getCsrfToken();
     const res = await request("POST", "/auth/register", {
-      email: `short-${PREFIX}@test.local`, password: "123", name: "Short", consentAccepted: true,
+      email: `short-${PREFIX}@test.local`, password: "123", name: "Short", consentAccepted: true, csrfToken,
     });
     expect(res.status).toBe(400);
     expect(res.body.message).toContain("8 caracteres");
   });
 
   it("5. Register without consent → 400", async () => {
+    const csrfToken = await getCsrfToken();
     const res = await request("POST", "/auth/register", {
-      email: `nocons-${PREFIX}@test.local`, password, name: "NoCons",
+      email: `nocons-${PREFIX}@test.local`, password, name: "NoCons", csrfToken,
     });
     expect(res.status).toBe(400);
   });
 
   it("6. Register missing fields → 400", async () => {
-    const res = await request("POST", "/auth/register", { email: `x-${PREFIX}@test.local` });
+    const csrfToken = await getCsrfToken();
+    const res = await request("POST", "/auth/register", { email: `x-${PREFIX}@test.local`, csrfToken });
     expect(res.status).toBe(400);
   });
 
-  it("7. Login OK", async () => {
+  it("7. Pending account cannot log in", async () => {
+    const csrf = await getCsrfToken();
+    const res = await request("POST", "/auth/login", { email, password, csrfToken: csrf });
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe("ACCOUNT_PENDING");
+  });
+
+  it("8. Login OK after approval", async () => {
+    await pool.query(
+      "UPDATE users SET status = 'active', approved_at = NOW() WHERE email = $1",
+      [email]
+    );
     const csrf = await getCsrfToken();
     const res = await request("POST", "/auth/login", { email, password, csrfToken: csrf });
     expect(res.status).toBe(200);
@@ -67,20 +84,20 @@ describe("01-auth", () => {
     cookie = res.cookie;
   });
 
-  it("8. Login invalid CSRF → 400", async () => {
+  it("9. Login invalid CSRF → 400", async () => {
     const res = await request("POST", "/auth/login", { email, password, csrfToken: "bad" });
     expect(res.status).toBe(400);
     expect(res.body.error).toBe("CSRF_ERROR");
   });
 
-  it("9. Login wrong password → 401", async () => {
+  it("10. Login wrong password → 401", async () => {
     const csrf = await getCsrfToken();
     const res = await request("POST", "/auth/login", { email, password: "wrong", csrfToken: csrf });
     expect(res.status).toBe(401);
     expect(res.body.error).toBe("INVALID_CREDENTIALS");
   });
 
-  it("10. Login nonexistent email → 401", async () => {
+  it("11. Login nonexistent email → 401", async () => {
     const csrf = await getCsrfToken();
     const res = await request("POST", "/auth/login", {
       email: "nobody@nowhere.com", password: "x", csrfToken: csrf,
@@ -88,7 +105,7 @@ describe("01-auth", () => {
     expect(res.status).toBe(401);
   });
 
-  it("11. Rate limiting after 6 attempts", async () => {
+  it("12. Rate limiting after 6 attempts", async () => {
     const csrf = await getCsrfToken();
     const fakeIp = "10.0.0.99";
     for (let i = 0; i < 6; i++) {
@@ -102,12 +119,12 @@ describe("01-auth", () => {
     expect(res.status).toBe(429);
   });
 
-  it("12. Login OK from different IP after rate limit", async () => {
+  it("13. Login OK from different IP after rate limit", async () => {
     const login = await loginUser(email, password, { "X-Forwarded-For": "10.0.0.100" });
     expect(login.user.email).toBe(email);
   });
 
-  it("13. GET /auth/me authenticated", async () => {
+  it("14. GET /auth/me authenticated", async () => {
     const res = await request("GET", "/auth/me", undefined, cookie);
     expect(res.status).toBe(200);
     expect(res.body.email).toBe(email);
@@ -115,36 +132,36 @@ describe("01-auth", () => {
     expect(res.body).toHaveProperty("role");
   });
 
-  it("14. GET /auth/me without cookie → 401", async () => {
+  it("15. GET /auth/me without cookie → 401", async () => {
     const res = await request("GET", "/auth/me");
     expect(res.status).toBe(401);
     assertErrorShape(res);
   });
 
-  it("15. GET /auth/me with expired JWT → 401", async () => {
-    const expiredToken = generateExpiredToken({ userId: "x", email: "x", role: "member", mfaVerified: false });
+  it("16. GET /auth/me with expired JWT → 401", async () => {
+    const expiredToken = generateExpiredToken({ userId: "x", email: "x", role: "member", memberId: null, sessionVersion: 1, mfaVerified: false });
     const res = await request("GET", "/auth/me", undefined, `auth_token=${expiredToken}`);
     expect(res.status).toBe(401);
   });
 
-  it("16. Logout", async () => {
+  it("17. Logout", async () => {
     const res = await request("POST", "/auth/logout", undefined, cookie);
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Logout realizado com sucesso");
   });
 
-  it("17. Forgot password → always 200", async () => {
+  it("18. Forgot password → always 200", async () => {
     const csrf = await getCsrfToken();
     const res = await request("POST", "/auth/forgot-password", { email, csrfToken: csrf });
     expect(res.status).toBe(200);
   });
 
-  it("18. Forgot password without CSRF → 400", async () => {
+  it("19. Forgot password without CSRF → 400", async () => {
     const res = await request("POST", "/auth/forgot-password", { email });
     expect(res.status).toBe(400);
   });
 
-  it("19. Reset password with valid token", async () => {
+  it("20. Reset password with valid token", async () => {
     // First trigger forgot-password to generate token
     const csrf1 = await getCsrfToken();
     await request("POST", "/auth/forgot-password", { email, csrfToken: csrf1 });
@@ -159,7 +176,7 @@ describe("01-auth", () => {
     expect(res.status).toBe(200);
   });
 
-  it("20. Reset password invalid token → 400", async () => {
+  it("21. Reset password invalid token → 400", async () => {
     const csrf = await getCsrfToken();
     const res = await request("POST", "/auth/reset-password", {
       token: "invalid-token", password: "NewPass1234!", csrfToken: csrf,
@@ -171,7 +188,7 @@ describe("01-auth", () => {
   let mfaAdminCookie: string;
   let mfaSecret: string;
 
-  it("21. MFA setup", async () => {
+  it("22. MFA setup", async () => {
     const admin = await registerAdmin(`mfa-${PREFIX.slice(0, 4)}`);
     mfaAdminCookie = admin.cookie;
     const res = await request("POST", "/auth/mfa/setup", undefined, mfaAdminCookie);
@@ -182,7 +199,7 @@ describe("01-auth", () => {
     mfaSecret = res.body.secret;
   });
 
-  it("22. MFA verify invalid code → 400", async () => {
+  it("23. MFA verify invalid code → 400", async () => {
     const csrf = await getCsrfToken();
     const res = await request("POST", "/auth/mfa/verify", {
       code: "000000", csrfToken: csrf,
@@ -191,7 +208,7 @@ describe("01-auth", () => {
     expect(res.body.error).toBe("INVALID_CODE");
   });
 
-  it("23. MFA verify valid TOTP", async () => {
+  it("24. MFA verify valid TOTP", async () => {
     const code = speakeasy.totp({ secret: mfaSecret, encoding: "base32" });
     const csrf = await getCsrfToken();
     const res = await request("POST", "/auth/mfa/verify", {

@@ -148,6 +148,23 @@ function buildHistoryDiff(before: Record<string, unknown>, after: Record<string,
   return changes;
 }
 
+async function findLinkedMember(user: NonNullable<Request["user"]>) {
+  if (user.memberId) {
+    const [member] = await db.select().from(membersTable)
+      .where(eq(membersTable.id, user.memberId)).limit(1);
+    if (member) return member;
+  }
+
+  // Compatibility for accounts created before the explicit member link.
+  const matches = await db.select().from(membersTable)
+    .where(ilike(membersTable.email, user.email)).limit(2);
+  if (matches.length !== 1) return undefined;
+  await db.update(usersTable).set({ memberId: matches[0].id, updatedAt: new Date() })
+    .where(eq(usersTable.id, user.userId));
+  user.memberId = matches[0].id;
+  return matches[0];
+}
+
 // ─── SPOUSE MIRROR ──────────────────────────────────────────────────────────
 
 /**
@@ -245,9 +262,7 @@ router.get("/", requireAuth, async (req: Request, res: Response) => {
 
   // Members can only see their own profile
   if (role === "member") {
-    const [member] = await db.select().from(membersTable).where(
-      ilike(membersTable.email, req.user!.email)
-    ).limit(1);
+    const member = await findLinkedMember(req.user!);
     if (!member) {
       res.json({ members: [], total: 0, page: 1, limit });
       return;
@@ -531,45 +546,10 @@ router.post("/import/csv", requireAuth, requireRole("admin", "leader"), async (r
 // ═══════════════════════════════════════════════════════════════════════════════
 
 router.get("/me", requireAuth, async (req: Request, res: Response) => {
-  const userId = req.user!.userId;
-  const email = req.user!.email;
-
-  let [member] = await db.select().from(membersTable)
-    .where(ilike(membersTable.email, email)).limit(1);
-
+  const member = await findLinkedMember(req.user!);
   if (!member) {
-    const [u] = await db.select().from(usersTable)
-      .where(eq(usersTable.id, userId)).limit(1);
-    const fullName = u?.name || email.split("@")[0];
-
-    const [created] = await db.insert(membersTable).values({
-      fullName,
-      email,
-      classification: "comungante",
-      status: "ativo" as const,
-      createdByUserId: userId,
-      updatedByUserId: userId,
-    }).returning();
-
-    await ensureMemberAreas(created.id, userId);
-
-    await db.insert(memberHistoryTable).values({
-      memberId: created.id,
-      changedByUserId: userId,
-      changeType: "created",
-      fieldChanges: { fullName, email, autoCreated: true },
-    });
-
-    await createAuditLog({
-      userId,
-      action: "MEMBER_AUTO_CREATED",
-      resourceType: "member",
-      resourceId: created.id,
-      details: { reason: "first_profile_access" },
-      ipAddress: getIp(req),
-    });
-
-    member = created;
+    res.status(404).json({ error: "NOT_FOUND", message: "Nenhum membro está vinculado a esta conta" });
+    return;
   }
 
   const extras = await loadMemberExtras(member);
@@ -578,11 +558,9 @@ router.get("/me", requireAuth, async (req: Request, res: Response) => {
 
 router.put("/me", requireAuth, async (req: Request, res: Response) => {
   const userId = req.user!.userId;
-  const email = req.user!.email;
   const ip = getIp(req);
 
-  const [existing] = await db.select().from(membersTable)
-    .where(ilike(membersTable.email, email)).limit(1);
+  const existing = await findLinkedMember(req.user!);
   if (!existing) {
     res.status(404).json({ error: "NOT_FOUND", message: "Perfil de membro não encontrado" });
     return;
@@ -991,7 +969,7 @@ router.get("/:id/ministries", requireAuth, async (req: Request, res: Response) =
   const user = req.user!;
 
   if (user.role === "member") {
-    const [self] = await db.select().from(membersTable).where(eq(membersTable.email, user.email)).limit(1);
+    const self = await findLinkedMember(user);
     if (!self || self.id !== id) {
       res.status(403).json({ error: "Sem permissao para ver ministerios deste membro" });
       return;

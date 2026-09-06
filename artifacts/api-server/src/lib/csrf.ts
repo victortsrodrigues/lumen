@@ -16,9 +16,16 @@ export function validateCsrfToken(token: string): boolean {
   const parts = token.split(":");
   if (parts.length !== 3) return false;
   const [timestamp, random, hmac] = parts;
+  if (!timestamp || !random || !hmac) return false;
   const data = `${timestamp}:${random}`;
   const expectedHmac = crypto.createHmac("sha256", CSRF_SECRET).update(data).digest("hex");
-  const isValid = crypto.timingSafeEqual(Buffer.from(hmac), Buffer.from(expectedHmac));
-  const isNotExpired = Date.now() - parseInt(timestamp) < TOKEN_VALIDITY_MS;
+  const supplied = Buffer.from(hmac);
+  const expected = Buffer.from(expectedHmac);
+  if (supplied.length !== expected.length) return false;
+  const issuedAt = Number(timestamp);
+  if (!Number.isFinite(issuedAt)) return false;
+  const age = Date.now() - issuedAt;
+  const isValid = crypto.timingSafeEqual(supplied, expected);
+  const isNotExpired = age >= 0 && age < TOKEN_VALIDITY_MS;
   return isValid && isNotExpired;
 }

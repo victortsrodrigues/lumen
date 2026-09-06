@@ -4,7 +4,7 @@ import {
   Layers, Shield, ShieldCheck, LogOut,
   ChevronDown, ArrowDownToLine, ArrowUpFromLine, FileBarChart, Lock,
   BookOpen, Library, ClipboardCheck, GraduationCap, User, UsersRound, Package, CalendarCheck, PiggyBank, BarChart3, Target, FileText,
-  HeartHandshake, Music, BookMarked, Newspaper, MessageSquare, Globe, QrCode, UserPlus, Activity, Gavel,
+  HeartHandshake, Music, BookMarked, Newspaper, MessageSquare, Globe, QrCode, UserPlus, Activity, Gavel, UserCog,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth-context";
@@ -233,7 +233,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps = {}) {
                 )}
               />
               {item.label}
-              {"placeholder" in item && item.placeholder && (
+              {Boolean((item as any).placeholder) && (
                 <span className="ml-auto text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/10 text-white/50">
                   Em breve
                 </span>
@@ -247,6 +247,23 @@ export function Sidebar({ open = false, onClose }: SidebarProps = {}) {
             <div className="text-xs font-semibold text-white/40 uppercase tracking-wider mt-8 mb-4 px-2">
               Administração
             </div>
+            <Link
+              href="/admin/accounts"
+              className={cn(
+                "flex items-center px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group",
+                location.startsWith("/admin/accounts")
+                  ? "bg-[#00c6d7]/15 text-[#00c6d7]"
+                  : "text-white/60 hover:bg-white/5 hover:text-white"
+              )}
+            >
+              <UserCog
+                className={cn(
+                  "w-5 h-5 mr-3 transition-colors",
+                  location.startsWith("/admin/accounts") ? "text-[#00c6d7]" : "text-white/40 group-hover:text-white"
+                )}
+              />
+              Contas e acessos
+            </Link>
             <Link
               href="/pages"
               className={cn(

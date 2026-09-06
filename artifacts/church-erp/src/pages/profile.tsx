@@ -4,6 +4,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { cleanFormPayload } from "@/hooks/use-form-errors";
+import { DeleteAccountSection } from "@/components/account/DeleteAccountSection";
 import {
   User, Loader2, Save, Mail, Phone, MapPin, Calendar, Edit2, X, UploadCloud,
 } from "lucide-react";
@@ -48,7 +49,7 @@ export default function ProfilePage() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: cepData } = useLookupCep(cepToLookup, { query: { enabled: cepToLookup.length === 8 } });
+  const { data: cepData } = useLookupCep(cepToLookup, { query: { enabled: cepToLookup.length === 8 } } as any);
   const { mutateAsync: requestUploadUrl } = useRequestUploadUrl();
 
   useEffect(() => {
@@ -84,7 +85,6 @@ export default function ProfilePage() {
     if (!profile) return;
     setForm({
       fullName: profile.fullName || "",
-      cpf: (profile as any).cpfMasked?.replace(/\D/g, "") || "",
       dateOfBirth: profile.dateOfBirth || "",
       sex: profile.sex || "",
       phone: formatPhone((profile as any).phone || ""),
@@ -193,6 +193,7 @@ export default function ProfilePage() {
           <User className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-30" />
           <p className="text-muted-foreground">Seu perfil de membro ainda não foi criado.</p>
         </div>
+        <DeleteAccountSection />
       </AppLayout>
     );
   }
@@ -446,6 +447,7 @@ export default function ProfilePage() {
             </div>
           </form>
         )}
+        <DeleteAccountSection />
       </div>
     </AppLayout>
   );

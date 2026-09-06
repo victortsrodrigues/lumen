@@ -4,10 +4,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRegister } from '@workspace/api-client-react';
 import { useAuth } from '@/hooks/use-auth-context';
-import { Link, useLocation } from 'wouter';
+import { Link } from 'wouter';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { CheckCircle2, Loader2, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const registerSchema = z.object({
@@ -22,12 +22,12 @@ const registerSchema = z.object({
 type RegisterForm = z.infer<typeof registerSchema>;
 
 export default function Register() {
-  const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { getValidCsrfToken, checkSession } = useAuth();
+  const { getValidCsrfToken } = useAuth();
   const { mutateAsync: registerMutation } = useRegister();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
 
   const { register, handleSubmit, formState: { errors } } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
@@ -41,9 +41,8 @@ export default function Register() {
         data: { ...data, csrfToken }
       });
 
-      await checkSession();
-      toast({ title: "Conta criada!", description: "Bem-vindo ao sistema." });
-      setLocation('/');
+      setSubmittedEmail(data.email);
+      toast({ title: "Solicitação enviada", description: "Aguarde a aprovação de um administrador." });
     } catch (error: any) {
       toast({
         title: "Erro no registro",
@@ -54,6 +53,27 @@ export default function Register() {
       setIsSubmitting(false);
     }
   };
+
+  if (submittedEmail) {
+    return (
+      <AuthLayout title="Solicitação enviada">
+        <div className="text-center space-y-5">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+            <CheckCircle2 className="h-8 w-8" />
+          </div>
+          <div className="space-y-2">
+            <p className="text-foreground font-medium">Seu pedido de acesso foi recebido.</p>
+            <p className="text-sm text-muted-foreground">
+              Um administrador precisa aprovar a conta <strong>{submittedEmail}</strong> antes do primeiro acesso.
+            </p>
+          </div>
+          <Link href="/login" className="inline-flex w-full items-center justify-center rounded-xl bg-primary px-6 py-3.5 font-semibold text-primary-foreground hover:bg-primary/90">
+            Voltar para o login
+          </Link>
+        </div>
+      </AuthLayout>
+    );
+  }
 
   return (
     <AuthLayout title="Criar conta" subtitle="Preencha os dados abaixo para começar.">

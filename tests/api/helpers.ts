@@ -82,13 +82,25 @@ export async function registerUser(
   password: string,
   name: string
 ): Promise<{ cookie: string; user: any }> {
+  const csrfToken = await getCsrfToken();
   const res = await request("POST", "/auth/register", {
     email,
     password,
     name,
     consentAccepted: true,
+    csrfToken,
   });
-  return { cookie: res.cookie, user: res.body.user || res.body };
+  if (res.status !== 202) {
+    throw new Error(`Failed to register test user: ${res.status} ${JSON.stringify(res.body)}`);
+  }
+
+  // Most API suites need a usable account. Public registration itself remains
+  // pending; tests that exercise approval use the raw request helper instead.
+  await pool.query(
+    "UPDATE users SET status = 'active', approved_at = NOW() WHERE id = $1",
+    [res.body.user.id]
+  );
+  return { cookie: "", user: res.body.user };
 }
 
 export async function loginUser(

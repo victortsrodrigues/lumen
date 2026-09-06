@@ -29,12 +29,14 @@ import institutionalRouter from "./institutional";
 import pixRouter from "./pix";
 import notificationsRouter from "./notifications";
 import councilRouter from "./council";
+import accountsRouter from "./accounts";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use("/dashboard", dashboardRouter);
 router.use("/auth", authRouter);
+router.use("/admin/accounts", accountsRouter);
 router.use("/audit", auditRouter);
 router.use("/members", membersRouter);
 router.use("/member-groups", memberGroupsRouter);

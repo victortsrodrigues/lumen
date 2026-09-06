@@ -7,7 +7,9 @@ export interface JwtPayload {
   userId: string;
   email: string;
   role: string;
+  memberId: string | null;
   mfaVerified: boolean;
+  sessionVersion: number;
 }
 
 export function signToken(payload: JwtPayload): string {

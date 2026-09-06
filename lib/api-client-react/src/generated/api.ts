@@ -17,6 +17,9 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AccountCsrfRequest,
+  AccountReasonRequest,
+  AccountsListResponse,
   AddBudgetItems201,
   AddChildRequest,
   AddCouncilMeetingItemRequest,
@@ -25,7 +28,9 @@ import type {
   AddMinistryMemberRequest,
   AddToScheduleRequest,
   AddVisitRequest,
+  AdminAccount,
   AnnualCultoReport,
+  ApproveAccountRequest,
   Article,
   ArticlesListResponse,
   Asset,
@@ -106,6 +111,8 @@ import type {
   CultoSongsReorderResponse,
   CultosListResponse,
   DashboardStats,
+  DeleteOwnAccountRequest,
+  DeleteOwnAccountResponse,
   Directive,
   DirectiveDetail,
   DirectivesListResponse,
@@ -158,6 +165,7 @@ import type {
   LessonsListResponse,
   LgpdRequest,
   LgpdRequestsListResponse,
+  ListAccountsParams,
   ListArticlesParams,
   ListAssetsParams,
   ListBudgetsParams,
@@ -249,6 +257,8 @@ import type {
   UpcomingCouncilMeetingsResponse,
   UpcomingCultosResponse,
   UpcomingEventsResponse,
+  UpdateAccountMemberLinkRequest,
+  UpdateAccountRoleRequest,
   UpdateArticleRequest,
   UpdateAssetRequest,
   UpdateBudgetItemBody,
@@ -1329,6 +1339,883 @@ export function useGetCsrfToken<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Permanently delete the current account and personal data
+ */
+export const getDeleteOwnAccountUrl = () => {
+  return `/api/auth/account`;
+};
+
+export const deleteOwnAccount = async (
+  deleteOwnAccountRequest: DeleteOwnAccountRequest,
+  options?: RequestInit,
+): Promise<DeleteOwnAccountResponse> => {
+  return customFetch<DeleteOwnAccountResponse>(getDeleteOwnAccountUrl(), {
+    ...options,
+    method: "DELETE",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(deleteOwnAccountRequest),
+  });
+};
+
+export const getDeleteOwnAccountMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteOwnAccount>>,
+    TError,
+    { data: BodyType<DeleteOwnAccountRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteOwnAccount>>,
+  TError,
+  { data: BodyType<DeleteOwnAccountRequest> },
+  TContext
+> => {
+  const mutationKey = ["deleteOwnAccount"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteOwnAccount>>,
+    { data: BodyType<DeleteOwnAccountRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return deleteOwnAccount(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteOwnAccountMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteOwnAccount>>
+>;
+export type DeleteOwnAccountMutationBody = BodyType<DeleteOwnAccountRequest>;
+export type DeleteOwnAccountMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Permanently delete the current account and personal data
+ */
+export const useDeleteOwnAccount = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteOwnAccount>>,
+    TError,
+    { data: BodyType<DeleteOwnAccountRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteOwnAccount>>,
+  TError,
+  { data: BodyType<DeleteOwnAccountRequest> },
+  TContext
+> => {
+  return useMutation(getDeleteOwnAccountMutationOptions(options));
+};
+
+/**
+ * @summary List and filter user accounts (Admin only)
+ */
+export const getListAccountsUrl = (params?: ListAccountsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/accounts?${stringifiedParams}`
+    : `/api/admin/accounts`;
+};
+
+export const listAccounts = async (
+  params?: ListAccountsParams,
+  options?: RequestInit,
+): Promise<AccountsListResponse> => {
+  return customFetch<AccountsListResponse>(getListAccountsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListAccountsQueryKey = (params?: ListAccountsParams) => {
+  return [`/api/admin/accounts`, ...(params ? [params] : [])] as const;
+};
+
+export const getListAccountsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAccounts>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListAccountsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAccounts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListAccountsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listAccounts>>> = ({
+    signal,
+  }) => listAccounts(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAccounts>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAccountsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAccounts>>
+>;
+export type ListAccountsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List and filter user accounts (Admin only)
+ */
+
+export function useListAccounts<
+  TData = Awaited<ReturnType<typeof listAccounts>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListAccountsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAccounts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAccountsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get an account (Admin only)
+ */
+export const getGetAccountUrl = (id: string) => {
+  return `/api/admin/accounts/${id}`;
+};
+
+export const getAccount = async (
+  id: string,
+  options?: RequestInit,
+): Promise<AdminAccount> => {
+  return customFetch<AdminAccount>(getGetAccountUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAccountQueryKey = (id: string) => {
+  return [`/api/admin/accounts/${id}`] as const;
+};
+
+export const getGetAccountQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAccount>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAccount>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAccountQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAccount>>> = ({
+    signal,
+  }) => getAccount(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAccount>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAccountQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAccount>>
+>;
+export type GetAccountQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get an account (Admin only)
+ */
+
+export function useGetAccount<
+  TData = Awaited<ReturnType<typeof getAccount>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAccount>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAccountQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Approve a pending account (Admin only)
+ */
+export const getApproveAccountUrl = (id: string) => {
+  return `/api/admin/accounts/${id}/approve`;
+};
+
+export const approveAccount = async (
+  id: string,
+  approveAccountRequest: ApproveAccountRequest,
+  options?: RequestInit,
+): Promise<AdminAccount> => {
+  return customFetch<AdminAccount>(getApproveAccountUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(approveAccountRequest),
+  });
+};
+
+export const getApproveAccountMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof approveAccount>>,
+    TError,
+    { id: string; data: BodyType<ApproveAccountRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof approveAccount>>,
+  TError,
+  { id: string; data: BodyType<ApproveAccountRequest> },
+  TContext
+> => {
+  const mutationKey = ["approveAccount"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof approveAccount>>,
+    { id: string; data: BodyType<ApproveAccountRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return approveAccount(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ApproveAccountMutationResult = NonNullable<
+  Awaited<ReturnType<typeof approveAccount>>
+>;
+export type ApproveAccountMutationBody = BodyType<ApproveAccountRequest>;
+export type ApproveAccountMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Approve a pending account (Admin only)
+ */
+export const useApproveAccount = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof approveAccount>>,
+    TError,
+    { id: string; data: BodyType<ApproveAccountRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof approveAccount>>,
+  TError,
+  { id: string; data: BodyType<ApproveAccountRequest> },
+  TContext
+> => {
+  return useMutation(getApproveAccountMutationOptions(options));
+};
+
+/**
+ * @summary Temporarily block an account (Admin only)
+ */
+export const getBlockAccountUrl = (id: string) => {
+  return `/api/admin/accounts/${id}/block`;
+};
+
+export const blockAccount = async (
+  id: string,
+  accountReasonRequest: AccountReasonRequest,
+  options?: RequestInit,
+): Promise<AdminAccount> => {
+  return customFetch<AdminAccount>(getBlockAccountUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(accountReasonRequest),
+  });
+};
+
+export const getBlockAccountMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof blockAccount>>,
+    TError,
+    { id: string; data: BodyType<AccountReasonRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof blockAccount>>,
+  TError,
+  { id: string; data: BodyType<AccountReasonRequest> },
+  TContext
+> => {
+  const mutationKey = ["blockAccount"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof blockAccount>>,
+    { id: string; data: BodyType<AccountReasonRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return blockAccount(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type BlockAccountMutationResult = NonNullable<
+  Awaited<ReturnType<typeof blockAccount>>
+>;
+export type BlockAccountMutationBody = BodyType<AccountReasonRequest>;
+export type BlockAccountMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Temporarily block an account (Admin only)
+ */
+export const useBlockAccount = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof blockAccount>>,
+    TError,
+    { id: string; data: BodyType<AccountReasonRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof blockAccount>>,
+  TError,
+  { id: string; data: BodyType<AccountReasonRequest> },
+  TContext
+> => {
+  return useMutation(getBlockAccountMutationOptions(options));
+};
+
+/**
+ * @summary Unblock an account (Admin only)
+ */
+export const getUnblockAccountUrl = (id: string) => {
+  return `/api/admin/accounts/${id}/unblock`;
+};
+
+export const unblockAccount = async (
+  id: string,
+  accountCsrfRequest: AccountCsrfRequest,
+  options?: RequestInit,
+): Promise<AdminAccount> => {
+  return customFetch<AdminAccount>(getUnblockAccountUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(accountCsrfRequest),
+  });
+};
+
+export const getUnblockAccountMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unblockAccount>>,
+    TError,
+    { id: string; data: BodyType<AccountCsrfRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof unblockAccount>>,
+  TError,
+  { id: string; data: BodyType<AccountCsrfRequest> },
+  TContext
+> => {
+  const mutationKey = ["unblockAccount"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof unblockAccount>>,
+    { id: string; data: BodyType<AccountCsrfRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return unblockAccount(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UnblockAccountMutationResult = NonNullable<
+  Awaited<ReturnType<typeof unblockAccount>>
+>;
+export type UnblockAccountMutationBody = BodyType<AccountCsrfRequest>;
+export type UnblockAccountMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Unblock an account (Admin only)
+ */
+export const useUnblockAccount = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unblockAccount>>,
+    TError,
+    { id: string; data: BodyType<AccountCsrfRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof unblockAccount>>,
+  TError,
+  { id: string; data: BodyType<AccountCsrfRequest> },
+  TContext
+> => {
+  return useMutation(getUnblockAccountMutationOptions(options));
+};
+
+/**
+ * @summary Revoke an account (Admin only)
+ */
+export const getRevokeAccountUrl = (id: string) => {
+  return `/api/admin/accounts/${id}/revoke`;
+};
+
+export const revokeAccount = async (
+  id: string,
+  accountReasonRequest: AccountReasonRequest,
+  options?: RequestInit,
+): Promise<AdminAccount> => {
+  return customFetch<AdminAccount>(getRevokeAccountUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(accountReasonRequest),
+  });
+};
+
+export const getRevokeAccountMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof revokeAccount>>,
+    TError,
+    { id: string; data: BodyType<AccountReasonRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof revokeAccount>>,
+  TError,
+  { id: string; data: BodyType<AccountReasonRequest> },
+  TContext
+> => {
+  const mutationKey = ["revokeAccount"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof revokeAccount>>,
+    { id: string; data: BodyType<AccountReasonRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return revokeAccount(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RevokeAccountMutationResult = NonNullable<
+  Awaited<ReturnType<typeof revokeAccount>>
+>;
+export type RevokeAccountMutationBody = BodyType<AccountReasonRequest>;
+export type RevokeAccountMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Revoke an account (Admin only)
+ */
+export const useRevokeAccount = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof revokeAccount>>,
+    TError,
+    { id: string; data: BodyType<AccountReasonRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof revokeAccount>>,
+  TError,
+  { id: string; data: BodyType<AccountReasonRequest> },
+  TContext
+> => {
+  return useMutation(getRevokeAccountMutationOptions(options));
+};
+
+/**
+ * @summary Reactivate a revoked account (Admin only)
+ */
+export const getReactivateAccountUrl = (id: string) => {
+  return `/api/admin/accounts/${id}/reactivate`;
+};
+
+export const reactivateAccount = async (
+  id: string,
+  accountCsrfRequest: AccountCsrfRequest,
+  options?: RequestInit,
+): Promise<AdminAccount> => {
+  return customFetch<AdminAccount>(getReactivateAccountUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(accountCsrfRequest),
+  });
+};
+
+export const getReactivateAccountMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reactivateAccount>>,
+    TError,
+    { id: string; data: BodyType<AccountCsrfRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof reactivateAccount>>,
+  TError,
+  { id: string; data: BodyType<AccountCsrfRequest> },
+  TContext
+> => {
+  const mutationKey = ["reactivateAccount"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof reactivateAccount>>,
+    { id: string; data: BodyType<AccountCsrfRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return reactivateAccount(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReactivateAccountMutationResult = NonNullable<
+  Awaited<ReturnType<typeof reactivateAccount>>
+>;
+export type ReactivateAccountMutationBody = BodyType<AccountCsrfRequest>;
+export type ReactivateAccountMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Reactivate a revoked account (Admin only)
+ */
+export const useReactivateAccount = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reactivateAccount>>,
+    TError,
+    { id: string; data: BodyType<AccountCsrfRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof reactivateAccount>>,
+  TError,
+  { id: string; data: BodyType<AccountCsrfRequest> },
+  TContext
+> => {
+  return useMutation(getReactivateAccountMutationOptions(options));
+};
+
+/**
+ * @summary Change a member or leader role (Admin only)
+ */
+export const getUpdateAccountRoleUrl = (id: string) => {
+  return `/api/admin/accounts/${id}/role`;
+};
+
+export const updateAccountRole = async (
+  id: string,
+  updateAccountRoleRequest: UpdateAccountRoleRequest,
+  options?: RequestInit,
+): Promise<AdminAccount> => {
+  return customFetch<AdminAccount>(getUpdateAccountRoleUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateAccountRoleRequest),
+  });
+};
+
+export const getUpdateAccountRoleMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAccountRole>>,
+    TError,
+    { id: string; data: BodyType<UpdateAccountRoleRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateAccountRole>>,
+  TError,
+  { id: string; data: BodyType<UpdateAccountRoleRequest> },
+  TContext
+> => {
+  const mutationKey = ["updateAccountRole"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateAccountRole>>,
+    { id: string; data: BodyType<UpdateAccountRoleRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateAccountRole(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateAccountRoleMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateAccountRole>>
+>;
+export type UpdateAccountRoleMutationBody = BodyType<UpdateAccountRoleRequest>;
+export type UpdateAccountRoleMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Change a member or leader role (Admin only)
+ */
+export const useUpdateAccountRole = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAccountRole>>,
+    TError,
+    { id: string; data: BodyType<UpdateAccountRoleRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateAccountRole>>,
+  TError,
+  { id: string; data: BodyType<UpdateAccountRoleRequest> },
+  TContext
+> => {
+  return useMutation(getUpdateAccountRoleMutationOptions(options));
+};
+
+/**
+ * @summary Link an account to a member (Admin only)
+ */
+export const getUpdateAccountMemberLinkUrl = (id: string) => {
+  return `/api/admin/accounts/${id}/member-link`;
+};
+
+export const updateAccountMemberLink = async (
+  id: string,
+  updateAccountMemberLinkRequest: UpdateAccountMemberLinkRequest,
+  options?: RequestInit,
+): Promise<AdminAccount> => {
+  return customFetch<AdminAccount>(getUpdateAccountMemberLinkUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateAccountMemberLinkRequest),
+  });
+};
+
+export const getUpdateAccountMemberLinkMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAccountMemberLink>>,
+    TError,
+    { id: string; data: BodyType<UpdateAccountMemberLinkRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateAccountMemberLink>>,
+  TError,
+  { id: string; data: BodyType<UpdateAccountMemberLinkRequest> },
+  TContext
+> => {
+  const mutationKey = ["updateAccountMemberLink"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateAccountMemberLink>>,
+    { id: string; data: BodyType<UpdateAccountMemberLinkRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateAccountMemberLink(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateAccountMemberLinkMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateAccountMemberLink>>
+>;
+export type UpdateAccountMemberLinkMutationBody =
+  BodyType<UpdateAccountMemberLinkRequest>;
+export type UpdateAccountMemberLinkMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Link an account to a member (Admin only)
+ */
+export const useUpdateAccountMemberLink = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAccountMemberLink>>,
+    TError,
+    { id: string; data: BodyType<UpdateAccountMemberLinkRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateAccountMemberLink>>,
+  TError,
+  { id: string; data: BodyType<UpdateAccountMemberLinkRequest> },
+  TContext
+> => {
+  return useMutation(getUpdateAccountMemberLinkMutationOptions(options));
+};
 
 /**
  * @summary Get audit logs (Admin only)

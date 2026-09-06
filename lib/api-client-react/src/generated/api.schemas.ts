@@ -28,6 +28,7 @@ export interface RegisterRequest {
   password: string;
   name: string;
   consentAccepted: boolean;
+  csrfToken: string;
 }
 
 export interface LoginRequest {
@@ -68,11 +69,23 @@ export const UserProfileRole = {
   member: "member",
 } as const;
 
+export type AccountStatus = (typeof AccountStatus)[keyof typeof AccountStatus];
+
+export const AccountStatus = {
+  pending: "pending",
+  active: "active",
+  blocked: "blocked",
+  revoked: "revoked",
+  deleting: "deleting",
+} as const;
+
 export interface UserProfile {
   id: string;
   email: string;
   name: string;
   role: UserProfileRole;
+  status: AccountStatus;
+  memberId?: string | null;
   mfaEnabled: boolean;
   mfaVerified: boolean;
   createdAt: string;
@@ -82,6 +95,97 @@ export interface AuthResponse {
   user: UserProfile;
   requiresMfa: boolean;
   message?: string;
+}
+
+export type AccountRole = (typeof AccountRole)[keyof typeof AccountRole];
+
+export const AccountRole = {
+  admin: "admin",
+  leader: "leader",
+  member: "member",
+} as const;
+
+export interface AdminAccount {
+  id: string;
+  email: string;
+  name: string;
+  role: AccountRole;
+  status: AccountStatus;
+  memberId?: string | null;
+  memberName?: string | null;
+  statusReason?: string | null;
+  requestedAt: string;
+  approvedAt?: string | null;
+  lastLoginAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AccountStatusSummary {
+  pending: number;
+  active: number;
+  blocked: number;
+  revoked: number;
+  deleting: number;
+}
+
+export interface AccountsListResponse {
+  accounts: AdminAccount[];
+  summary: AccountStatusSummary;
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface AccountCsrfRequest {
+  csrfToken: string;
+}
+
+export interface AccountReasonRequest {
+  csrfToken: string;
+  /** @minLength 1 */
+  reason: string;
+}
+
+export interface ApproveAccountRequest {
+  csrfToken: string;
+  memberId?: string | null;
+}
+
+export type UpdateAccountRoleRequestRole =
+  (typeof UpdateAccountRoleRequestRole)[keyof typeof UpdateAccountRoleRequestRole];
+
+export const UpdateAccountRoleRequestRole = {
+  member: "member",
+  leader: "leader",
+} as const;
+
+export interface UpdateAccountRoleRequest {
+  csrfToken: string;
+  role: UpdateAccountRoleRequestRole;
+}
+
+export interface UpdateAccountMemberLinkRequest {
+  csrfToken: string;
+  memberId?: string | null;
+}
+
+export type DeleteOwnAccountRequestConfirmation =
+  (typeof DeleteOwnAccountRequestConfirmation)[keyof typeof DeleteOwnAccountRequestConfirmation];
+
+export const DeleteOwnAccountRequestConfirmation = {
+  EXCLUIR: "EXCLUIR",
+} as const;
+
+export interface DeleteOwnAccountRequest {
+  password: string;
+  confirmation: DeleteOwnAccountRequestConfirmation;
+  csrfToken: string;
+}
+
+export interface DeleteOwnAccountResponse {
+  message: string;
+  deletionReference: string;
 }
 
 export type AuditLogDetails = { [key: string]: unknown };
@@ -3371,6 +3475,14 @@ export interface NotificationsListResponse {
 export interface UnreadCountResponse {
   count: number;
 }
+
+export type ListAccountsParams = {
+  page?: number;
+  limit?: number;
+  status?: AccountStatus;
+  role?: AccountRole;
+  search?: string;
+};
 
 export type GetAuditLogsParams = {
   /**

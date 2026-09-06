@@ -14,6 +14,7 @@ import ForgotPassword from "./pages/forgot-password";
 import MfaVerify from "./pages/mfa-verify";
 import Dashboard from "./pages/dashboard";
 import AuditLogs from "./pages/audit-logs";
+import AccountsAdminPage from "./pages/admin/accounts";
 import NotFound from "./pages/not-found";
 
 // Members Module
@@ -175,6 +176,7 @@ function Router() {
       {/* Dashboard & Admin */}
       <Route path="/" component={Dashboard} />
       <Route path="/audit-logs" component={AuditLogs} />
+      <Route path="/admin/accounts" component={AccountsAdminPage} />
       
       {/* Members Module */}
       <Route path="/members/new" component={NewMember} />
