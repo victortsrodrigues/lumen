@@ -1,3 +1,4 @@
+import { findLinkedMember } from "../lib/memberLink.js";
 import { Router, type IRouter, Request, Response } from "express";
 import { db, songsTable, songSuggestionsTable, membersTable } from "@workspace/db";
 import { eq, and, isNull, count, desc, ilike } from "drizzle-orm";
@@ -91,8 +92,7 @@ router.get("/suggestions", requireAuth, async (req: Request, res: Response) => {
 
   if (role !== "admin" && role !== "leader") {
     // Member sees only own suggestions
-    const [member] = await db.select({ id: membersTable.id })
-      .from(membersTable).where(eq(membersTable.email, req.user!.email)).limit(1);
+    const member = await findLinkedMember(req.user!);
 
     if (!member) {
       res.json({ suggestions: [], total: 0, page, limit });
@@ -139,9 +139,8 @@ router.post("/suggestions", requireAuth, async (req: Request, res: Response) => 
     return;
   }
 
-  // Find member by user email
-  const [member] = await db.select({ id: membersTable.id, fullName: membersTable.fullName })
-    .from(membersTable).where(eq(membersTable.email, req.user!.email)).limit(1);
+  // Use the explicit account link
+  const member = await findLinkedMember(req.user!);
 
   const [suggestion] = await db.insert(songSuggestionsTable).values({
     title,

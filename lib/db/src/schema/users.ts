@@ -1,4 +1,5 @@
-import { pgTable, text, timestamp, boolean, pgEnum, integer, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, pgEnum, integer, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { membersTable } from "./members";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -6,6 +7,7 @@ export const roleEnum = pgEnum("user_role", ["admin", "leader", "member"]);
 
 export const accountStatusEnum = pgEnum("account_status", [
   "pending",
+  "rejected",
   "active",
   "blocked",
   "revoked",
@@ -21,9 +23,9 @@ export const usersTable = pgTable("users", {
   // Keep active as the database default so existing accounts remain usable
   // when this column is introduced. Public registration always writes pending.
   status: accountStatusEnum("status").notNull().default("active"),
-  // The API enforces one account per member. Keeping this as an indexed field
-  // avoids an interactive data-loss prompt during Railway's schema push.
-  memberId: text("member_id"),
+  memberId: text("member_id").references(() => membersTable.id, { onDelete: "set null" }),
+  // An explicit unlink must not be undone by automatic matching on approval.
+  memberLinkReviewedAt: timestamp("member_link_reviewed_at"),
   statusReason: text("status_reason"),
   statusChangedAt: timestamp("status_changed_at"),
   statusChangedByUserId: text("status_changed_by_user_id"),
@@ -44,6 +46,7 @@ export const usersTable = pgTable("users", {
   index("idx_users_status").on(table.status),
   index("idx_users_role").on(table.role),
   index("idx_users_member_id").on(table.memberId),
+  uniqueIndex("idx_users_member_id_unique").on(table.memberId),
 ]);
 
 export const insertUserSchema = createInsertSchema(usersTable).omit({

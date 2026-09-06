@@ -1,3 +1,4 @@
+import { findLinkedMember } from "../lib/memberLink.js";
 import { Router, type IRouter, Request, Response } from "express";
 import {
   db,
@@ -47,16 +48,10 @@ function serializeSession(s: typeof counselingSessionsTable.$inferSelect) {
   };
 }
 
-// Helper: find member linked to user email
-async function findMemberByEmail(email: string) {
-  const [member] = await db.select().from(membersTable)
-    .where(eq(membersTable.email, email)).limit(1);
-  return member;
-}
 
 // Helper: check if user is the counselor of a case
-async function isCounselorOfCase(caseId: string, userEmail: string): Promise<boolean> {
-  const member = await findMemberByEmail(userEmail);
+async function isCounselorOfCase(caseId: string, user: NonNullable<Request["user"]>): Promise<boolean> {
+  const member = await findLinkedMember(user);
   if (!member) return false;
   const [c] = await db.select().from(counselingCasesTable)
     .where(and(eq(counselingCasesTable.id, caseId), eq(counselingCasesTable.counselorId, member.id)))
@@ -107,7 +102,7 @@ router.get("/cases", requireAuth, requireRole("admin", "leader"), async (req: Re
 
   // Leaders see only cases where they are the counselor
   if (user.role === "leader") {
-    const member = await findMemberByEmail(user.email);
+    const member = await findLinkedMember(user);
     if (member) {
       conditions.push(eq(counselingCasesTable.counselorId, member.id));
     } else {
@@ -146,7 +141,7 @@ router.get("/cases/:id", requireAuth, requireRole("admin", "leader"), async (req
 
   // Leader can only see own cases
   if (user.role === "leader") {
-    const isCounselor = await isCounselorOfCase(id, user.email);
+    const isCounselor = await isCounselorOfCase(String(id), user);
     if (!isCounselor) return res.status(403).json({ error: "FORBIDDEN", message: "Sem permissão para ver este caso" });
   }
 
@@ -215,7 +210,7 @@ router.put("/cases/:id", requireAuth, requireRole("admin", "leader"), async (req
 
   // Leader can only update own cases
   if (user.role === "leader") {
-    const isCounselor = await isCounselorOfCase(id, user.email);
+    const isCounselor = await isCounselorOfCase(String(id), user);
     if (!isCounselor) return res.status(403).json({ error: "FORBIDDEN", message: "Sem permissão para editar este caso" });
   }
 
@@ -256,7 +251,7 @@ router.post("/cases/:id/sessions", requireAuth, requireRole("admin", "leader"), 
 
   // Leader can only add sessions to own cases
   if (user.role === "leader") {
-    const isCounselor = await isCounselorOfCase(id, user.email);
+    const isCounselor = await isCounselorOfCase(String(id), user);
     if (!isCounselor) return res.status(403).json({ error: "FORBIDDEN", message: "Sem permissão para este caso" });
   }
 
@@ -306,7 +301,7 @@ router.get("/cases/:id/sessions", requireAuth, requireRole("admin", "leader"), a
   if (!caseData) return res.status(404).json({ error: "NOT_FOUND", message: "Caso não encontrado" });
 
   if (user.role === "leader") {
-    const isCounselor = await isCounselorOfCase(id, user.email);
+    const isCounselor = await isCounselorOfCase(String(id), user);
     if (!isCounselor) return res.status(403).json({ error: "FORBIDDEN", message: "Sem permissão para este caso" });
   }
 

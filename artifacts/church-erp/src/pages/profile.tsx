@@ -145,7 +145,7 @@ export default function ProfilePage() {
       <AppLayout breadcrumbs={[{ label: "Meu Perfil" }]}>
         <div className="text-center py-12">
           <User className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-30" />
-          <p className="text-muted-foreground">Seu perfil de membro ainda não foi criado.</p>
+          <p className="text-muted-foreground">Não há um membro vinculado à sua conta. Procure a administração para vincular seu cadastro existente.</p>
         </div>
         <DeleteAccountSection />
       </AppLayout>

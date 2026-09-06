@@ -87,6 +87,7 @@ export type AccountStatus = (typeof AccountStatus)[keyof typeof AccountStatus];
 
 export const AccountStatus = {
   pending: "pending",
+  rejected: "rejected",
   active: "active",
   blocked: "blocked",
   revoked: "revoked",
@@ -113,6 +114,22 @@ export interface AuthResponse {
   emailVerificationRequired?: boolean;
 }
 
+export interface AccountMemberOption {
+  id: string;
+  name: string;
+  email?: string | null;
+  status: string;
+  linkedAccountId?: string | null;
+  linkedAccountName?: string | null;
+}
+
+export interface AccountMemberOptionsResponse {
+  members: AccountMemberOption[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 export type AccountRole = (typeof AccountRole)[keyof typeof AccountRole];
 
 export const AccountRole = {
@@ -129,6 +146,7 @@ export interface AdminAccount {
   status: AccountStatus;
   emailVerifiedAt?: string | null;
   memberId?: string | null;
+  memberLinkReviewedAt?: string | null;
   memberName?: string | null;
   statusReason?: string | null;
   requestedAt: string;
@@ -140,6 +158,7 @@ export interface AdminAccount {
 
 export interface AccountStatusSummary {
   pending: number;
+  rejected: number;
   active: number;
   blocked: number;
   revoked: number;
@@ -176,7 +195,7 @@ export interface UpdateAccountRoleRequest {
 }
 
 export interface UpdateAccountMemberLinkRequest {
-  memberId?: string | null;
+  memberId: string | null;
 }
 
 export type DeleteOwnAccountRequestConfirmation =
@@ -3488,6 +3507,14 @@ export type ListAccountsParams = {
   status?: AccountStatus;
   role?: AccountRole;
   search?: string;
+};
+
+export type ListAccountMemberOptionsParams = {
+  search?: string;
+  /**
+   * @minimum 1
+   */
+  page?: number;
 };
 
 export type GetAuditLogsParams = {

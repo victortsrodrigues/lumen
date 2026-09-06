@@ -1,3 +1,4 @@
+import { findLinkedMember } from "../lib/memberLink.js";
 import { Router, type IRouter, Request, Response } from "express";
 import {
   db,
@@ -77,7 +78,7 @@ function serializeDiscussion(d: typeof lessonDiscussionsTable.$inferSelect) {
 
 // ─── Helper: check if user is teacher of a course ────────────────────────────
 
-async function isTeacherOf(courseId: string, userId: string, userEmail: string): Promise<boolean> {
+async function isTeacherOf(courseId: string, userId: string, user: NonNullable<Request["user"]>): Promise<boolean> {
   const [course] = await db.select({ teacherId: coursesTable.teacherId })
     .from(coursesTable)
     .where(eq(coursesTable.id, courseId))
@@ -85,10 +86,7 @@ async function isTeacherOf(courseId: string, userId: string, userEmail: string):
   if (!course) return false;
 
   // Match by member ID linked to user (teacher is a member)
-  const [member] = await db.select({ id: membersTable.id })
-    .from(membersTable)
-    .where(eq(membersTable.email, userEmail))
-    .limit(1);
+  const member = await findLinkedMember(user);
 
   return member?.id === course.teacherId;
 }
@@ -113,8 +111,7 @@ router.get("/courses", requireAuth, async (req: Request, res: Response) => {
 
   // Filter to only courses the current user is enrolled in
   if (mine) {
-    const [linkedMember] = await db.select().from(membersTable)
-      .where(eq(membersTable.email, req.user!.email)).limit(1);
+    const linkedMember = await findLinkedMember(req.user!);
     if (!linkedMember) {
       res.json({ courses: [], total: 0, page, limit });
       return;
@@ -272,7 +269,7 @@ router.put("/courses/:id", requireAuth, async (req: Request, res: Response) => {
 
   // Only admin or the teacher can edit
   if (role !== "admin") {
-    const isTeacher = await isTeacherOf(existing.id, userId, req.user!.email);
+    const isTeacher = await isTeacherOf(existing.id, userId, req.user!);
     if (!isTeacher) {
       res.status(403).json({ error: "FORBIDDEN", message: "Apenas administradores ou o professor podem editar este curso" });
       return;
@@ -390,7 +387,7 @@ router.post("/courses/:courseId/lessons", requireAuth, async (req: Request, res:
 
   // Only admin or teacher
   if (role !== "admin") {
-    const isTeacher = await isTeacherOf(course.id, userId, req.user!.email);
+    const isTeacher = await isTeacherOf(course.id, userId, req.user!);
     if (!isTeacher) {
       res.status(403).json({ error: "FORBIDDEN", message: "Apenas administradores ou o professor podem adicionar aulas" });
       return;
@@ -442,7 +439,7 @@ router.put("/lessons/:id", requireAuth, async (req: Request, res: Response) => {
   }
 
   if (role !== "admin") {
-    const isTeacher = await isTeacherOf(existing.courseId, userId, req.user!.email);
+    const isTeacher = await isTeacherOf(existing.courseId, userId, req.user!);
     if (!isTeacher) {
       res.status(403).json({ error: "FORBIDDEN", message: "Sem permissão para editar esta aula" });
       return;
@@ -489,7 +486,7 @@ router.delete("/lessons/:id", requireAuth, async (req: Request, res: Response) =
   }
 
   if (role !== "admin") {
-    const isTeacher = await isTeacherOf(existing.courseId, userId, req.user!.email);
+    const isTeacher = await isTeacherOf(existing.courseId, userId, req.user!);
     if (!isTeacher) {
       res.status(403).json({ error: "FORBIDDEN", message: "Sem permissão para remover esta aula" });
       return;
@@ -543,9 +540,8 @@ router.post("/courses/:courseId/enroll", requireAuth, async (req: Request, res: 
   // Members can self-enroll; admin can enroll anyone
   let memberId = req.body.memberId;
   if (role === "member") {
-    // Self-enroll: find member by email
-    const [member] = await db.select({ id: membersTable.id, fullName: membersTable.fullName })
-      .from(membersTable).where(eq(membersTable.email, req.user!.email)).limit(1);
+    // Self-enroll only as the member explicitly linked to this account.
+    const member = await findLinkedMember(req.user!);
     if (!member) {
       res.status(404).json({ error: "NOT_FOUND", message: "Membro não encontrado para este usuário" });
       return;
@@ -662,7 +658,7 @@ router.post("/lessons/:lessonId/attendance", requireAuth, async (req: Request, r
 
   // Only admin or teacher
   if (role !== "admin") {
-    const isTeacher = await isTeacherOf(lesson.courseId, userId, req.user!.email);
+    const isTeacher = await isTeacherOf(lesson.courseId, userId, req.user!);
     if (!isTeacher) {
       res.status(403).json({ error: "FORBIDDEN", message: "Sem permissão para registrar presença" });
       return;
@@ -931,7 +927,7 @@ router.get("/dashboard", requireAuth, async (_req: Request, res: Response) => {
 
 // Helper: check if user has access to a lesson's discussions
 // Access = admin OR teacher of course OR enrolled member
-async function canAccessLessonDiscussions(lessonId: string, userId: string, userEmail: string, role: string): Promise<boolean> {
+async function canAccessLessonDiscussions(lessonId: string, userId: string, user: NonNullable<Request["user"]>, role: string): Promise<boolean> {
   if (role === "admin") return true;
 
   const [lesson] = await db.select().from(courseLessonsTable)
@@ -940,13 +936,12 @@ async function canAccessLessonDiscussions(lessonId: string, userId: string, user
 
   // Teacher of the course
   if (role === "admin" || role === "leader") {
-    const isTeacher = await isTeacherOf(lesson.courseId, userId, userEmail);
+    const isTeacher = await isTeacherOf(lesson.courseId, userId, user);
     if (isTeacher) return true;
   }
 
   // Enrolled member
-  const [member] = await db.select({ id: membersTable.id }).from(membersTable)
-    .where(eq(membersTable.email, userEmail)).limit(1);
+  const member = await findLinkedMember(user);
   if (!member) return false;
 
   const [enrollment] = await db.select().from(courseEnrollmentsTable)
@@ -964,7 +959,7 @@ router.get("/lessons/:lessonId/discussions", requireAuth, async (req: Request, r
   const userId = req.user!.userId;
   const role = req.user!.role;
 
-  const hasAccess = await canAccessLessonDiscussions(lessonId, userId, req.user!.email, role);
+  const hasAccess = await canAccessLessonDiscussions(lessonId, userId, req.user!, role);
   if (!hasAccess) {
     res.status(403).json({ error: "FORBIDDEN", message: "Você precisa estar inscrito no curso para ver as discussões" });
     return;
@@ -992,7 +987,7 @@ router.post("/lessons/:lessonId/discussions", requireAuth, async (req: Request, 
     return;
   }
 
-  const hasAccess = await canAccessLessonDiscussions(lessonId, userId, req.user!.email, role);
+  const hasAccess = await canAccessLessonDiscussions(lessonId, userId, req.user!, role);
   if (!hasAccess) {
     res.status(403).json({ error: "FORBIDDEN", message: "Você precisa estar inscrito no curso para comentar" });
     return;

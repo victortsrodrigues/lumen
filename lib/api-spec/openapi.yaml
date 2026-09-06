@@ -493,6 +493,64 @@ paths:
               schema:
                 $ref: "#/components/schemas/AccountsListResponse"
 
+  /admin/accounts/member-options:
+    get:
+      operationId: listAccountMemberOptions
+      tags: [accounts]
+      summary: Search members and their account links (Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - { in: query, name: search, schema: { type: string } }
+        - { in: query, name: page, schema: { type: integer, minimum: 1, default: 1 } }
+      responses:
+        "200":
+          description: Member choices
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountMemberOptionsResponse"
+
+  /admin/accounts/{id}/reject:
+    post:
+      operationId: rejectAccount
+      tags: [accounts]
+      summary: Reject a pending request without deleting it (Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountReasonRequest"
+      responses:
+        "200":
+          description: Rejected account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAccount"
+
+  /admin/accounts/{id}/reopen:
+    post:
+      operationId: reopenAccount
+      tags: [accounts]
+      summary: Reopen a rejected request as pending (Admin only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Pending account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAccount"
+
   /admin/accounts/{id}:
     get:
       operationId: getAccount
@@ -6045,7 +6103,29 @@ components:
 
     AccountStatus:
       type: string
-      enum: [pending, active, blocked, revoked, deleting]
+      enum: [pending, rejected, active, blocked, revoked, deleting]
+
+    AccountMemberOption:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string, nullable: true }
+        status: { type: string }
+        linkedAccountId: { type: string, nullable: true }
+        linkedAccountName: { type: string, nullable: true }
+      required: [id, name, status]
+
+    AccountMemberOptionsResponse:
+      type: object
+      properties:
+        members:
+          type: array
+          items: { $ref: "#/components/schemas/AccountMemberOption" }
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+      required: [members, total, page, limit]
 
     AccountRole:
       type: string
@@ -6061,6 +6141,7 @@ components:
         status: { $ref: "#/components/schemas/AccountStatus" }
         emailVerifiedAt: { type: string, format: date-time, nullable: true }
         memberId: { type: string, nullable: true }
+        memberLinkReviewedAt: { type: string, format: date-time, nullable: true }
         memberName: { type: string, nullable: true }
         statusReason: { type: string, nullable: true }
         requestedAt: { type: string, format: date-time }
@@ -6074,11 +6155,12 @@ components:
       type: object
       properties:
         pending: { type: integer }
+        rejected: { type: integer }
         active: { type: integer }
         blocked: { type: integer }
         revoked: { type: integer }
         deleting: { type: integer }
-      required: [pending, active, blocked, revoked, deleting]
+      required: [pending, rejected, active, blocked, revoked, deleting]
 
     AccountsListResponse:
       type: object
@@ -6117,6 +6199,7 @@ components:
       type: object
       properties:
         memberId: { type: string, nullable: true }
+      required: [memberId]
 
     DeleteOwnAccountRequest:
       type: object

@@ -16,6 +16,7 @@ export interface AdminAccount {
   status: AccountStatus;
   emailVerifiedAt?: Date | null;
   memberId?: string | null;
+  memberLinkReviewedAt?: Date | null;
   memberName?: string | null;
   statusReason?: string | null;
   requestedAt: Date;

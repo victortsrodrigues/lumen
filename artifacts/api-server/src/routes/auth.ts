@@ -198,6 +198,7 @@ router.post("/login", async (req: Request, res: Response) => {
 
   const unavailable: Record<string, { error: string; message: string }> = {
     pending: { error: "ACCOUNT_PENDING", message: "Sua solicitação ainda aguarda aprovação" },
+    rejected: { error: "ACCOUNT_REJECTED", message: "Sua solicitação não foi aprovada. Entre em contato com a administração." },
     blocked: { error: "ACCOUNT_BLOCKED", message: "Sua conta está temporariamente bloqueada" },
     revoked: { error: "ACCOUNT_REVOKED", message: "O acesso desta conta foi revogado" },
     deleting: { error: "ACCOUNT_DELETING", message: "A exclusão desta conta está em processamento" },

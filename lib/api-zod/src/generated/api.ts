@@ -208,7 +208,14 @@ export const LoginResponse = zod.object({
     email: zod.string(),
     name: zod.string(),
     role: zod.enum(["admin", "leader", "member"]),
-    status: zod.enum(["pending", "active", "blocked", "revoked", "deleting"]),
+    status: zod.enum([
+      "pending",
+      "rejected",
+      "active",
+      "blocked",
+      "revoked",
+      "deleting",
+    ]),
     emailVerifiedAt: zod.date().nullish(),
     memberId: zod.string().nullish(),
     mfaEnabled: zod.boolean(),
@@ -235,7 +242,14 @@ export const GetMeResponse = zod.object({
   email: zod.string(),
   name: zod.string(),
   role: zod.enum(["admin", "leader", "member"]),
-  status: zod.enum(["pending", "active", "blocked", "revoked", "deleting"]),
+  status: zod.enum([
+    "pending",
+    "rejected",
+    "active",
+    "blocked",
+    "revoked",
+    "deleting",
+  ]),
   emailVerifiedAt: zod.date().nullish(),
   memberId: zod.string().nullish(),
   mfaEnabled: zod.boolean(),
@@ -325,7 +339,14 @@ export const VerifyMfaResponse = zod.object({
     email: zod.string(),
     name: zod.string(),
     role: zod.enum(["admin", "leader", "member"]),
-    status: zod.enum(["pending", "active", "blocked", "revoked", "deleting"]),
+    status: zod.enum([
+      "pending",
+      "rejected",
+      "active",
+      "blocked",
+      "revoked",
+      "deleting",
+    ]),
     emailVerifiedAt: zod.date().nullish(),
     memberId: zod.string().nullish(),
     mfaEnabled: zod.boolean(),
@@ -367,7 +388,7 @@ export const ListAccountsQueryParams = zod.object({
   page: zod.coerce.number().default(listAccountsQueryPageDefault),
   limit: zod.coerce.number().default(listAccountsQueryLimitDefault),
   status: zod
-    .enum(["pending", "active", "blocked", "revoked", "deleting"])
+    .enum(["pending", "rejected", "active", "blocked", "revoked", "deleting"])
     .optional(),
   role: zod.enum(["admin", "leader", "member"]).optional(),
   search: zod.coerce.string().optional(),
@@ -380,9 +401,17 @@ export const ListAccountsResponse = zod.object({
       email: zod.string().email(),
       name: zod.string(),
       role: zod.enum(["admin", "leader", "member"]),
-      status: zod.enum(["pending", "active", "blocked", "revoked", "deleting"]),
+      status: zod.enum([
+        "pending",
+        "rejected",
+        "active",
+        "blocked",
+        "revoked",
+        "deleting",
+      ]),
       emailVerifiedAt: zod.date().nullish(),
       memberId: zod.string().nullish(),
+      memberLinkReviewedAt: zod.date().nullish(),
       memberName: zod.string().nullish(),
       statusReason: zod.string().nullish(),
       requestedAt: zod.date(),
@@ -394,6 +423,7 @@ export const ListAccountsResponse = zod.object({
   ),
   summary: zod.object({
     pending: zod.number(),
+    rejected: zod.number(),
     active: zod.number(),
     blocked: zod.number(),
     revoked: zod.number(),
@@ -402,6 +432,103 @@ export const ListAccountsResponse = zod.object({
   total: zod.number(),
   page: zod.number(),
   limit: zod.number(),
+});
+
+/**
+ * @summary Search members and their account links (Admin only)
+ */
+export const listAccountMemberOptionsQueryPageDefault = 1;
+
+export const ListAccountMemberOptionsQueryParams = zod.object({
+  search: zod.coerce.string().optional(),
+  page: zod.coerce
+    .number()
+    .min(1)
+    .default(listAccountMemberOptionsQueryPageDefault),
+});
+
+export const ListAccountMemberOptionsResponse = zod.object({
+  members: zod.array(
+    zod.object({
+      id: zod.string(),
+      name: zod.string(),
+      email: zod.string().nullish(),
+      status: zod.string(),
+      linkedAccountId: zod.string().nullish(),
+      linkedAccountName: zod.string().nullish(),
+    }),
+  ),
+  total: zod.number(),
+  page: zod.number(),
+  limit: zod.number(),
+});
+
+/**
+ * @summary Reject a pending request without deleting it (Admin only)
+ */
+export const RejectAccountParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const RejectAccountBody = zod.object({
+  reason: zod.string().min(1),
+});
+
+export const RejectAccountResponse = zod.object({
+  id: zod.string(),
+  email: zod.string().email(),
+  name: zod.string(),
+  role: zod.enum(["admin", "leader", "member"]),
+  status: zod.enum([
+    "pending",
+    "rejected",
+    "active",
+    "blocked",
+    "revoked",
+    "deleting",
+  ]),
+  emailVerifiedAt: zod.date().nullish(),
+  memberId: zod.string().nullish(),
+  memberLinkReviewedAt: zod.date().nullish(),
+  memberName: zod.string().nullish(),
+  statusReason: zod.string().nullish(),
+  requestedAt: zod.date(),
+  approvedAt: zod.date().nullish(),
+  lastLoginAt: zod.date().nullish(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary Reopen a rejected request as pending (Admin only)
+ */
+export const ReopenAccountParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ReopenAccountResponse = zod.object({
+  id: zod.string(),
+  email: zod.string().email(),
+  name: zod.string(),
+  role: zod.enum(["admin", "leader", "member"]),
+  status: zod.enum([
+    "pending",
+    "rejected",
+    "active",
+    "blocked",
+    "revoked",
+    "deleting",
+  ]),
+  emailVerifiedAt: zod.date().nullish(),
+  memberId: zod.string().nullish(),
+  memberLinkReviewedAt: zod.date().nullish(),
+  memberName: zod.string().nullish(),
+  statusReason: zod.string().nullish(),
+  requestedAt: zod.date(),
+  approvedAt: zod.date().nullish(),
+  lastLoginAt: zod.date().nullish(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
 });
 
 /**
@@ -416,9 +543,17 @@ export const GetAccountResponse = zod.object({
   email: zod.string().email(),
   name: zod.string(),
   role: zod.enum(["admin", "leader", "member"]),
-  status: zod.enum(["pending", "active", "blocked", "revoked", "deleting"]),
+  status: zod.enum([
+    "pending",
+    "rejected",
+    "active",
+    "blocked",
+    "revoked",
+    "deleting",
+  ]),
   emailVerifiedAt: zod.date().nullish(),
   memberId: zod.string().nullish(),
+  memberLinkReviewedAt: zod.date().nullish(),
   memberName: zod.string().nullish(),
   statusReason: zod.string().nullish(),
   requestedAt: zod.date(),
@@ -444,9 +579,17 @@ export const ApproveAccountResponse = zod.object({
   email: zod.string().email(),
   name: zod.string(),
   role: zod.enum(["admin", "leader", "member"]),
-  status: zod.enum(["pending", "active", "blocked", "revoked", "deleting"]),
+  status: zod.enum([
+    "pending",
+    "rejected",
+    "active",
+    "blocked",
+    "revoked",
+    "deleting",
+  ]),
   emailVerifiedAt: zod.date().nullish(),
   memberId: zod.string().nullish(),
+  memberLinkReviewedAt: zod.date().nullish(),
   memberName: zod.string().nullish(),
   statusReason: zod.string().nullish(),
   requestedAt: zod.date(),
@@ -472,9 +615,17 @@ export const BlockAccountResponse = zod.object({
   email: zod.string().email(),
   name: zod.string(),
   role: zod.enum(["admin", "leader", "member"]),
-  status: zod.enum(["pending", "active", "blocked", "revoked", "deleting"]),
+  status: zod.enum([
+    "pending",
+    "rejected",
+    "active",
+    "blocked",
+    "revoked",
+    "deleting",
+  ]),
   emailVerifiedAt: zod.date().nullish(),
   memberId: zod.string().nullish(),
+  memberLinkReviewedAt: zod.date().nullish(),
   memberName: zod.string().nullish(),
   statusReason: zod.string().nullish(),
   requestedAt: zod.date(),
@@ -496,9 +647,17 @@ export const UnblockAccountResponse = zod.object({
   email: zod.string().email(),
   name: zod.string(),
   role: zod.enum(["admin", "leader", "member"]),
-  status: zod.enum(["pending", "active", "blocked", "revoked", "deleting"]),
+  status: zod.enum([
+    "pending",
+    "rejected",
+    "active",
+    "blocked",
+    "revoked",
+    "deleting",
+  ]),
   emailVerifiedAt: zod.date().nullish(),
   memberId: zod.string().nullish(),
+  memberLinkReviewedAt: zod.date().nullish(),
   memberName: zod.string().nullish(),
   statusReason: zod.string().nullish(),
   requestedAt: zod.date(),
@@ -524,9 +683,17 @@ export const RevokeAccountResponse = zod.object({
   email: zod.string().email(),
   name: zod.string(),
   role: zod.enum(["admin", "leader", "member"]),
-  status: zod.enum(["pending", "active", "blocked", "revoked", "deleting"]),
+  status: zod.enum([
+    "pending",
+    "rejected",
+    "active",
+    "blocked",
+    "revoked",
+    "deleting",
+  ]),
   emailVerifiedAt: zod.date().nullish(),
   memberId: zod.string().nullish(),
+  memberLinkReviewedAt: zod.date().nullish(),
   memberName: zod.string().nullish(),
   statusReason: zod.string().nullish(),
   requestedAt: zod.date(),
@@ -548,9 +715,17 @@ export const ReactivateAccountResponse = zod.object({
   email: zod.string().email(),
   name: zod.string(),
   role: zod.enum(["admin", "leader", "member"]),
-  status: zod.enum(["pending", "active", "blocked", "revoked", "deleting"]),
+  status: zod.enum([
+    "pending",
+    "rejected",
+    "active",
+    "blocked",
+    "revoked",
+    "deleting",
+  ]),
   emailVerifiedAt: zod.date().nullish(),
   memberId: zod.string().nullish(),
+  memberLinkReviewedAt: zod.date().nullish(),
   memberName: zod.string().nullish(),
   statusReason: zod.string().nullish(),
   requestedAt: zod.date(),
@@ -576,9 +751,17 @@ export const UpdateAccountRoleResponse = zod.object({
   email: zod.string().email(),
   name: zod.string(),
   role: zod.enum(["admin", "leader", "member"]),
-  status: zod.enum(["pending", "active", "blocked", "revoked", "deleting"]),
+  status: zod.enum([
+    "pending",
+    "rejected",
+    "active",
+    "blocked",
+    "revoked",
+    "deleting",
+  ]),
   emailVerifiedAt: zod.date().nullish(),
   memberId: zod.string().nullish(),
+  memberLinkReviewedAt: zod.date().nullish(),
   memberName: zod.string().nullish(),
   statusReason: zod.string().nullish(),
   requestedAt: zod.date(),
@@ -596,7 +779,7 @@ export const UpdateAccountMemberLinkParams = zod.object({
 });
 
 export const UpdateAccountMemberLinkBody = zod.object({
-  memberId: zod.string().nullish(),
+  memberId: zod.string().nullable(),
 });
 
 export const UpdateAccountMemberLinkResponse = zod.object({
@@ -604,9 +787,17 @@ export const UpdateAccountMemberLinkResponse = zod.object({
   email: zod.string().email(),
   name: zod.string(),
   role: zod.enum(["admin", "leader", "member"]),
-  status: zod.enum(["pending", "active", "blocked", "revoked", "deleting"]),
+  status: zod.enum([
+    "pending",
+    "rejected",
+    "active",
+    "blocked",
+    "revoked",
+    "deleting",
+  ]),
   emailVerifiedAt: zod.date().nullish(),
   memberId: zod.string().nullish(),
+  memberLinkReviewedAt: zod.date().nullish(),
   memberName: zod.string().nullish(),
   statusReason: zod.string().nullish(),
   requestedAt: zod.date(),

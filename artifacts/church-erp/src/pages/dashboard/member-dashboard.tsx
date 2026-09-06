@@ -67,6 +67,7 @@ export default function MemberDashboard() {
 
       {data && (
         <motion.div variants={container} initial="hidden" animate="show" className="space-y-8">
+          {!data.profile && <p className="rounded-xl border bg-muted/40 p-4 text-sm text-muted-foreground">Sua conta ainda não está vinculada a um membro. Procure a administração para acessar seu perfil e suas informações de participação.</p>}
           {/* Participation overview */}
           {data.profile && (
             <motion.section variants={item} className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm md:p-6">

@@ -1,3 +1,4 @@
+import { findLinkedMember } from "../lib/memberLink.js";
 import { Router, type IRouter, Request, Response } from "express";
 import {
   db, membersTable, memberAreasTable, memberAreaHistoryTable,
@@ -150,8 +151,7 @@ router.get("/members/:id/areas", requireAuth, async (req: Request, res: Response
   const user = req.user!;
 
   if (user.role === "member") {
-    const [self] = await db.select().from(membersTable)
-      .where(ilike(membersTable.email, user.email)).limit(1);
+    const self = await findLinkedMember(user);
     if (!self || self.id !== id) {
       res.status(403).json({ error: "FORBIDDEN", message: "Sem permissão para ver áreas deste membro" });
       return;

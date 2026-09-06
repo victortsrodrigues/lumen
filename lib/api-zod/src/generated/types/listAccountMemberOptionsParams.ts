@@ -6,6 +6,10 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface UpdateAccountMemberLinkRequest {
-  memberId: string | null;
-}
+export type ListAccountMemberOptionsParams = {
+  search?: string;
+  /**
+   * @minimum 1
+   */
+  page?: number;
+};

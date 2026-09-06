@@ -55,7 +55,7 @@ export async function deleteOwnAccountData(userId: string): Promise<{ deletionRe
   const anonymousActor = `deleted:${deletionReference}`;
 
   const filePaths = await db.transaction(async (tx) => {
-    const [account] = await tx.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+    const [account] = await tx.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1).for("update");
     if (!account) throw new Error("ACCOUNT_NOT_FOUND");
 
     if (account.role === "admin") {
@@ -64,14 +64,9 @@ export async function deleteOwnAccountData(userId: string): Promise<{ deletionRe
       if (Number(total) <= 1) throw new LastActiveAdminError();
     }
 
-    let member = account.memberId
+    const member = account.memberId
       ? (await tx.select().from(membersTable).where(eq(membersTable.id, account.memberId)).limit(1))[0]
       : undefined;
-    if (!member) {
-      const matches = await tx.select().from(membersTable)
-        .where(eq(membersTable.email, account.email)).limit(2);
-      if (matches.length === 1) member = matches[0];
-    }
 
     const paths = new Set<string>();
     const addManagedFile = (filePath?: string | null) => {

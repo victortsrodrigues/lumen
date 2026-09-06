@@ -1,3 +1,4 @@
+import { findLinkedMember } from "../lib/memberLink.js";
 import { Router, type IRouter, Request, Response } from "express";
 import {
   db,
@@ -36,12 +37,6 @@ function serializeVisit(v: typeof pastoralVisitsTable.$inferSelect) {
   };
 }
 
-// Helper: find member linked to user email
-async function findMemberByEmail(email: string) {
-  const [member] = await db.select().from(membersTable)
-    .where(eq(membersTable.email, email)).limit(1);
-  return member;
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SUMMARY
@@ -104,7 +99,7 @@ router.get("/", requireAuth, requireRole("admin", "leader"), async (req: Request
   // For leaders: filter to only visits where they are the pastor
   const user = req.user as any;
   if (user.role === "leader") {
-    const member = await findMemberByEmail(user.email);
+    const member = await findLinkedMember(user);
     if (member) {
       conditions.push(eq(pastoralVisitsTable.pastorId, member.id));
     } else {
@@ -208,7 +203,7 @@ router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Requ
 
   // Leader can only edit own visits (where they are the pastor)
   if (user.role === "leader") {
-    const member = await findMemberByEmail(user.email);
+    const member = await findLinkedMember(user);
     if (!member || existing.pastorId !== member.id) {
       return res.status(403).json({ error: "FORBIDDEN", message: "Sem permissão para editar esta visita" });
     }

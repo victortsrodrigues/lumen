@@ -1,3 +1,4 @@
+import { findLinkedMember } from "../lib/memberLink.js";
 import { Router, type IRouter, Request, Response } from "express";
 import {
   db,
@@ -245,8 +246,7 @@ router.get("/leader-widgets", requireAuth, async (req: Request, res: Response) =
     return res.status(403).json({ error: "FORBIDDEN", message: "Sem permissão" });
   }
 
-  const [linkedMember] = await db.select().from(membersTable)
-    .where(user.memberId ? eq(membersTable.id, user.memberId) : eq(membersTable.email, user.email)).limit(1);
+  const linkedMember = await findLinkedMember(user);
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -300,8 +300,7 @@ router.get("/leader-widgets", requireAuth, async (req: Request, res: Response) =
 router.get("/member-stats", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
 
-  const [linkedMember] = await db.select().from(membersTable)
-    .where(user.memberId ? eq(membersTable.id, user.memberId) : eq(membersTable.email, user.email)).limit(1);
+  const linkedMember = await findLinkedMember(user);
 
   if (!linkedMember) {
     return res.json({

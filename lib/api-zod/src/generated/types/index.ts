@@ -6,6 +6,8 @@
  * OpenAPI spec version: 0.2.0
  */
 
+export * from "./accountMemberOption";
+export * from "./accountMemberOptionsResponse";
 export * from "./accountReasonRequest";
 export * from "./accountRole";
 export * from "./accountsListResponse";
@@ -248,6 +250,7 @@ export * from "./lgpdRequest";
 export * from "./lgpdRequestRequestType";
 export * from "./lgpdRequestsListResponse";
 export * from "./lgpdRequestStatus";
+export * from "./listAccountMemberOptionsParams";
 export * from "./listAccountsParams";
 export * from "./listArticlesParams";
 export * from "./listAssetsCategory";

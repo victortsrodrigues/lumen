@@ -1,3 +1,4 @@
+import { findLinkedMember } from "../lib/memberLink.js";
 import { Router, type IRouter, Request, Response } from "express";
 import {
   db,
@@ -362,8 +363,7 @@ router.post("/:id/register", requireAuth, async (req: Request, res: Response) =>
   // Self-register or admin-register
   let memberId = req.body.memberId;
   if (role === "member") {
-    const [member] = await db.select({ id: membersTable.id, fullName: membersTable.fullName })
-      .from(membersTable).where(eq(membersTable.email, req.user!.email)).limit(1);
+    const member = await findLinkedMember(req.user!);
     if (!member) {
       res.status(404).json({ error: "NOT_FOUND", message: "Membro não encontrado para este usuário" });
       return;
@@ -440,8 +440,7 @@ router.delete("/:id/register/:memberId", requireAuth, async (req: Request, res: 
 
   // Members can only cancel their own registration
   if (role === "member") {
-    const [member] = await db.select({ id: membersTable.id })
-      .from(membersTable).where(eq(membersTable.email, req.user!.email)).limit(1);
+    const member = await findLinkedMember(req.user!);
     if (!member || member.id !== req.params.memberId) {
       res.status(403).json({ error: "FORBIDDEN", message: "Você só pode cancelar sua própria inscrição" });
       return;
@@ -524,9 +523,8 @@ router.post("/:id/attendance", requireAuth, requireRole("admin", "leader"), asyn
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // Helper: check if logged-in user is the member in the schedule entry
-async function isSelfMember(userEmail: string, memberId: string): Promise<boolean> {
-  const [member] = await db.select().from(membersTable)
-    .where(eq(membersTable.email, userEmail)).limit(1);
+async function isSelfMember(user: NonNullable<Request["user"]>, memberId: string): Promise<boolean> {
+  const member = await findLinkedMember(user);
   return member?.id === memberId;
 }
 
@@ -672,7 +670,7 @@ router.put("/:eventId/schedule/:id", requireAuth, async (req: Request, res: Resp
 
   // Access control: admin/leader can change anything, member can only confirm/absent own
   if (user.role !== "admin" && user.role !== "leader") {
-    const isSelf = await isSelfMember(user.email, existing.memberId);
+    const isSelf = await isSelfMember(user, existing.memberId);
     if (!isSelf) {
       res.status(403).json({ error: "Sem permissao para alterar esta escala" });
       return;

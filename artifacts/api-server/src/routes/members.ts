@@ -4,12 +4,13 @@ import {
   courseEnrollmentsTable, eventRegistrationsTable, ministryMembersTable, ministriesTable,
   assetsTable, eventSchedulesTable, planningInitiativesTable,
   memberAreasTable,
-  usersTable, memberChildrenTable, memberGroupsTable, memberGroupMembersTable,
+  memberChildrenTable, memberGroupsTable, memberGroupMembersTable,
   isValidReceptionMode, isValidExclusionReason,
 } from "@workspace/db";
 import { eq, desc, ilike, and, count, isNull, inArray, or } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middlewares/auth.js";
 import { createAuditLog } from "../lib/audit.js";
+import { findLinkedMember } from "../lib/memberLink.js";
 import {
   encrypt, decrypt, hashForSearch, maskCpf,
   encryptIfPresent, decryptIfPresent
@@ -157,22 +158,6 @@ function buildHistoryDiff(before: Record<string, unknown>, after: Record<string,
   return changes;
 }
 
-async function findLinkedMember(user: NonNullable<Request["user"]>) {
-  if (user.memberId) {
-    const [member] = await db.select().from(membersTable)
-      .where(eq(membersTable.id, user.memberId)).limit(1);
-    if (member) return member;
-  }
-
-  // Compatibility for accounts created before the explicit member link.
-  const matches = await db.select().from(membersTable)
-    .where(ilike(membersTable.email, user.email)).limit(2);
-  if (matches.length !== 1) return undefined;
-  await db.update(usersTable).set({ memberId: matches[0].id, updatedAt: new Date() })
-    .where(eq(usersTable.id, user.userId));
-  user.memberId = matches[0].id;
-  return matches[0];
-}
 
 // ─── SPOUSE MIRROR ──────────────────────────────────────────────────────────
 

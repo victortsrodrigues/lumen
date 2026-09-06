@@ -8,6 +8,7 @@
 
 export interface AccountStatusSummary {
   pending: number;
+  rejected: number;
   active: number;
   blocked: number;
   revoked: number;

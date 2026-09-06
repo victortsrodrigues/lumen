@@ -17,6 +17,7 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AccountMemberOptionsResponse,
   AccountReasonRequest,
   AccountsListResponse,
   AddBudgetItems201,
@@ -164,6 +165,7 @@ import type {
   LessonsListResponse,
   LgpdRequest,
   LgpdRequestsListResponse,
+  ListAccountMemberOptionsParams,
   ListAccountsParams,
   ListArticlesParams,
   ListAssetsParams,
@@ -1692,6 +1694,283 @@ export function useListAccounts<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Search members and their account links (Admin only)
+ */
+export const getListAccountMemberOptionsUrl = (
+  params?: ListAccountMemberOptionsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/accounts/member-options?${stringifiedParams}`
+    : `/api/admin/accounts/member-options`;
+};
+
+export const listAccountMemberOptions = async (
+  params?: ListAccountMemberOptionsParams,
+  options?: RequestInit,
+): Promise<AccountMemberOptionsResponse> => {
+  return customFetch<AccountMemberOptionsResponse>(
+    getListAccountMemberOptionsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListAccountMemberOptionsQueryKey = (
+  params?: ListAccountMemberOptionsParams,
+) => {
+  return [
+    `/api/admin/accounts/member-options`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getListAccountMemberOptionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAccountMemberOptions>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListAccountMemberOptionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAccountMemberOptions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListAccountMemberOptionsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listAccountMemberOptions>>
+  > = ({ signal }) =>
+    listAccountMemberOptions(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAccountMemberOptions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAccountMemberOptionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAccountMemberOptions>>
+>;
+export type ListAccountMemberOptionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Search members and their account links (Admin only)
+ */
+
+export function useListAccountMemberOptions<
+  TData = Awaited<ReturnType<typeof listAccountMemberOptions>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListAccountMemberOptionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAccountMemberOptions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAccountMemberOptionsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Reject a pending request without deleting it (Admin only)
+ */
+export const getRejectAccountUrl = (id: string) => {
+  return `/api/admin/accounts/${id}/reject`;
+};
+
+export const rejectAccount = async (
+  id: string,
+  accountReasonRequest: AccountReasonRequest,
+  options?: RequestInit,
+): Promise<AdminAccount> => {
+  return customFetch<AdminAccount>(getRejectAccountUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(accountReasonRequest),
+  });
+};
+
+export const getRejectAccountMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof rejectAccount>>,
+    TError,
+    { id: string; data: BodyType<AccountReasonRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof rejectAccount>>,
+  TError,
+  { id: string; data: BodyType<AccountReasonRequest> },
+  TContext
+> => {
+  const mutationKey = ["rejectAccount"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof rejectAccount>>,
+    { id: string; data: BodyType<AccountReasonRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return rejectAccount(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RejectAccountMutationResult = NonNullable<
+  Awaited<ReturnType<typeof rejectAccount>>
+>;
+export type RejectAccountMutationBody = BodyType<AccountReasonRequest>;
+export type RejectAccountMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Reject a pending request without deleting it (Admin only)
+ */
+export const useRejectAccount = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof rejectAccount>>,
+    TError,
+    { id: string; data: BodyType<AccountReasonRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof rejectAccount>>,
+  TError,
+  { id: string; data: BodyType<AccountReasonRequest> },
+  TContext
+> => {
+  return useMutation(getRejectAccountMutationOptions(options));
+};
+
+/**
+ * @summary Reopen a rejected request as pending (Admin only)
+ */
+export const getReopenAccountUrl = (id: string) => {
+  return `/api/admin/accounts/${id}/reopen`;
+};
+
+export const reopenAccount = async (
+  id: string,
+  options?: RequestInit,
+): Promise<AdminAccount> => {
+  return customFetch<AdminAccount>(getReopenAccountUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getReopenAccountMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reopenAccount>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof reopenAccount>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["reopenAccount"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof reopenAccount>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return reopenAccount(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReopenAccountMutationResult = NonNullable<
+  Awaited<ReturnType<typeof reopenAccount>>
+>;
+
+export type ReopenAccountMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Reopen a rejected request as pending (Admin only)
+ */
+export const useReopenAccount = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reopenAccount>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof reopenAccount>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getReopenAccountMutationOptions(options));
+};
 
 /**
  * @summary Get an account (Admin only)

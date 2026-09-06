@@ -1,3 +1,4 @@
+import { findLinkedMember } from "../lib/memberLink.js";
 import { Router, type IRouter, Request, Response } from "express";
 import {
   db,
@@ -46,10 +47,9 @@ const VALID_STATUSES = ["ativo", "inativo"];
 const VALID_ROLES = ["lider", "membro"];
 
 // Helper: check if user is a leader of ministry
-async function isMinistryLeader(ministryId: string, userEmail: string): Promise<boolean> {
-  // Find member by user email
-  const [member] = await db.select().from(membersTable)
-    .where(eq(membersTable.email, userEmail)).limit(1);
+async function isMinistryLeader(ministryId: string, user: NonNullable<Request["user"]>): Promise<boolean> {
+  // Use the explicit account link
+  const member = await findLinkedMember(user);
   if (!member) return false;
 
   const [mm] = await db.select().from(ministryMembersTable)
@@ -187,7 +187,7 @@ router.put("/:id", requireAuth, async (req: Request, res: Response) => {
 
   // Access: admin or ministry leader
   if (user.role !== "admin") {
-    const isLeader = await isMinistryLeader(id, user.email);
+    const isLeader = await isMinistryLeader(String(id), user);
     if (!isLeader) {
       res.status(403).json({ error: "Sem permissao para editar este ministerio" });
       return;
@@ -271,7 +271,7 @@ router.post("/:id/members", requireAuth, async (req: Request, res: Response) => 
 
   // Access: admin or ministry leader
   if (user.role !== "admin" && user.role !== "leader") {
-    const isLeader = await isMinistryLeader(id, user.email);
+    const isLeader = await isMinistryLeader(String(id), user);
     if (!isLeader) {
       res.status(403).json({ error: "Sem permissao para adicionar membros" });
       return;
@@ -338,7 +338,7 @@ router.put("/:id/members/:memberId", requireAuth, async (req: Request, res: Resp
 
   // Access: admin or ministry leader
   if (user.role !== "admin" && user.role !== "leader") {
-    const isLeader = await isMinistryLeader(id, user.email);
+    const isLeader = await isMinistryLeader(String(id), user);
     if (!isLeader) {
       res.status(403).json({ error: "Sem permissao para alterar roles" });
       return;
@@ -388,7 +388,7 @@ router.delete("/:id/members/:memberId", requireAuth, async (req: Request, res: R
 
   // Access: admin or ministry leader
   if (user.role !== "admin" && user.role !== "leader") {
-    const isLeader = await isMinistryLeader(id, user.email);
+    const isLeader = await isMinistryLeader(String(id), user);
     if (!isLeader) {
       res.status(403).json({ error: "Sem permissao para remover membros" });
       return;
@@ -477,7 +477,7 @@ router.post("/:id/goals", requireAuth, async (req: Request, res: Response) => {
 
   // Access: admin or ministry leader
   if (user.role !== "admin") {
-    const isLeader = await isMinistryLeader(id, user.email);
+    const isLeader = await isMinistryLeader(String(id), user);
     if (!isLeader) {
       res.status(403).json({ error: "Sem permissao para criar metas neste ministerio" });
       return;
@@ -526,7 +526,7 @@ router.put("/:id/goals/:goalId", requireAuth, async (req: Request, res: Response
 
   // Access: admin or ministry leader
   if (user.role !== "admin") {
-    const isLeader = await isMinistryLeader(id, user.email);
+    const isLeader = await isMinistryLeader(String(id), user);
     if (!isLeader) {
       res.status(403).json({ error: "Sem permissao para editar metas" });
       return;

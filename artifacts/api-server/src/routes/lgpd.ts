@@ -1,3 +1,4 @@
+import { findLinkedMember } from "../lib/memberLink.js";
 import { Router, type IRouter, Request, Response } from "express";
 import {
   db,
@@ -38,12 +39,6 @@ function getIp(req: Request): string {
   return req.socket?.remoteAddress ?? "unknown";
 }
 
-// Prefer the explicit account-member link; email is a compatibility fallback.
-async function findMemberForUser(memberId: string | null, email: string) {
-  const [member] = await db.select().from(membersTable)
-    .where(memberId ? eq(membersTable.id, memberId) : eq(membersTable.email, email)).limit(1);
-  return member;
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MEMBER SELF-SERVICE
@@ -51,7 +46,7 @@ async function findMemberForUser(memberId: string | null, email: string) {
 
 // GET /lgpd/my-data — Ver dados pessoais
 router.get("/my-data", requireAuth, async (req: Request, res: Response) => {
-  const member = await findMemberForUser(req.user!.memberId, req.user!.email);
+  const member = await findLinkedMember(req.user!);
   if (!member) {
     res.status(404).json({ error: "NOT_FOUND", message: "Membro não encontrado para este usuário" });
     return;
@@ -117,7 +112,7 @@ router.get("/my-data/export", requireAuth, async (req: Request, res: Response) =
   const userId = req.user!.userId;
   const ip = getIp(req);
 
-  const member = await findMemberForUser(req.user!.memberId, req.user!.email);
+  const member = await findLinkedMember(req.user!);
   if (!member) {
     res.status(404).json({ error: "NOT_FOUND", message: "Membro não encontrado" });
     return;
@@ -196,7 +191,7 @@ router.post("/requests", requireAuth, async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
 
-  const member = await findMemberForUser(req.user!.memberId, req.user!.email);
+  const member = await findLinkedMember(req.user!);
   if (!member) {
     res.status(404).json({ error: "NOT_FOUND", message: "Membro não encontrado" });
     return;

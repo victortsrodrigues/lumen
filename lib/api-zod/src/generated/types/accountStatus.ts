@@ -10,6 +10,7 @@ export type AccountStatus = (typeof AccountStatus)[keyof typeof AccountStatus];
 
 export const AccountStatus = {
   pending: "pending",
+  rejected: "rejected",
   active: "active",
   blocked: "blocked",
   revoked: "revoked",

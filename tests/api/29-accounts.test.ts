@@ -57,9 +57,7 @@ describe("29-accounts", () => {
   });
 
   it("3. Admin approves the account", async () => {
-    const res = await request("POST", `/admin/accounts/${pendingId}/approve`, {
-      csrfToken: await getCsrfToken(),
-    }, adminCookie);
+    const res = await request("POST", `/admin/accounts/${pendingId}/approve`, {}, adminCookie);
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("active");
 
