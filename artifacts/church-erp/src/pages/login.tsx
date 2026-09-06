@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useLogin } from '@workspace/api-client-react';
+import { useLogin, useResendVerification } from '@workspace/api-client-react';
 import { useAuth } from '@/hooks/use-auth-context';
 import { Link, useLocation } from 'wouter';
 import { AuthLayout } from '@/components/layout/AuthLayout';
@@ -22,8 +22,10 @@ export default function Login() {
   const { toast } = useToast();
   const { getValidCsrfToken, checkSession } = useAuth();
   const { mutateAsync: loginMutation } = useLogin();
+  const resendVerification = useResendVerification();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -31,6 +33,7 @@ export default function Login() {
 
   const onSubmit = async (data: LoginForm) => {
     setIsSubmitting(true);
+    setUnverifiedEmail(null);
     try {
       const csrfToken = await getValidCsrfToken();
       const response = await loginMutation({
@@ -45,6 +48,7 @@ export default function Login() {
         setLocation('/');
       }
     } catch (error: any) {
+      if (error?.data?.error === 'EMAIL_NOT_VERIFIED') setUnverifiedEmail(data.email);
       toast({
         title: "Erro no login",
         description: error?.message || "Verifique suas credenciais e tente novamente.",
@@ -52,6 +56,20 @@ export default function Login() {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const resendEmail = async () => {
+    if (!unverifiedEmail) return;
+    try {
+      const csrfToken = await getValidCsrfToken();
+      await resendVerification.mutateAsync({ data: { email: unverifiedEmail, csrfToken } });
+      toast({
+        title: "Solicitação recebida",
+        description: "Se a conta ainda estiver aguardando verificação, enviaremos uma nova mensagem.",
+      });
+    } catch {
+      // The global mutation handler presents the API error.
     }
   };
 
@@ -115,6 +133,17 @@ export default function Login() {
             </>
           )}
         </button>
+
+        {unverifiedEmail && (
+          <button
+            type="button"
+            disabled={resendVerification.isPending}
+            onClick={resendEmail}
+            className="w-full text-sm font-semibold text-primary hover:underline disabled:opacity-60"
+          >
+            {resendVerification.isPending ? "Enviando…" : "Reenviar e-mail de verificação"}
+          </button>
+        )}
       </motion.form>
 
       <div className="mt-8 text-center">

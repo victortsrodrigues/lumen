@@ -20,6 +20,8 @@ import {
   Clock3,
   KeyRound,
   Loader2,
+  MailCheck,
+  MailWarning,
   RefreshCw,
   Search,
   ShieldOff,
@@ -178,7 +180,14 @@ export default function AccountsAdminPage() {
                   const ownAccount = account.id === user.id;
                   return (
                     <tr key={account.id} className="align-top">
-                      <td className="p-4"><p className="font-medium">{account.name}</p><p className="text-xs text-muted-foreground">{account.email}</p></td>
+                      <td className="p-4">
+                        <p className="font-medium">{account.name}</p>
+                        <p className="text-xs text-muted-foreground">{account.email}</p>
+                        <span className={`mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${account.emailVerifiedAt ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
+                          {account.emailVerifiedAt ? <MailCheck className="h-3 w-3" /> : <MailWarning className="h-3 w-3" />}
+                          {account.emailVerifiedAt ? "E-mail verificado" : "Aguardando verificação"}
+                        </span>
+                      </td>
                       <td className="p-4">{ROLE_LABELS[account.role]}</td>
                       <td className="p-4"><span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[account.status]}`}>{STATUS_LABELS[account.status]}</span>{account.statusReason && <p className="mt-2 max-w-48 text-xs text-muted-foreground">{account.statusReason}</p>}</td>
                       <td className="p-4 text-muted-foreground">{account.memberName || "Não vinculado"}</td>

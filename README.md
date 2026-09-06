@@ -153,6 +153,12 @@ Ver `.env.example`. Principais:
 | JWT_SECRET | Chave para tokens JWT | (trocar em producao) |
 | CSRF_SECRET | Chave para tokens CSRF | (trocar em producao) |
 | FIELD_ENCRYPTION_KEY | Chave AES-256 para criptografia de PII (64 hex chars) | (trocar em producao) |
+| EMAIL_PROVIDER | Provedor de e-mail transacional | resend |
+| RESEND_API_KEY | Chave da API do Resend | — |
+| EMAIL_FROM | Remetente em domínio verificado | — |
+| EMAIL_REPLY_TO | Endereço para respostas | — |
+| APP_PUBLIC_URL | URL pública usada nos links de autenticação | http://localhost:5173 |
+| EMAIL_VERIFICATION_REQUIRED | Exige e-mail confirmado para login | false |
 | STORAGE_PROVIDER | `local` ou `cloud` | local |
 
 > **Importante:** Troque as chaves de seguranca ANTES de cadastrar dados reais. Alterar a `FIELD_ENCRYPTION_KEY` depois torna CPFs e telefones ilegiveis.

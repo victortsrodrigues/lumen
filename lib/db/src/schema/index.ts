@@ -1,4 +1,5 @@
 export * from "./users";
+export * from "./email_auth";
 export * from "./audit_logs";
 export * from "./consent_records";
 export * from "./members";

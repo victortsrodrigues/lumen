@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { verifyToken, JwtPayload } from "../lib/jwt.js";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { isEmailVerificationRequired } from "../lib/email.js";
 
 declare global {
   namespace Express {
@@ -31,11 +32,15 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     role: usersTable.role,
     memberId: usersTable.memberId,
     status: usersTable.status,
+    emailVerifiedAt: usersTable.emailVerifiedAt,
     sessionVersion: usersTable.sessionVersion,
   }).from(usersTable).where(eq(usersTable.id, payload.userId)).limit(1);
 
   const tokenVersion = payload.sessionVersion ?? 1;
-  if (!user || user.status !== "active" || user.sessionVersion !== tokenVersion) {
+  if (!user
+    || user.status !== "active"
+    || user.sessionVersion !== tokenVersion
+    || (isEmailVerificationRequired() && !user.emailVerifiedAt)) {
     res.clearCookie("auth_token", { path: "/" });
     res.status(401).json({
       error: "SESSION_REVOKED",

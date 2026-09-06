@@ -27,7 +27,7 @@ export default function Register() {
   const { mutateAsync: registerMutation } = useRegister();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
+  const [submission, setSubmission] = useState<{ email: string; verificationRequired: boolean } | null>(null);
 
   const { register, handleSubmit, formState: { errors } } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
@@ -37,12 +37,17 @@ export default function Register() {
     setIsSubmitting(true);
     try {
       const csrfToken = await getValidCsrfToken();
-      await registerMutation({
+      const response = await registerMutation({
         data: { ...data, csrfToken }
       });
 
-      setSubmittedEmail(data.email);
-      toast({ title: "Solicitação enviada", description: "Aguarde a aprovação de um administrador." });
+      setSubmission({ email: data.email, verificationRequired: response.emailVerificationRequired === true });
+      toast({
+        title: "Solicitação enviada",
+        description: response.emailVerificationRequired
+          ? "Confira seu e-mail e aguarde a aprovação de um administrador."
+          : "Aguarde a aprovação de um administrador.",
+      });
     } catch (error: any) {
       toast({
         title: "Erro no registro",
@@ -54,7 +59,7 @@ export default function Register() {
     }
   };
 
-  if (submittedEmail) {
+  if (submission) {
     return (
       <AuthLayout title="Solicitação enviada">
         <div className="text-center space-y-5">
@@ -64,7 +69,9 @@ export default function Register() {
           <div className="space-y-2">
             <p className="text-foreground font-medium">Seu pedido de acesso foi recebido.</p>
             <p className="text-sm text-muted-foreground">
-              Um administrador precisa aprovar a conta <strong>{submittedEmail}</strong> antes do primeiro acesso.
+              {submission.verificationRequired
+                ? <>Enviamos uma confirmação para <strong>{submission.email}</strong>. Confirme o endereço e aguarde a aprovação de um administrador.</>
+                : <>Um administrador precisa aprovar a conta <strong>{submission.email}</strong> antes do primeiro acesso.</>}
             </p>
           </div>
           <Link href="/login" className="inline-flex w-full items-center justify-center rounded-xl bg-primary px-6 py-3.5 font-semibold text-primary-foreground hover:bg-primary/90">

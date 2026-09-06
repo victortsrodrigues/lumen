@@ -14,6 +14,7 @@ export interface UserProfile {
   name: string;
   role: UserProfileRole;
   status: AccountStatus;
+  emailVerifiedAt?: Date | null;
   memberId?: string | null;
   mfaEnabled: boolean;
   mfaVerified: boolean;

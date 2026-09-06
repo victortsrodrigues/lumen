@@ -197,7 +197,7 @@ Não precisa clicar em nada. `git push = deploy`.
 
 ### Mudanças de schema do banco
 
-Toda vez que você altera algo em `lib/db/src/schema/*.ts`, no próximo deploy o comando `pnpm db:push` (dentro do start do Railway) aplica a mudança automaticamente.
+Toda mudança de schema deve ter uma migração SQL versionada em `lib/db/migrations`. No próximo deploy, o comando `pnpm db:migrate` aplica apenas as migrações ainda não registradas em `app_migrations`, antes de iniciar a aplicação.
 
 **Cuidado com mudanças destrutivas** (drop column, rename, notNull sem default) — podem travar o deploy ou apagar dados. Em produção:
 - Sempre fazer backup antes
@@ -274,11 +274,21 @@ Guarde os backups fora do Railway (Google Drive, Dropbox, S3).
 | `JWT_SECRET` | dev value | 64 hex chars aleatórios | ✅ |
 | `CSRF_SECRET` | dev value | 64 hex chars aleatórios | ✅ |
 | `FIELD_ENCRYPTION_KEY` | dev value | 64 hex chars aleatórios (**imutável!**) | ✅ |
+| `EMAIL_PROVIDER` | vazio | `resend` | Para envio |
+| `RESEND_API_KEY` | vazio | Chave criada no Resend | Para envio |
+| `EMAIL_FROM` | vazio | `Lumen <contato@dominio-verificado>` | Para envio |
+| `EMAIL_REPLY_TO` | vazio | Endereço que receberá respostas | Opcional |
+| `APP_PUBLIC_URL` | localhost | URL pública sem barra final | Para envio |
+| `EMAIL_VERIFICATION_REQUIRED` | `false` | `true` somente após validar a entrega | Para verificação |
 | `STORAGE_PROVIDER` | local | `local` | ✅ |
 | `UPLOAD_DIR` | `./uploads` | `/app/uploads` | ✅ |
 | `BOOTSTRAP_ADMIN_EMAIL` | — | e-mail do admin inicial | Só 1º deploy |
 | `BOOTSTRAP_ADMIN_PASSWORD` | — | senha forte e exclusiva, nunca versionada | Só 1º deploy |
 | `BOOTSTRAP_ADMIN_NAME` | — | nome do admin | Opcional |
+
+Para testar antes de a Lumen ter um domínio próprio, use `Lumen <onboarding@resend.dev>` em `EMAIL_FROM`, mantenha `EMAIL_VERIFICATION_REQUIRED=false` e envie somente para o endereço associado à conta Resend. Um endereço `@gmail.com` pode ser usado como `EMAIL_REPLY_TO`, mas não como remetente autenticado. Depois de verificar um domínio no Resend, altere `EMAIL_FROM`, valide a entrega e só então ative `EMAIL_VERIFICATION_REQUIRED=true`.
+
+Nunca grave `RESEND_API_KEY` no repositório. Configure-a apenas como variável do serviço no Railway.
 
 ---
 
@@ -369,7 +379,7 @@ pnpm db:seed
 # Dev
 pnpm dev                  # backend + frontend
 pnpm db:studio            # UI visual do banco
-pnpm db:push              # aplicar mudanças de schema
+pnpm db:migrate           # aplicar migrações versionadas
 
 # Build & test
 pnpm build                # build completo

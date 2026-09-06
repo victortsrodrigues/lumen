@@ -1,6 +1,7 @@
 import pg from "pg";
 import jwt from "jsonwebtoken";
 import speakeasy from "speakeasy";
+import crypto from "node:crypto";
 
 const { Pool } = pg;
 
@@ -178,12 +179,38 @@ export async function registerAdminWithMfa(
 
 // ─── DB HELPERS ──────────────────────────────────────────────────────────────
 
-export async function getResetToken(email: string): Promise<string | null> {
+function decryptEmailPayload(ciphertext: string): Record<string, unknown> {
+  const sourceKey = process.env.FIELD_ENCRYPTION_KEY || "church-erp-default-encryption-key-32chars";
+  const key = crypto.scryptSync(sourceKey, "church-erp-salt", 32);
+  const buffer = Buffer.from(ciphertext, "base64");
+  const iv = buffer.subarray(0, 12);
+  const tag = buffer.subarray(12, 28);
+  const encrypted = buffer.subarray(28);
+  const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
+  decipher.setAuthTag(tag);
+  return JSON.parse(decipher.update(encrypted) + decipher.final("utf8"));
+}
+
+export async function getAuthEmailToken(
+  email: string,
+  template: "password_reset" | "email_verification",
+): Promise<string | null> {
   const { rows } = await pool.query(
-    "SELECT reset_token FROM users WHERE email = $1",
-    [email.toLowerCase()]
+    `SELECT payload_encrypted
+       FROM email_outbox
+      WHERE recipient = $1 AND template = $2
+      ORDER BY created_at DESC
+      LIMIT 1`,
+    [email.toLowerCase(), template]
   );
-  return rows[0]?.reset_token || null;
+  if (!rows[0]?.payload_encrypted) return null;
+  const payload = decryptEmailPayload(rows[0].payload_encrypted);
+  if (typeof payload.link !== "string") return null;
+  return new URLSearchParams(new URL(payload.link).hash.replace(/^#/, "")).get("token");
+}
+
+export async function getResetToken(email: string): Promise<string | null> {
+  return getAuthEmailToken(email, "password_reset");
 }
 
 export async function promoteToRole(userId: string, role: string): Promise<void> {

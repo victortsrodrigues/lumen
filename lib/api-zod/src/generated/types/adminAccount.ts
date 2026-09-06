@@ -14,6 +14,7 @@ export interface AdminAccount {
   name: string;
   role: AccountRole;
   status: AccountStatus;
+  emailVerifiedAt?: Date | null;
   memberId?: string | null;
   memberName?: string | null;
   statusReason?: string | null;

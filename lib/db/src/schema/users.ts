@@ -30,6 +30,7 @@ export const usersTable = pgTable("users", {
   requestedAt: timestamp("requested_at").notNull().defaultNow(),
   approvedAt: timestamp("approved_at"),
   approvedByUserId: text("approved_by_user_id"),
+  emailVerifiedAt: timestamp("email_verified_at"),
   lastLoginAt: timestamp("last_login_at"),
   sessionVersion: integer("session_version").notNull().default(1),
   mfaEnabled: boolean("mfa_enabled").notNull().default(false),

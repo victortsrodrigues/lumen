@@ -2,15 +2,32 @@ import { Router, type IRouter, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import speakeasy from "speakeasy";
 import QRCode from "qrcode";
-import { db, usersTable, consentRecordsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import {
+  authTokensTable,
+  consentRecordsTable,
+  db,
+  emailOutboxTable,
+  usersTable,
+} from "@workspace/db";
+import { and, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import { signToken } from "../lib/jwt.js";
 import { generateCsrfToken, validateCsrfToken } from "../lib/csrf.js";
 import { createAuditLog } from "../lib/audit.js";
-import { checkLoginRateLimit, resetLoginRateLimit } from "../lib/rateLimit.js";
+import { checkActionRateLimit, checkLoginRateLimit, resetLoginRateLimit } from "../lib/rateLimit.js";
 import { requireAuth } from "../middlewares/auth.js";
 import { notifyRole } from "../lib/notifications.js";
 import { deleteOwnAccountData, LastActiveAdminError } from "../lib/accountDeletion.js";
+import {
+  assertEmailDeliveryConfigured,
+  cancelPendingAuthEmails,
+  dispatchEmailOutboxItem,
+  hashAuthToken,
+  isEmailDeliveryConfigured,
+  isEmailVerificationRequired,
+  prepareAuthEmail,
+  queueAuthEmail,
+  recentlyIssuedAuthToken,
+} from "../lib/email.js";
 
 const router: IRouter = Router();
 
@@ -77,23 +94,47 @@ router.post("/register", async (req: Request, res: Response) => {
     return;
   }
 
-  const passwordHash = await bcrypt.hash(password, 12);
-  const [user] = await db.insert(usersTable).values({
-    email: normalizedEmail,
-    passwordHash,
-    name: normalizedName,
-    role: "member",
-    status: "pending",
-    requestedAt: new Date(),
-    mfaEnabled: false,
-  }).returning();
+  const emailVerificationRequired = isEmailVerificationRequired();
+  if (emailVerificationRequired) {
+    try {
+      assertEmailDeliveryConfigured();
+    } catch {
+      req.log?.error("Registration requires email delivery, but the service is not ready");
+      res.status(503).json({
+        error: "EMAIL_SERVICE_UNAVAILABLE",
+        message: "O cadastro está temporariamente indisponível. Tente novamente mais tarde.",
+      });
+      return;
+    }
+  }
 
-  await db.insert(consentRecordsTable).values({
-    userId: user.id,
-    consentType: "terms_of_service",
-    accepted: true,
-    ipAddress: ip,
+  const passwordHash = await bcrypt.hash(password, 12);
+  const created = await db.transaction(async (tx) => {
+    const [user] = await tx.insert(usersTable).values({
+      email: normalizedEmail,
+      passwordHash,
+      name: normalizedName,
+      role: "member",
+      status: "pending",
+      requestedAt: new Date(),
+      emailVerifiedAt: emailVerificationRequired ? null : new Date(),
+      mfaEnabled: false,
+    }).returning();
+
+    await tx.insert(consentRecordsTable).values({
+      userId: user.id,
+      consentType: "terms_of_service",
+      accepted: true,
+      ipAddress: ip,
+    });
+
+    if (!emailVerificationRequired) return { user, outboxId: null as string | null };
+    const prepared = prepareAuthEmail(user, "verify_email");
+    await tx.insert(authTokensTable).values(prepared.token);
+    await tx.insert(emailOutboxTable).values(prepared.outbox);
+    return { user, outboxId: prepared.outbox.id! };
   });
+  const { user, outboxId } = created;
 
   await createAuditLog({ userId: user.id, action: "ACCOUNT_REQUESTED", resourceType: "user", resourceId: user.id, ipAddress: ip });
 
@@ -106,6 +147,8 @@ router.post("/register", async (req: Request, res: Response) => {
     entityId: user.id,
   });
 
+  if (outboxId) void dispatchEmailOutboxItem(outboxId);
+
   res.status(202).json({
     user: {
       id: user.id,
@@ -113,12 +156,16 @@ router.post("/register", async (req: Request, res: Response) => {
       name: user.name,
       role: user.role,
       status: user.status,
+      emailVerifiedAt: user.emailVerifiedAt,
       mfaEnabled: user.mfaEnabled,
       mfaVerified: false,
       createdAt: user.createdAt,
     },
     requiresMfa: false,
-    message: "Solicitação enviada. Você poderá acessar após a aprovação.",
+    emailVerificationRequired,
+    message: emailVerificationRequired
+      ? "Solicitação enviada. Confirme seu e-mail e aguarde a aprovação."
+      : "Solicitação enviada. Você poderá acessar após a aprovação.",
   });
 });
 
@@ -142,7 +189,8 @@ router.post("/login", async (req: Request, res: Response) => {
     return;
   }
 
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase())).limit(1);
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, normalizedEmail)).limit(1);
 
   if (!user) {
     await createAuditLog({ userId: "unknown", action: "LOGIN_FAILED", details: { email, reason: "user_not_found" }, ipAddress: ip });
@@ -167,7 +215,7 @@ router.post("/login", async (req: Request, res: Response) => {
     revoked: { error: "ACCOUNT_REVOKED", message: "O acesso desta conta foi revogado" },
     deleting: { error: "ACCOUNT_DELETING", message: "A exclusão desta conta está em processamento" },
   };
-  if (user.status !== "active") {
+  if (!["active", "pending"].includes(user.status)) {
     const statusError = unavailable[user.status];
     await createAuditLog({
       userId: user.id,
@@ -176,6 +224,29 @@ router.post("/login", async (req: Request, res: Response) => {
       ipAddress: ip,
     });
     res.status(403).json(statusError);
+    return;
+  }
+  if (isEmailVerificationRequired() && !user.emailVerifiedAt) {
+    await createAuditLog({
+      userId: user.id,
+      action: "LOGIN_DENIED",
+      details: { reason: "email_not_verified" },
+      ipAddress: ip,
+    });
+    res.status(403).json({
+      error: "EMAIL_NOT_VERIFIED",
+      message: "Confirme seu e-mail antes de acessar a plataforma",
+    });
+    return;
+  }
+  if (user.status === "pending") {
+    await createAuditLog({
+      userId: user.id,
+      action: "LOGIN_DENIED",
+      details: { accountStatus: user.status },
+      ipAddress: ip,
+    });
+    res.status(403).json(unavailable.pending);
     return;
   }
 
@@ -198,7 +269,7 @@ router.post("/login", async (req: Request, res: Response) => {
   await createAuditLog({ userId: user.id, action: "LOGIN_SUCCESS", ipAddress: ip });
 
   res.json({
-    user: { id: user.id, email: user.email, name: user.name, role: user.role, status: user.status, mfaEnabled: user.mfaEnabled, mfaVerified, createdAt: user.createdAt },
+    user: { id: user.id, email: user.email, name: user.name, role: user.role, status: user.status, emailVerifiedAt: user.emailVerifiedAt, mfaEnabled: user.mfaEnabled, mfaVerified, createdAt: user.createdAt },
     requiresMfa: user.role === "admin" && user.mfaEnabled && !mfaVerified,
     message: "Login realizado com sucesso",
   });
@@ -226,6 +297,7 @@ router.get("/me", requireAuth, async (req: Request, res: Response) => {
     name: user.name,
     role: user.role,
     status: user.status,
+    emailVerifiedAt: user.emailVerifiedAt,
     memberId: user.memberId,
     mfaEnabled: user.mfaEnabled,
     mfaVerified: req.user!.mfaVerified,
@@ -242,22 +314,165 @@ router.post("/forgot-password", async (req: Request, res: Response) => {
     return;
   }
 
-  if (!email) {
+  if (typeof email !== "string" || !email.trim()) {
     res.status(400).json({ error: "VALIDATION_ERROR", message: "E-mail obrigatório" });
     return;
   }
-
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase())).limit(1);
-
-  if (user) {
-    const resetToken = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
-    await db.update(usersTable).set({ resetToken, resetTokenExpiresAt: expiresAt }).where(eq(usersTable.id, user.id));
-    await createAuditLog({ userId: user.id, action: "PASSWORD_RESET_REQUESTED", ipAddress: ip });
-    req.log?.info({ userId: user.id, resetToken }, "Password reset token generated");
+  if (process.env.NODE_ENV === "production" && !isEmailDeliveryConfigured()) {
+    res.status(503).json({
+      error: "EMAIL_SERVICE_UNAVAILABLE",
+      message: "A recuperação de senha está temporariamente indisponível.",
+    });
+    return;
   }
 
-  res.json({ message: "Se o e-mail existir, você receberá as instruções de recuperação" });
+  const normalizedEmail = email.trim().toLowerCase();
+  if (normalizedEmail.length > 320 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    res.status(400).json({ error: "VALIDATION_ERROR", message: "E-mail inválido" });
+    return;
+  }
+  const genericMessage = "Se o e-mail existir, você receberá as instruções de recuperação";
+  const rateCheck = checkActionRateLimit(`forgot-password:${ip}:${normalizedEmail}`, {
+    maxAttempts: 3,
+    windowMs: 15 * 60 * 1000,
+    blockDurationMs: 30 * 60 * 1000,
+  });
+  if (!rateCheck.allowed) {
+    res.json({ message: genericMessage });
+    return;
+  }
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, normalizedEmail)).limit(1);
+
+  if (user) {
+    try {
+      if (!(await recentlyIssuedAuthToken(user.id, "reset_password"))) {
+        const { outboxId } = await queueAuthEmail(user, "reset_password");
+        await createAuditLog({ userId: user.id, action: "PASSWORD_RESET_REQUESTED", ipAddress: ip });
+        void dispatchEmailOutboxItem(outboxId);
+      }
+    } catch {
+      req.log?.error({ userId: user.id }, "Could not queue password reset email");
+    }
+  }
+
+  res.json({ message: genericMessage });
+});
+
+router.post("/resend-verification", async (req: Request, res: Response) => {
+  const { email, csrfToken } = req.body;
+  const ip = getClientIp(req);
+  const genericMessage = "Se houver uma conta aguardando verificação, enviaremos uma nova mensagem";
+
+  if (!csrfToken || !validateCsrfToken(csrfToken)) {
+    res.status(400).json({ error: "CSRF_ERROR", message: "Token CSRF inválido" });
+    return;
+  }
+  if (typeof email !== "string" || !email.trim()) {
+    res.status(400).json({ error: "VALIDATION_ERROR", message: "E-mail obrigatório" });
+    return;
+  }
+  if (process.env.NODE_ENV === "production" && !isEmailDeliveryConfigured()) {
+    res.status(503).json({
+      error: "EMAIL_SERVICE_UNAVAILABLE",
+      message: "O envio de verificação está temporariamente indisponível.",
+    });
+    return;
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  if (normalizedEmail.length > 320 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    res.status(400).json({ error: "VALIDATION_ERROR", message: "E-mail inválido" });
+    return;
+  }
+  const rateCheck = checkActionRateLimit(`resend-verification:${ip}:${normalizedEmail}`, {
+    maxAttempts: 3,
+    windowMs: 15 * 60 * 1000,
+    blockDurationMs: 30 * 60 * 1000,
+  });
+  if (!rateCheck.allowed) {
+    res.json({ message: genericMessage });
+    return;
+  }
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, normalizedEmail)).limit(1);
+  if (user && !user.emailVerifiedAt && user.status !== "deleting") {
+    try {
+      if (!(await recentlyIssuedAuthToken(user.id, "verify_email"))) {
+        const { outboxId } = await queueAuthEmail(user, "verify_email");
+        await createAuditLog({ userId: user.id, action: "EMAIL_VERIFICATION_REQUESTED", ipAddress: ip });
+        void dispatchEmailOutboxItem(outboxId);
+      }
+    } catch {
+      req.log?.error({ userId: user.id }, "Could not queue email verification");
+    }
+  }
+
+  res.json({ message: genericMessage });
+});
+
+router.post("/verify-email", async (req: Request, res: Response) => {
+  const { token, csrfToken } = req.body;
+  const ip = getClientIp(req);
+
+  if (!csrfToken || !validateCsrfToken(csrfToken)) {
+    res.status(400).json({ error: "CSRF_ERROR", message: "Token CSRF inválido" });
+    return;
+  }
+  if (typeof token !== "string" || token.length < 32 || token.length > 512) {
+    res.status(400).json({ error: "INVALID_TOKEN", message: "Link inválido ou expirado" });
+    return;
+  }
+  const rateCheck = checkActionRateLimit(`verify-email:${ip}`, {
+    maxAttempts: 10,
+    windowMs: 15 * 60 * 1000,
+    blockDurationMs: 30 * 60 * 1000,
+  });
+  if (!rateCheck.allowed) {
+    res.status(429).json({ error: "RATE_LIMIT", message: "Muitas tentativas. Tente novamente mais tarde." });
+    return;
+  }
+
+  const [record] = await db.select().from(authTokensTable).where(and(
+    eq(authTokensTable.tokenHash, hashAuthToken(token)),
+    eq(authTokensTable.purpose, "verify_email"),
+    isNull(authTokensTable.usedAt),
+    gt(authTokensTable.expiresAt, new Date()),
+  )).limit(1);
+  if (!record) {
+    res.status(400).json({ error: "INVALID_TOKEN", message: "Link inválido ou expirado" });
+    return;
+  }
+
+  const verified = await db.transaction(async (tx) => {
+    const [claimed] = await tx.update(authTokensTable).set({ usedAt: new Date() }).where(and(
+      eq(authTokensTable.id, record.id),
+      isNull(authTokensTable.usedAt),
+      gt(authTokensTable.expiresAt, new Date()),
+    )).returning();
+    if (!claimed) return false;
+
+    await tx.update(usersTable).set({ emailVerifiedAt: new Date(), updatedAt: new Date() })
+      .where(eq(usersTable.id, record.userId));
+    await tx.update(authTokensTable).set({ usedAt: new Date() }).where(and(
+      eq(authTokensTable.userId, record.userId),
+      eq(authTokensTable.purpose, "verify_email"),
+      isNull(authTokensTable.usedAt),
+    ));
+    await tx.update(emailOutboxTable).set({ status: "cancelled", updatedAt: new Date() }).where(and(
+      eq(emailOutboxTable.userId, record.userId),
+      eq(emailOutboxTable.template, "email_verification"),
+      inArray(emailOutboxTable.status, ["pending", "processing"]),
+    ));
+    return true;
+  });
+  if (!verified) {
+    res.status(400).json({ error: "INVALID_TOKEN", message: "Link inválido ou expirado" });
+    return;
+  }
+
+  await createAuditLog({ userId: record.userId, action: "EMAIL_VERIFIED", ipAddress: ip });
+  res.json({ message: "E-mail confirmado com sucesso. Aguarde a aprovação da sua conta." });
 });
 
 router.post("/reset-password", async (req: Request, res: Response) => {
@@ -269,21 +484,62 @@ router.post("/reset-password", async (req: Request, res: Response) => {
     return;
   }
 
-  if (!token || !password || password.length < 8) {
+  if (typeof token !== "string" || token.length < 32 || token.length > 512
+    || typeof password !== "string" || password.length < 8 || password.length > 128) {
     res.status(400).json({ error: "VALIDATION_ERROR", message: "Dados inválidos" });
     return;
   }
+  const rateCheck = checkActionRateLimit(`reset-password:${ip}`, {
+    maxAttempts: 10,
+    windowMs: 15 * 60 * 1000,
+    blockDurationMs: 30 * 60 * 1000,
+  });
+  if (!rateCheck.allowed) {
+    res.status(429).json({ error: "RATE_LIMIT", message: "Muitas tentativas. Tente novamente mais tarde." });
+    return;
+  }
 
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.resetToken, token)).limit(1);
-
-  if (!user || !user.resetTokenExpiresAt || user.resetTokenExpiresAt < new Date()) {
+  const [record] = await db.select().from(authTokensTable).where(and(
+    eq(authTokensTable.tokenHash, hashAuthToken(token)),
+    eq(authTokensTable.purpose, "reset_password"),
+    isNull(authTokensTable.usedAt),
+    gt(authTokensTable.expiresAt, new Date()),
+  )).limit(1);
+  if (!record) {
     res.status(400).json({ error: "INVALID_TOKEN", message: "Token inválido ou expirado" });
     return;
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
-  await db.update(usersTable).set({ passwordHash, resetToken: null, resetTokenExpiresAt: null, updatedAt: new Date() }).where(eq(usersTable.id, user.id));
-  await createAuditLog({ userId: user.id, action: "PASSWORD_RESET", ipAddress: ip });
+  const reset = await db.transaction(async (tx) => {
+    const [claimed] = await tx.update(authTokensTable).set({ usedAt: new Date() }).where(and(
+      eq(authTokensTable.id, record.id),
+      isNull(authTokensTable.usedAt),
+      gt(authTokensTable.expiresAt, new Date()),
+    )).returning();
+    if (!claimed) return false;
+
+    await tx.update(usersTable).set({
+      passwordHash,
+      resetToken: null,
+      resetTokenExpiresAt: null,
+      sessionVersion: sql`${usersTable.sessionVersion} + 1`,
+      updatedAt: new Date(),
+    }).where(eq(usersTable.id, record.userId));
+    await tx.update(authTokensTable).set({ usedAt: new Date() }).where(and(
+      eq(authTokensTable.userId, record.userId),
+      eq(authTokensTable.purpose, "reset_password"),
+      isNull(authTokensTable.usedAt),
+    ));
+    return true;
+  });
+  if (!reset) {
+    res.status(400).json({ error: "INVALID_TOKEN", message: "Token inválido ou expirado" });
+    return;
+  }
+  await cancelPendingAuthEmails(record.userId, "reset_password");
+  await createAuditLog({ userId: record.userId, action: "PASSWORD_RESET", ipAddress: ip });
+  res.clearCookie("auth_token", { path: "/" });
 
   res.json({ message: "Senha redefinida com sucesso" });
 });

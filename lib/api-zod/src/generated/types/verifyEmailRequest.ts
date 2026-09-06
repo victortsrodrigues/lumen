@@ -6,16 +6,11 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface ResetPasswordRequest {
+export interface VerifyEmailRequest {
   /**
    * @minLength 32
    * @maxLength 512
    */
   token: string;
-  /**
-   * @minLength 8
-   * @maxLength 128
-   */
-  password: string;
   csrfToken: string;
 }

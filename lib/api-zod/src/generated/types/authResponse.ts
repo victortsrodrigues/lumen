@@ -11,4 +11,5 @@ export interface AuthResponse {
   user: UserProfile;
   requiresMfa: boolean;
   message?: string;
+  emailVerificationRequired?: boolean;
 }

@@ -156,6 +156,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Email verification unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /auth/login:
     post:
@@ -183,6 +189,12 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "401":
           description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Account pending, unavailable, or email not verified
           content:
             application/json:
               schema:
@@ -254,6 +266,74 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MessageResponse"
+        "503":
+          description: Email delivery unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/resend-verification:
+    post:
+      operationId: resendVerification
+      tags: [auth]
+      summary: Request a new email verification message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResendVerificationRequest"
+      responses:
+        "200":
+          description: Generic verification message response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Email delivery unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/verify-email:
+    post:
+      operationId: verifyEmail
+      tags: [auth]
+      summary: Verify an email address with a single-use token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyEmailRequest"
+      responses:
+        "200":
+          description: Email verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /auth/reset-password:
     post:
@@ -275,6 +355,12 @@ paths:
                 $ref: "#/components/schemas/MessageResponse"
         "400":
           description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
           content:
             application/json:
               schema:
@@ -5866,14 +5952,42 @@ components:
         - email
         - csrfToken
 
+    ResendVerificationRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        csrfToken:
+          type: string
+      required:
+        - email
+        - csrfToken
+
+    VerifyEmailRequest:
+      type: object
+      properties:
+        token:
+          type: string
+          minLength: 32
+          maxLength: 512
+        csrfToken:
+          type: string
+      required:
+        - token
+        - csrfToken
+
     ResetPasswordRequest:
       type: object
       properties:
         token:
           type: string
+          minLength: 32
+          maxLength: 512
         password:
           type: string
           minLength: 8
+          maxLength: 128
         csrfToken:
           type: string
       required:
@@ -5922,6 +6036,10 @@ components:
           enum: [admin, leader, member]
         status:
           $ref: "#/components/schemas/AccountStatus"
+        emailVerifiedAt:
+          type: string
+          format: date-time
+          nullable: true
         memberId:
           type: string
           nullable: true
@@ -5951,6 +6069,8 @@ components:
           type: boolean
         message:
           type: string
+        emailVerificationRequired:
+          type: boolean
       required:
         - user
         - requiresMfa
@@ -5971,6 +6091,7 @@ components:
         name: { type: string }
         role: { $ref: "#/components/schemas/AccountRole" }
         status: { $ref: "#/components/schemas/AccountStatus" }
+        emailVerifiedAt: { type: string, format: date-time, nullable: true }
         memberId: { type: string, nullable: true }
         memberName: { type: string, nullable: true }
         statusReason: { type: string, nullable: true }

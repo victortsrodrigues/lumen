@@ -66,6 +66,7 @@ function publicAccount(account: typeof usersTable.$inferSelect, memberName?: str
     name: account.name,
     role: account.role,
     status: account.status,
+    emailVerifiedAt: account.emailVerifiedAt,
     memberId: account.memberId,
     memberName: memberName ?? null,
     statusReason: account.statusReason,
@@ -204,7 +205,9 @@ router.post("/:id/approve", async (req: Request, res: Response) => {
     userId: account.id,
     type: "account.approved",
     title: "Acesso aprovado",
-    message: "Sua conta foi aprovada. Você já pode acessar a plataforma.",
+    message: account.emailVerifiedAt
+      ? "Sua conta foi aprovada. Você já pode acessar a plataforma."
+      : "Sua conta foi aprovada. Confirme seu e-mail para acessar a plataforma.",
     link: "/",
     entityType: "user",
     entityId: account.id,

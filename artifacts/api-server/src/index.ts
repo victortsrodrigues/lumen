@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { ensureBootstrapAdmin } from "./lib/bootstrap";
+import { startEmailOutboxProcessor } from "./lib/email";
 
 const port = Number(process.env["PORT"] || "3000");
 
@@ -11,5 +12,6 @@ if (Number.isNaN(port) || port <= 0) {
 ensureBootstrapAdmin().finally(() => {
   app.listen(port, () => {
     logger.info({ port }, "Server listening");
+    startEmailOutboxProcessor();
   });
 });

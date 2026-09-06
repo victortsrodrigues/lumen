@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 import speakeasy from "speakeasy";
 import {
   request, getCsrfToken, registerUser, loginUser, registerAdmin,
-  getResetToken, generateExpiredToken, assertErrorShape, pool,
+  getAuthEmailToken, getResetToken, generateExpiredToken, assertErrorShape, pool,
 } from "./helpers";
 
 const PREFIX = "auth-test-" + crypto.randomUUID().slice(0, 6);
@@ -169,11 +169,25 @@ describe("01-auth", () => {
     const token = await getResetToken(email);
     expect(token).toBeTruthy();
 
+    const { rows: storedTokens } = await pool.query(
+      "SELECT token_hash FROM auth_tokens WHERE user_id = (SELECT id FROM users WHERE email = $1) AND purpose = 'reset_password' ORDER BY created_at DESC LIMIT 1",
+      [email],
+    );
+    expect(storedTokens[0].token_hash).not.toBe(token);
+
     const csrf2 = await getCsrfToken();
     const res = await request("POST", "/auth/reset-password", {
       token, password: "NewPassword1234!", csrfToken: csrf2,
     });
     expect(res.status).toBe(200);
+
+    const previousSession = await request("GET", "/auth/me", undefined, cookie);
+    expect(previousSession.status).toBe(401);
+
+    const reused = await request("POST", "/auth/reset-password", {
+      token, password: "AnotherPassword1234!", csrfToken: await getCsrfToken(),
+    });
+    expect(reused.status).toBe(400);
   });
 
   it("21. Reset password invalid token → 400", async () => {
@@ -184,11 +198,36 @@ describe("01-auth", () => {
     expect(res.status).toBe(400);
   });
 
+  it("22. Email verification token is single-use", async () => {
+    await pool.query("UPDATE users SET email_verified_at = NULL WHERE email = $1", [email]);
+    const requested = await request("POST", "/auth/resend-verification", {
+      email,
+      csrfToken: await getCsrfToken(),
+    });
+    expect(requested.status).toBe(200);
+
+    const verificationToken = await getAuthEmailToken(email, "email_verification");
+    expect(verificationToken).toBeTruthy();
+    const verified = await request("POST", "/auth/verify-email", {
+      token: verificationToken,
+      csrfToken: await getCsrfToken(),
+    });
+    expect(verified.status).toBe(200);
+
+    const { rows } = await pool.query("SELECT email_verified_at FROM users WHERE email = $1", [email]);
+    expect(rows[0].email_verified_at).toBeTruthy();
+    const reused = await request("POST", "/auth/verify-email", {
+      token: verificationToken,
+      csrfToken: await getCsrfToken(),
+    });
+    expect(reused.status).toBe(400);
+  });
+
   // MFA tests use a separate admin user
   let mfaAdminCookie: string;
   let mfaSecret: string;
 
-  it("22. MFA setup", async () => {
+  it("23. MFA setup", async () => {
     const admin = await registerAdmin(`mfa-${PREFIX.slice(0, 4)}`);
     mfaAdminCookie = admin.cookie;
     const res = await request("POST", "/auth/mfa/setup", undefined, mfaAdminCookie);
@@ -199,7 +238,7 @@ describe("01-auth", () => {
     mfaSecret = res.body.secret;
   });
 
-  it("23. MFA verify invalid code → 400", async () => {
+  it("24. MFA verify invalid code → 400", async () => {
     const csrf = await getCsrfToken();
     const res = await request("POST", "/auth/mfa/verify", {
       code: "000000", csrfToken: csrf,
@@ -208,7 +247,7 @@ describe("01-auth", () => {
     expect(res.body.error).toBe("INVALID_CODE");
   });
 
-  it("24. MFA verify valid TOTP", async () => {
+  it("25. MFA verify valid TOTP", async () => {
     const code = speakeasy.totp({ secret: mfaSecret, encoding: "base32" });
     const csrf = await getCsrfToken();
     const res = await request("POST", "/auth/mfa/verify", {

@@ -211,6 +211,7 @@ export const LoginResponse = zod.object({
     name: zod.string(),
     role: zod.enum(["admin", "leader", "member"]),
     status: zod.enum(["pending", "active", "blocked", "revoked", "deleting"]),
+    emailVerifiedAt: zod.date().nullish(),
     memberId: zod.string().nullish(),
     mfaEnabled: zod.boolean(),
     mfaVerified: zod.boolean(),
@@ -218,6 +219,7 @@ export const LoginResponse = zod.object({
   }),
   requiresMfa: zod.boolean(),
   message: zod.string().optional(),
+  emailVerificationRequired: zod.boolean().optional(),
 });
 
 /**
@@ -236,6 +238,7 @@ export const GetMeResponse = zod.object({
   name: zod.string(),
   role: zod.enum(["admin", "leader", "member"]),
   status: zod.enum(["pending", "active", "blocked", "revoked", "deleting"]),
+  emailVerifiedAt: zod.date().nullish(),
   memberId: zod.string().nullish(),
   mfaEnabled: zod.boolean(),
   mfaVerified: zod.boolean(),
@@ -255,13 +258,50 @@ export const ForgotPasswordResponse = zod.object({
 });
 
 /**
+ * @summary Request a new email verification message
+ */
+export const ResendVerificationBody = zod.object({
+  email: zod.string().email(),
+  csrfToken: zod.string(),
+});
+
+export const ResendVerificationResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Verify an email address with a single-use token
+ */
+export const verifyEmailBodyTokenMin = 32;
+export const verifyEmailBodyTokenMax = 512;
+
+export const VerifyEmailBody = zod.object({
+  token: zod.string().min(verifyEmailBodyTokenMin).max(verifyEmailBodyTokenMax),
+  csrfToken: zod.string(),
+});
+
+export const VerifyEmailResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
  * @summary Reset password with token
  */
+export const resetPasswordBodyTokenMin = 32;
+export const resetPasswordBodyTokenMax = 512;
+
 export const resetPasswordBodyPasswordMin = 8;
+export const resetPasswordBodyPasswordMax = 128;
 
 export const ResetPasswordBody = zod.object({
-  token: zod.string(),
-  password: zod.string().min(resetPasswordBodyPasswordMin),
+  token: zod
+    .string()
+    .min(resetPasswordBodyTokenMin)
+    .max(resetPasswordBodyTokenMax),
+  password: zod
+    .string()
+    .min(resetPasswordBodyPasswordMin)
+    .max(resetPasswordBodyPasswordMax),
   csrfToken: zod.string(),
 });
 
@@ -293,6 +333,7 @@ export const VerifyMfaResponse = zod.object({
     name: zod.string(),
     role: zod.enum(["admin", "leader", "member"]),
     status: zod.enum(["pending", "active", "blocked", "revoked", "deleting"]),
+    emailVerifiedAt: zod.date().nullish(),
     memberId: zod.string().nullish(),
     mfaEnabled: zod.boolean(),
     mfaVerified: zod.boolean(),
@@ -300,6 +341,7 @@ export const VerifyMfaResponse = zod.object({
   }),
   requiresMfa: zod.boolean(),
   message: zod.string().optional(),
+  emailVerificationRequired: zod.boolean().optional(),
 });
 
 /**
@@ -347,6 +389,7 @@ export const ListAccountsResponse = zod.object({
       name: zod.string(),
       role: zod.enum(["admin", "leader", "member"]),
       status: zod.enum(["pending", "active", "blocked", "revoked", "deleting"]),
+      emailVerifiedAt: zod.date().nullish(),
       memberId: zod.string().nullish(),
       memberName: zod.string().nullish(),
       statusReason: zod.string().nullish(),
@@ -382,6 +425,7 @@ export const GetAccountResponse = zod.object({
   name: zod.string(),
   role: zod.enum(["admin", "leader", "member"]),
   status: zod.enum(["pending", "active", "blocked", "revoked", "deleting"]),
+  emailVerifiedAt: zod.date().nullish(),
   memberId: zod.string().nullish(),
   memberName: zod.string().nullish(),
   statusReason: zod.string().nullish(),
@@ -410,6 +454,7 @@ export const ApproveAccountResponse = zod.object({
   name: zod.string(),
   role: zod.enum(["admin", "leader", "member"]),
   status: zod.enum(["pending", "active", "blocked", "revoked", "deleting"]),
+  emailVerifiedAt: zod.date().nullish(),
   memberId: zod.string().nullish(),
   memberName: zod.string().nullish(),
   statusReason: zod.string().nullish(),
@@ -438,6 +483,7 @@ export const BlockAccountResponse = zod.object({
   name: zod.string(),
   role: zod.enum(["admin", "leader", "member"]),
   status: zod.enum(["pending", "active", "blocked", "revoked", "deleting"]),
+  emailVerifiedAt: zod.date().nullish(),
   memberId: zod.string().nullish(),
   memberName: zod.string().nullish(),
   statusReason: zod.string().nullish(),
@@ -465,6 +511,7 @@ export const UnblockAccountResponse = zod.object({
   name: zod.string(),
   role: zod.enum(["admin", "leader", "member"]),
   status: zod.enum(["pending", "active", "blocked", "revoked", "deleting"]),
+  emailVerifiedAt: zod.date().nullish(),
   memberId: zod.string().nullish(),
   memberName: zod.string().nullish(),
   statusReason: zod.string().nullish(),
@@ -493,6 +540,7 @@ export const RevokeAccountResponse = zod.object({
   name: zod.string(),
   role: zod.enum(["admin", "leader", "member"]),
   status: zod.enum(["pending", "active", "blocked", "revoked", "deleting"]),
+  emailVerifiedAt: zod.date().nullish(),
   memberId: zod.string().nullish(),
   memberName: zod.string().nullish(),
   statusReason: zod.string().nullish(),
@@ -520,6 +568,7 @@ export const ReactivateAccountResponse = zod.object({
   name: zod.string(),
   role: zod.enum(["admin", "leader", "member"]),
   status: zod.enum(["pending", "active", "blocked", "revoked", "deleting"]),
+  emailVerifiedAt: zod.date().nullish(),
   memberId: zod.string().nullish(),
   memberName: zod.string().nullish(),
   statusReason: zod.string().nullish(),
@@ -548,6 +597,7 @@ export const UpdateAccountRoleResponse = zod.object({
   name: zod.string(),
   role: zod.enum(["admin", "leader", "member"]),
   status: zod.enum(["pending", "active", "blocked", "revoked", "deleting"]),
+  emailVerifiedAt: zod.date().nullish(),
   memberId: zod.string().nullish(),
   memberName: zod.string().nullish(),
   statusReason: zod.string().nullish(),
@@ -576,6 +626,7 @@ export const UpdateAccountMemberLinkResponse = zod.object({
   name: zod.string(),
   role: zod.enum(["admin", "leader", "member"]),
   status: zod.enum(["pending", "active", "blocked", "revoked", "deleting"]),
+  emailVerifiedAt: zod.date().nullish(),
   memberId: zod.string().nullish(),
   memberName: zod.string().nullish(),
   statusReason: zod.string().nullish(),

@@ -28,6 +28,7 @@ export async function ensureBootstrapAdmin(): Promise<void> {
         await db.update(usersTable).set({
           role: "admin",
           status: "active",
+          emailVerifiedAt: existing.emailVerifiedAt ?? new Date(),
           sessionVersion: existing.sessionVersion + 1,
           updatedAt: new Date(),
         }).where(eq(usersTable.id, existing.id));
@@ -44,6 +45,7 @@ export async function ensureBootstrapAdmin(): Promise<void> {
       role: "admin",
       status: "active",
       approvedAt: new Date(),
+      emailVerifiedAt: new Date(),
       mfaEnabled: false,
     }).returning();
 

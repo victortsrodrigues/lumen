@@ -42,9 +42,30 @@ export interface ForgotPasswordRequest {
   csrfToken: string;
 }
 
-export interface ResetPasswordRequest {
+export interface ResendVerificationRequest {
+  email: string;
+  csrfToken: string;
+}
+
+export interface VerifyEmailRequest {
+  /**
+   * @minLength 32
+   * @maxLength 512
+   */
   token: string;
-  /** @minLength 8 */
+  csrfToken: string;
+}
+
+export interface ResetPasswordRequest {
+  /**
+   * @minLength 32
+   * @maxLength 512
+   */
+  token: string;
+  /**
+   * @minLength 8
+   * @maxLength 128
+   */
   password: string;
   csrfToken: string;
 }
@@ -85,6 +106,7 @@ export interface UserProfile {
   name: string;
   role: UserProfileRole;
   status: AccountStatus;
+  emailVerifiedAt?: string | null;
   memberId?: string | null;
   mfaEnabled: boolean;
   mfaVerified: boolean;
@@ -95,6 +117,7 @@ export interface AuthResponse {
   user: UserProfile;
   requiresMfa: boolean;
   message?: string;
+  emailVerificationRequired?: boolean;
 }
 
 export type AccountRole = (typeof AccountRole)[keyof typeof AccountRole];
@@ -111,6 +134,7 @@ export interface AdminAccount {
   name: string;
   role: AccountRole;
   status: AccountStatus;
+  emailVerifiedAt?: string | null;
   memberId?: string | null;
   memberName?: string | null;
   statusReason?: string | null;
