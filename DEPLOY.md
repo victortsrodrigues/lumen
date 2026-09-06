@@ -258,7 +258,7 @@ No plano Hobby, o painel atual do projeto restringe os backups nativos e a recup
 
 Para o Hobby, a proteção principal da Lumen é o serviço de dump lógico para armazenamento externo. No Pro, ele continua necessário como cópia independente do Railway. A configuração, a verificação semanal e o teste seguro de restauração estão documentados em [`ops/postgres-backup/RUNBOOK.md`](ops/postgres-backup/RUNBOOK.md).
 
-O serviço externo deve executar aos domingos às 03:00 de Brasília (`0 6 * * 0` em UTC), com retenção de 56 dias para as cópias semanais. O backup do primeiro domingo de cada mês também recebe uma cópia mensal, mantida por 400 dias. O serviço e a agenda foram preparados no Railway; ainda faltam as credenciais S3, a publicação do código, um primeiro backup e o teste de restauração para considerar a rotina ativa e validada.
+O serviço externo está configurado para executar aos domingos às 03:00 de Brasília (`0 6 * * 0` em UTC), com retenção de 56 dias para as cópias semanais. O backup do primeiro domingo de cada mês também recebe uma cópia mensal, mantida por 400 dias. Em 06/09/2026, o primeiro backup foi executado manualmente, salvo nos dois prefixos do R2 e restaurado com sucesso em um PostgreSQL isolado: 57 tabelas, 2 migrações, 3 contas e 6 membros. A rotina está publicada e agendada; a execução automática seguinte está prevista para 13/09/2026 às 03:00 de Brasília e deve ser conferida pelo administrador.
 
 Nunca restaure diretamente sobre produção. Antes de uma migração destrutiva, gere e confirme um dump externo; no Pro, crie também um snapshot manual.
 

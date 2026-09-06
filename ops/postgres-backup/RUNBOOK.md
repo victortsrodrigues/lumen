@@ -6,7 +6,7 @@ No plano Hobby atual, backups nativos e PITR não estão disponíveis. Por isso,
 
 Nunca restaure um dump diretamente sobre o banco de produção. A restauração deve ser validada em um banco temporário vazio.
 
-A frequência definida para a Lumen é semanal e mensal: backup todo domingo às 03:00 de Brasília, com uma cópia mensal do backup do primeiro domingo de cada mês. Os semanais são mantidos por 56 dias (8 semanas) e os mensais por 400 dias. Se todos os backups semanais forem concluídos, uma recuperação poderá perder até sete dias de alterações. O agendamento só produzirá backups depois que o serviço receber as credenciais S3 e um deploy funcional; estes arquivos, sozinhos, não o ativam.
+A frequência definida para a Lumen é semanal e mensal: backup todo domingo às 03:00 de Brasília, com uma cópia mensal do backup do primeiro domingo de cada mês. Os semanais são mantidos por 56 dias (8 semanas) e os mensais por 400 dias. Se todos os backups semanais forem concluídos, uma recuperação poderá perder até sete dias de alterações. O serviço foi publicado e testado em 06/09/2026; a próxima execução automática prevista é 13/09/2026 às 03:00 de Brasília. Estes arquivos, sozinhos, não configuram a infraestrutura em um novo ambiente.
 
 ## 1. Backups nativos do Railway (somente plano Pro)
 
@@ -62,17 +62,34 @@ Configure as variáveis:
 
 Use o **Access Key ID** da seção S3 em `AWS_ACCESS_KEY_ID` e a **Secret Access Key** em `AWS_SECRET_ACCESS_KEY`. O campo **Token value** não é usado por este serviço. Copie o endpoint S3 correspondente à jurisdição do bucket para `S3_ENDPOINT`, sem acrescentar o nome do bucket. Insira os segredos diretamente na aba **Variables** do serviço `postgres-backup`.
 
-### Preparação em 06/09/2026
+### Validação em 06/09/2026
 
 - Bucket `lumen-db-backups` privado e regras de retenção de 56/400 dias confirmados pelo administrador.
 - Serviço `postgres-backup` criado no ambiente `production` do projeto `virtuous-abundance`, com o agendamento e as configurações acima.
 - Referência a `Postgres.DATABASE_URL`, endpoint S3 e demais variáveis não secretas cadastrados.
 - As duas chaves S3 foram cadastradas pelo administrador nas variáveis do serviço.
-- Pendente: publicar o código e conectar a origem do serviço, confirmar o primeiro backup e executar o teste de restauração. Nenhum backup externo foi validado até este registro.
+- Código publicado no commit `2343890` e serviço conectado à branch `main` de `victortsrodrigues/lumen`.
+- Build Docker concluído; o serviço executou o script de backup, sem herdar o comando de migrações da aplicação.
+- Primeiro backup disparado manualmente às 17:20 de Brasília (20:20 UTC). Confirmados dump e checksum nos prefixos semanal e mensal.
+- Arquivo: `lumen-postgres-20260906T202041Z.dump`, com 126.803 bytes. Deployment do backup: `0d700d74-3c14-4309-a5a4-a639f34795d5`.
+- Restauração isolada concluída às 17:22 de Brasília. O arquivo foi baixado do R2 e seu SHA-256 validado antes da restauração. Deployment do teste: `4605bb62-888c-42c5-960b-2bf258fbd93f`.
+- Resultado: 57 tabelas públicas, 2 migrações, 3 contas (1 administrador ativo e 2 membros ativos), 6 membros, 0 eventos e 5 notificações. Nenhum campo criptografado de membro estava preenchido nessa cópia; a verificação de descriptografia não pôde ser exercitada com dados reais e deverá ser repetida quando houver esses campos.
+- O teste não recebeu `DATABASE_URL` de produção, não iniciou a aplicação e não enviou e-mails. O PostgreSQL temporário foi removido automaticamente ao encerrar o processo; o serviço descartável `postgres-backup-restore-test` foi excluído após o registro dos resultados. Os dumps no R2 e os serviços permanentes foram preservados.
+- Railway confirmou `nextCronRunAt=2026-09-13T06:00:00.000Z`. A execução automática ainda deve ser conferida na verificação semanal.
 
 O processo falha se uma variável estiver ausente, se o endpoint não usar HTTPS, se o dump estiver vazio ou se o arquivo não puder ser consultado no bucket após o envio. Cada dump recebe um arquivo `.sha256` correspondente. No primeiro domingo de cada mês (domingo entre os dias 1 e 7), o mesmo dump também é armazenado sob o prefixo mensal.
 
-Backups manuais podem ser executados fora da agenda usando o mesmo processo e as variáveis do serviço. Cada execução cria uma cópia com data e hora no prefixo semanal; se ocorrer no primeiro domingo do mês, também cria a cópia mensal. Confirme a conclusão e a presença dos objetos no R2, especialmente antes de uma migração destrutiva.
+Backups manuais podem ser executados fora da agenda usando o mesmo processo e as variáveis do serviço. Publicar um cron prepara a imagem, mas não substitui a confirmação de uma execução. Pela API do Railway, o disparo manual validado usa `deploymentInstanceExecutionCreate` com `serviceInstanceId` da instância de `postgres-backup` (não o ID do serviço Postgres). Na configuração atual, essa instância é `b11c6c9b-db6b-43af-8ae7-9c28d325d8d1`:
+
+```graphql
+mutation {
+  deploymentInstanceExecutionCreate(input: {
+    serviceInstanceId: "b11c6c9b-db6b-43af-8ae7-9c28d325d8d1"
+  })
+}
+```
+
+Cada execução cria uma cópia com data e hora no prefixo semanal; se ocorrer no primeiro domingo do mês, também cria a cópia mensal. Confirme a conclusão nos logs e a presença dos objetos no R2, especialmente antes de uma migração destrutiva. Uma resposta `true` da API confirma apenas o disparo, não a conclusão.
 
 O log de sucesso termina com:
 
