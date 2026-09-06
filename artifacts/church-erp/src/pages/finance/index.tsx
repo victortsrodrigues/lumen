@@ -1,6 +1,6 @@
 import { useGetFinanceDashboard } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   BarChart, Bar, Cell
@@ -56,7 +56,7 @@ export default function FinanceDashboard() {
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { y: 20, opacity: 0 },
     visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } }
   };

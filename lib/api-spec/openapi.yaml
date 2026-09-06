@@ -8889,6 +8889,7 @@ components:
       properties:
         members:
           type: object
+          required: [total, newThisMonth, byStatus]
           properties:
             total:
               type: integer
@@ -8908,9 +8909,11 @@ components:
         finance:
           type: object
           nullable: true
+          required: [currentMonth, previousMonth, entriesGrowth]
           properties:
             currentMonth:
               type: object
+              required: [totalEntries, totalExpenses, balance]
               properties:
                 totalEntries:
                   type: string
@@ -8920,6 +8923,7 @@ components:
                   type: string
             previousMonth:
               type: object
+              required: [totalEntries, totalExpenses]
               properties:
                 totalEntries:
                   type: string
@@ -8966,6 +8970,7 @@ components:
               type: integer
         planning:
           type: object
+          required: [activeInitiatives, overdueInitiatives]
           properties:
             activeInitiatives:
               type: integer
@@ -8989,21 +8994,26 @@ components:
         - events
         - teaching
         - ministries
+        - planning
 
     LeaderWidgets:
       type: object
+      required: [pastoral, counseling, articles]
       properties:
         pastoral:
           type: object
+          required: [pending, overdueFollowUps]
           properties:
             pending: { type: integer }
             overdueFollowUps: { type: integer }
         counseling:
           type: object
+          required: [openCases]
           properties:
             openCases: { type: integer }
         articles:
           type: object
+          required: [inReview, drafts]
           properties:
             inReview: { type: integer }
             drafts: { type: integer }

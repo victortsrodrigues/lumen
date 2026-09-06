@@ -9,7 +9,7 @@ import type { DashboardStatsFinanceCurrentMonth } from "./dashboardStatsFinanceC
 import type { DashboardStatsFinancePreviousMonth } from "./dashboardStatsFinancePreviousMonth";
 
 export type DashboardStatsFinance = {
-  currentMonth?: DashboardStatsFinanceCurrentMonth;
-  previousMonth?: DashboardStatsFinancePreviousMonth;
-  entriesGrowth?: number;
+  currentMonth: DashboardStatsFinanceCurrentMonth;
+  previousMonth: DashboardStatsFinancePreviousMonth;
+  entriesGrowth: number;
 } | null;

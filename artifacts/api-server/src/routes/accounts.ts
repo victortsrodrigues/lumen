@@ -353,7 +353,7 @@ router.get("/member-options", async (req: Request, res: Response) => {
 });
 
 // GET /admin/accounts/:id
-router.get("/:id", async (req: Request, res: Response) => {
+router.get("/:id", async (req: Request<{ id: string }>, res: Response) => {
   const accountId = String(req.params.id);
   const [row] = await db
     .select({ account: usersTable, memberName: membersTable.fullName })
@@ -371,7 +371,7 @@ router.get("/:id", async (req: Request, res: Response) => {
 });
 
 // POST /admin/accounts/:id/approve
-router.post("/:id/approve", async (req: Request, res: Response) => {
+router.post("/:id/approve", async (req: Request<{ id: string }>, res: Response) => {
   const parsed = approvalSchema.safeParse(req.body ?? {});
   if (!parsed.success) {
     res
@@ -444,7 +444,7 @@ router.post("/:id/approve", async (req: Request, res: Response) => {
   });
 });
 
-router.post("/:id/reject", async (req: Request, res: Response) => {
+router.post("/:id/reject", async (req: Request<{ id: string }>, res: Response) => {
   const parsed = reasonSchema.safeParse(req.body);
   if (!parsed.success) {
     res
@@ -481,7 +481,7 @@ router.post("/:id/reject", async (req: Request, res: Response) => {
   });
 });
 
-router.post("/:id/reopen", async (req: Request, res: Response) => {
+router.post("/:id/reopen", async (req: Request<{ id: string }>, res: Response) => {
   await mutateAccount(req, res, async (tx, account) => {
     if (account.status !== "rejected")
       throw new AccountError(
@@ -599,7 +599,7 @@ router.post("/:id/reactivate", (req, res) =>
 );
 
 // PATCH /admin/accounts/:id/role — deliberately excludes admin promotion.
-router.patch("/:id/role", async (req: Request, res: Response) => {
+router.patch("/:id/role", async (req: Request<{ id: string }>, res: Response) => {
   const role = req.body.role as "member" | "leader";
   if (!["member", "leader"].includes(role)) {
     res
@@ -659,7 +659,7 @@ router.patch("/:id/role", async (req: Request, res: Response) => {
 });
 
 // PATCH /admin/accounts/:id/member-link
-router.patch("/:id/member-link", async (req: Request, res: Response) => {
+router.patch("/:id/member-link", async (req: Request<{ id: string }>, res: Response) => {
   const parsed = memberLinkSchema.safeParse(req.body);
   if (!parsed.success) {
     res

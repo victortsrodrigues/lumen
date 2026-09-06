@@ -94,7 +94,7 @@ router.get("/", requireAuth, async (req: Request, res: Response) => {
 });
 
 // PUT /articles/submit/:id — submit for review (any authenticated — author only; static route before /:id)
-router.put("/submit/:id", requireAuth, async (req: Request, res: Response) => {
+router.put("/submit/:id", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 
@@ -145,7 +145,7 @@ router.put("/submit/:id", requireAuth, async (req: Request, res: Response) => {
 });
 
 // PUT /articles/review/:id — approve or reject (admin only, static route before /:id)
-router.put("/review/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.put("/review/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
   const { action, note } = req.body;
@@ -208,7 +208,7 @@ router.put("/review/:id", requireAuth, requireRole("admin"), async (req: Request
 });
 
 // PUT /articles/publish/:id — publish (admin only, static route before /:id)
-router.put("/publish/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.put("/publish/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 
@@ -245,7 +245,7 @@ router.put("/publish/:id", requireAuth, requireRole("admin"), async (req: Reques
 });
 
 // GET /articles/:id
-router.get("/:id", requireAuth, async (req: Request, res: Response) => {
+router.get("/:id", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 
@@ -332,7 +332,7 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
 });
 
 // PUT /articles/:id — any authenticated (author check below)
-router.put("/:id", requireAuth, async (req: Request, res: Response) => {
+router.put("/:id", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 
@@ -381,7 +381,7 @@ router.put("/:id", requireAuth, async (req: Request, res: Response) => {
 });
 
 // DELETE /articles/:id — soft delete (admin only)
-router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 

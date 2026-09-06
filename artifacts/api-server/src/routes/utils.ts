@@ -3,7 +3,7 @@ import { requireAuth } from "../middlewares/auth.js";
 
 const router: IRouter = Router();
 
-router.get("/cep/:cep", requireAuth, async (req: Request, res: Response) => {
+router.get("/cep/:cep", requireAuth, async (req: Request<{ cep: string }>, res: Response) => {
   const cep = req.params.cep.replace(/\D/g, "");
   if (cep.length !== 8) {
     res.status(400).json({ error: "INVALID_CEP", message: "CEP inválido" });

@@ -103,7 +103,7 @@ router.get("/", requireAuth, requireRole("admin", "leader"), async (req: Request
     if (member) {
       conditions.push(eq(pastoralVisitsTable.pastorId, member.id));
     } else {
-      return res.json({ visits: [], total: 0, page, limit });
+      return void res.json({ visits: [], total: 0, page, limit });
     }
   }
 
@@ -128,7 +128,7 @@ router.get("/", requireAuth, requireRole("admin", "leader"), async (req: Request
 // MEMBER HISTORY
 // ═══════════════════════════════════════════════════════════════════════════════
 
-router.get("/member/:memberId", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.get("/member/:memberId", requireAuth, requireRole("admin", "leader"), async (req: Request<{ memberId: string }>, res: Response) => {
   const { memberId } = req.params;
 
   const visits = await db.select().from(pastoralVisitsTable)
@@ -150,19 +150,19 @@ router.post("/", requireAuth, requireRole("admin", "leader"), async (req: Reques
   const { memberId, pastorId, type, date, notes, followUpDate } = req.body;
 
   if (!memberId || !pastorId || !type || !date) {
-    return res.status(400).json({ error: "VALIDATION_ERROR", message: "Campos obrigatórios: memberId, pastorId, type, date" });
+    return void res.status(400).json({ error: "VALIDATION_ERROR", message: "Campos obrigatórios: memberId, pastorId, type, date" });
   }
 
   if (!VALID_TYPES.includes(type)) {
-    return res.status(400).json({ error: "VALIDATION_ERROR", message: `Tipo inválido. Use: ${VALID_TYPES.join(", ")}` });
+    return void res.status(400).json({ error: "VALIDATION_ERROR", message: `Tipo inválido. Use: ${VALID_TYPES.join(", ")}` });
   }
 
   // Lookup member and pastor names
   const [member] = await db.select().from(membersTable).where(eq(membersTable.id, memberId)).limit(1);
-  if (!member) return res.status(404).json({ error: "NOT_FOUND", message: "Membro não encontrado" });
+  if (!member) return void res.status(404).json({ error: "NOT_FOUND", message: "Membro não encontrado" });
 
   const [pastor] = await db.select().from(membersTable).where(eq(membersTable.id, pastorId)).limit(1);
-  if (!pastor) return res.status(404).json({ error: "NOT_FOUND", message: "Pastor/líder não encontrado" });
+  if (!pastor) return void res.status(404).json({ error: "NOT_FOUND", message: "Pastor/líder não encontrado" });
 
   const [visit] = await db.insert(pastoralVisitsTable).values({
     memberId,
@@ -193,19 +193,19 @@ router.post("/", requireAuth, requireRole("admin", "leader"), async (req: Reques
 // UPDATE VISIT
 // ═══════════════════════════════════════════════════════════════════════════════
 
-router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const user = req.user as any;
   const { id } = req.params;
 
   const [existing] = await db.select().from(pastoralVisitsTable)
     .where(and(eq(pastoralVisitsTable.id, id), isNull(pastoralVisitsTable.deletedAt))).limit(1);
-  if (!existing) return res.status(404).json({ error: "NOT_FOUND", message: "Visita não encontrada" });
+  if (!existing) return void res.status(404).json({ error: "NOT_FOUND", message: "Visita não encontrada" });
 
   // Leader can only edit own visits (where they are the pastor)
   if (user.role === "leader") {
     const member = await findLinkedMember(user);
     if (!member || existing.pastorId !== member.id) {
-      return res.status(403).json({ error: "FORBIDDEN", message: "Sem permissão para editar esta visita" });
+      return void res.status(403).json({ error: "FORBIDDEN", message: "Sem permissão para editar esta visita" });
     }
   }
 
@@ -237,13 +237,13 @@ router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Requ
 // DELETE VISIT (soft delete — admin only)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const user = req.user as any;
   const { id } = req.params;
 
   const [existing] = await db.select().from(pastoralVisitsTable)
     .where(and(eq(pastoralVisitsTable.id, id), isNull(pastoralVisitsTable.deletedAt))).limit(1);
-  if (!existing) return res.status(404).json({ error: "NOT_FOUND", message: "Visita não encontrada" });
+  if (!existing) return void res.status(404).json({ error: "NOT_FOUND", message: "Visita não encontrada" });
 
   await db.update(pastoralVisitsTable).set({
     deletedAt: new Date(),

@@ -46,7 +46,7 @@ router.get("/", requireAuth, requireRole("admin", "leader"), async (_req: Reques
 });
 
 // GET /member-groups/:id — detail with members
-router.get("/:id", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.get("/:id", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const [group] = await db.select().from(memberGroupsTable)
     .where(and(eq(memberGroupsTable.id, req.params.id), isNull(memberGroupsTable.deletedAt))).limit(1);
 
@@ -98,7 +98,7 @@ router.post("/", requireAuth, requireRole("admin", "leader"), async (req: Reques
 });
 
 // PUT /member-groups/:id
-router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
 
@@ -129,7 +129,7 @@ router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Requ
 });
 
 // DELETE /member-groups/:id (soft delete)
-router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
 

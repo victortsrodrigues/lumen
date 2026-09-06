@@ -151,7 +151,7 @@ router.get("/calendar", requireAuth, async (req: Request, res: Response) => {
 });
 
 // GET /events/:id
-router.get("/:id", requireAuth, async (req: Request, res: Response) => {
+router.get("/:id", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const [event] = await db.select().from(eventsTable)
     .where(and(eq(eventsTable.id, req.params.id), isNull(eventsTable.deletedAt)))
     .limit(1);
@@ -233,7 +233,7 @@ router.post("/", requireAuth, requireRole("admin", "leader"), async (req: Reques
 });
 
 // PUT /events/:id
-router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
 
@@ -294,7 +294,7 @@ router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Requ
 });
 
 // DELETE /events/:id (soft delete)
-router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
 
@@ -337,7 +337,7 @@ router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request, re
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // GET /events/:id/registrations
-router.get("/:id/registrations", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.get("/:id/registrations", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const registrations = await db.select().from(eventRegistrationsTable)
     .where(eq(eventRegistrationsTable.eventId, req.params.id))
     .orderBy(asc(eventRegistrationsTable.registeredAt));
@@ -346,7 +346,7 @@ router.get("/:id/registrations", requireAuth, requireRole("admin", "leader"), as
 });
 
 // POST /events/:id/register
-router.post("/:id/register", requireAuth, async (req: Request, res: Response) => {
+router.post("/:id/register", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const role = req.user!.role;
   const ip = getIp(req);
@@ -422,7 +422,7 @@ router.post("/:id/register", requireAuth, async (req: Request, res: Response) =>
 });
 
 // DELETE /events/:id/register/:memberId
-router.delete("/:id/register/:memberId", requireAuth, async (req: Request, res: Response) => {
+router.delete("/:id/register/:memberId", requireAuth, async (req: Request<{ id: string; memberId: string }>, res: Response) => {
   const userId = req.user!.userId;
   const role = req.user!.role;
   const ip = getIp(req);
@@ -466,7 +466,7 @@ router.delete("/:id/register/:memberId", requireAuth, async (req: Request, res: 
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // GET /events/:id/attendance
-router.get("/:id/attendance", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.get("/:id/attendance", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const records = await db.select().from(eventAttendanceTable)
     .where(eq(eventAttendanceTable.eventId, req.params.id));
 
@@ -474,7 +474,7 @@ router.get("/:id/attendance", requireAuth, requireRole("admin", "leader"), async
 });
 
 // POST /events/:id/attendance (batch)
-router.post("/:id/attendance", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.post("/:id/attendance", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
 
@@ -544,7 +544,7 @@ function serializeSchedule(s: typeof eventSchedulesTable.$inferSelect, roleName?
 }
 
 // GET /events/:eventId/schedule
-router.get("/:eventId/schedule", requireAuth, async (req: Request, res: Response) => {
+router.get("/:eventId/schedule", requireAuth, async (req: Request<{ eventId: string }>, res: Response) => {
   const { eventId } = req.params;
 
   const schedules = await db.select().from(eventSchedulesTable)
@@ -563,7 +563,7 @@ router.get("/:eventId/schedule", requireAuth, async (req: Request, res: Response
 });
 
 // POST /events/:eventId/schedule
-router.post("/:eventId/schedule", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.post("/:eventId/schedule", requireAuth, requireRole("admin", "leader"), async (req: Request<{ eventId: string }>, res: Response) => {
   const { eventId } = req.params;
   const user = req.user!;
   const ip = getIp(req);
@@ -644,7 +644,7 @@ router.post("/:eventId/schedule", requireAuth, requireRole("admin", "leader"), a
 });
 
 // PUT /events/:eventId/schedule/:id
-router.put("/:eventId/schedule/:id", requireAuth, async (req: Request, res: Response) => {
+router.put("/:eventId/schedule/:id", requireAuth, async (req: Request<{ eventId: string; id: string }>, res: Response) => {
   const { eventId, id } = req.params;
   const user = req.user!;
   const ip = getIp(req);
@@ -704,7 +704,7 @@ router.put("/:eventId/schedule/:id", requireAuth, async (req: Request, res: Resp
 });
 
 // DELETE /events/:eventId/schedule/:id
-router.delete("/:eventId/schedule/:id", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.delete("/:eventId/schedule/:id", requireAuth, requireRole("admin", "leader"), async (req: Request<{ eventId: string; id: string }>, res: Response) => {
   const { eventId, id } = req.params;
   const user = req.user!;
   const ip = getIp(req);

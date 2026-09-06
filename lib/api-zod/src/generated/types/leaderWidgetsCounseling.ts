@@ -7,5 +7,5 @@
  */
 
 export type LeaderWidgetsCounseling = {
-  openCases?: number;
+  openCases: number;
 };

@@ -20,7 +20,7 @@ export default function NewArticlePage() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [excerpt, setExcerpt] = useState("");
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState<"" | "artigo" | "devocional">("");
 
   const createMutation = useCreateArticle({
     mutation: {
@@ -115,7 +115,10 @@ export default function NewArticlePage() {
             <label className="block text-sm font-medium mb-1">Categoria *</label>
             <select
               value={category}
-              onChange={(e) => setCategory(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === "" || value === "artigo" || value === "devocional") setCategory(value);
+              }}
               className="w-full px-3 py-2 border rounded-lg bg-background text-sm"
             >
               <option value="">Selecione uma categoria...</option>

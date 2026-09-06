@@ -93,7 +93,7 @@ export default function AdminRequestsPage() {
   const totalPages = Math.ceil(total / 20);
 
   // Find the request being processed for context in the modal
-  const processingRequest = requests.find((r: Record<string, unknown>) => r.id === processingId) as Record<string, unknown> | undefined;
+  const processingRequest = requests.find((r) => r.id === processingId) as Record<string, unknown> | undefined;
 
   return (
     <AppLayout breadcrumbs={[{ label: "LGPD", href: "/lgpd" }, { label: "Solicitações" }]}>
@@ -130,7 +130,7 @@ export default function AdminRequestsPage() {
           {requests.length === 0 && (
             <div className="text-center py-12 text-muted-foreground">Nenhuma solicitação encontrada.</div>
           )}
-          {requests.map((r: Record<string, unknown>) => {
+          {requests.map((r) => {
             const days = daysRemaining(r.createdAt as string);
             const isOverdue = days === 0 && r.status === "pendente";
 

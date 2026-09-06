@@ -24,7 +24,7 @@ router.post("/storage/uploads/request-url", requireAuth, (_req: Request, res: Re
  * Local upload target disabled. Existing stored objects remain readable below
  * for backwards compatibility.
  */
-router.put("/storage/upload-target/:objectId", requireAuth, (_req: Request, res: Response) => {
+router.put("/storage/upload-target/:objectId", requireAuth, (_req: Request<{ objectId: string }>, res: Response) => {
   res.status(410).json({
     error: "UPLOADS_DISABLED",
     message: "O envio de arquivos está temporariamente desativado.",

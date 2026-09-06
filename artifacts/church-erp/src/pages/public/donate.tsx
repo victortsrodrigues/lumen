@@ -71,7 +71,7 @@ export default function DonatePage() {
           <h1 className="text-3xl font-bold tracking-tight">Contribuir via PIX</h1>
           {pixInfo && (
             <p className="text-muted-foreground">
-              {pixInfo.churchName}
+              {pixInfo.recipientName}
               {pixInfo.pixKey && (
                 <span className="block text-sm mt-1">
                   Chave PIX: <span className="font-mono">{pixInfo.pixKey}</span>

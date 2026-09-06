@@ -3,7 +3,11 @@ import { defineConfig } from "@playwright/test";
 // UI uses mocked API responses only; no credentials or application database.
 export default defineConfig({
   testDir: "./ui",
-  testMatch: ["accounts.spec.ts", "dependency-regression.spec.ts"],
+  testMatch: [
+    "accounts.spec.ts",
+    "dependency-regression.spec.ts",
+    "release-flows.spec.ts",
+  ],
   workers: 1,
   timeout: 30_000,
   use: {

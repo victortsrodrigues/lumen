@@ -80,7 +80,7 @@ router.post("/roles", requireAuth, requireRole("admin"), async (req: Request, re
 });
 
 // PUT /schedules/roles/:id
-router.put("/roles/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.put("/roles/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 
@@ -119,7 +119,7 @@ router.put("/roles/:id", requireAuth, requireRole("admin"), async (req: Request,
 });
 
 // DELETE /schedules/roles/:id
-router.delete("/roles/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.delete("/roles/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 

@@ -5,7 +5,7 @@ import { Redirect, Link } from 'wouter';
 import { useImportMembersCsv, ImportCsvRowResult } from '@workspace/api-client-react';
 import { useToast } from '@/hooks/use-toast';
 import Papa from 'papaparse';
-import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2, XCircle, Loader2, ArrowLeft } from 'lucide-react';
+import { Eye, Upload, FileSpreadsheet, AlertCircle, CheckCircle2, XCircle, Loader2, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function ImportMembers() {

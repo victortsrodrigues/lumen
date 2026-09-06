@@ -67,7 +67,7 @@ router.get("/", requireAuth, async (req: Request, res: Response) => {
 });
 
 // GET /contents/:id
-router.get("/:id", requireAuth, async (req: Request, res: Response) => {
+router.get("/:id", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
 
   const [content] = await db.select().from(contentsTable)
@@ -116,7 +116,7 @@ router.post("/", requireAuth, requireRole("admin", "leader"), async (req: Reques
 });
 
 // PUT /contents/:id
-router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 
@@ -150,7 +150,7 @@ router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Requ
 });
 
 // DELETE /contents/:id
-router.delete("/:id", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.delete("/:id", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 

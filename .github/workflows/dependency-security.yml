@@ -1,4 +1,4 @@
-name: Dependency security
+name: Application checks
 
 on:
   pull_request:
@@ -54,17 +54,17 @@ jobs:
         run: pnpm --filter @workspace/api-spec codegen
       - name: Check reproducible code generation
         run: git diff --exit-code -- lib/api-client-react/src lib/api-zod/src
+      - name: Typecheck production application and libraries
+        run: pnpm typecheck
       - name: Build application
         run: |
           pnpm --filter @workspace/church-erp build
           pnpm --filter @workspace/api-server build
       - name: Unit and dependency regression tests
         run: pnpm test:unit
-      - name: Migrate isolated test database
-        run: pnpm db:migrate
-        env:
-          DATABASE_URL: ${{ env.ACCOUNTS_TEST_DATABASE_URL }}
-      - name: Account and authorization integration tests
+      - name: Prepare and migrate isolated test database
+        run: pnpm db:test:prepare
+      - name: Critical flow and authorization integration tests
         run: pnpm test:accounts
       - name: Install test browser
         run: pnpm exec playwright install --with-deps chromium

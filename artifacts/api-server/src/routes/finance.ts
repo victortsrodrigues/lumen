@@ -179,7 +179,7 @@ router.post("/entries", requireAuth, requireRole("admin"), async (req: Request, 
 });
 
 // GET /finance/entries/:id
-router.get("/entries/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.get("/entries/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const role = req.user!.role;
   const [entry] = await db.select().from(financeEntriesTable).where(eq(financeEntriesTable.id, req.params.id)).limit(1);
   if (!entry) {
@@ -190,7 +190,7 @@ router.get("/entries/:id", requireAuth, requireRole("admin"), async (req: Reques
 });
 
 // PUT /finance/entries/:id
-router.put("/entries/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.put("/entries/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
 
@@ -256,7 +256,7 @@ router.put("/entries/:id", requireAuth, requireRole("admin"), async (req: Reques
 });
 
 // DELETE /finance/entries/:id — SOFT DELETE (obrigação fiscal)
-router.delete("/entries/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.delete("/entries/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
 
@@ -360,7 +360,7 @@ router.post("/expenses", requireAuth, requireRole("admin"), async (req: Request,
 });
 
 // GET /finance/expenses/:id
-router.get("/expenses/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.get("/expenses/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const [expense] = await db.select().from(financeExpensesTable).where(eq(financeExpensesTable.id, req.params.id)).limit(1);
   if (!expense) {
     res.status(404).json({ error: "NOT_FOUND", message: "Despesa não encontrada" });
@@ -370,7 +370,7 @@ router.get("/expenses/:id", requireAuth, requireRole("admin"), async (req: Reque
 });
 
 // PUT /finance/expenses/:id
-router.put("/expenses/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.put("/expenses/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
 
@@ -422,7 +422,7 @@ router.put("/expenses/:id", requireAuth, requireRole("admin"), async (req: Reque
 });
 
 // DELETE /finance/expenses/:id — SOFT DELETE
-router.delete("/expenses/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.delete("/expenses/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
 
@@ -455,7 +455,7 @@ router.delete("/expenses/:id", requireAuth, requireRole("admin"), async (req: Re
 });
 
 // POST /finance/expenses/:id/receipt-url — check receipt availability
-router.post("/expenses/:id/receipt-url", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.post("/expenses/:id/receipt-url", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const [expense] = await db.select().from(financeExpensesTable).where(eq(financeExpensesTable.id, req.params.id)).limit(1);
   if (!expense || !expense.receiptPath) {
     res.status(404).json({ error: "NOT_FOUND", message: "Comprovante não encontrado" });
@@ -716,7 +716,7 @@ router.get("/report", requireAuth, requireRole("admin"), async (req: Request, re
 });
 
 // POST /finance/members/:memberId/anonymize — LGPD: desvincular membro sem apagar valores
-router.post("/members/:memberId/anonymize", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.post("/members/:memberId/anonymize", requireAuth, requireRole("admin"), async (req: Request<{ memberId: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
   const { memberId } = req.params;
@@ -788,7 +788,7 @@ router.get("/budgets", requireAuth, requireRole("admin"), async (req: Request, r
 });
 
 // GET /finance/budgets/:id
-router.get("/budgets/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.get("/budgets/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
 
   const [budget] = await db.select().from(budgetsTable).where(eq(budgetsTable.id, id));
@@ -847,7 +847,7 @@ router.post("/budgets", requireAuth, requireRole("admin"), async (req: Request, 
 });
 
 // PUT /finance/budgets/:id
-router.put("/budgets/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.put("/budgets/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
   const ip = getIp(req);
@@ -882,7 +882,7 @@ router.put("/budgets/:id", requireAuth, requireRole("admin"), async (req: Reques
 });
 
 // DELETE /finance/budgets/:id
-router.delete("/budgets/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.delete("/budgets/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
   const ip = getIp(req);
@@ -915,7 +915,7 @@ router.delete("/budgets/:id", requireAuth, requireRole("admin"), async (req: Req
 });
 
 // POST /finance/budgets/:id/items (batch)
-router.post("/budgets/:id/items", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.post("/budgets/:id/items", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
   const ip = getIp(req);
@@ -992,7 +992,7 @@ router.post("/budgets/:id/items", requireAuth, requireRole("admin"), async (req:
 });
 
 // PUT /finance/budgets/:budgetId/items/:itemId
-router.put("/budgets/:budgetId/items/:itemId", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.put("/budgets/:budgetId/items/:itemId", requireAuth, requireRole("admin"), async (req: Request<{ budgetId: string; itemId: string }>, res: Response) => {
   const { budgetId, itemId } = req.params;
   const user = req.user!;
   const ip = getIp(req);
@@ -1028,7 +1028,7 @@ router.put("/budgets/:budgetId/items/:itemId", requireAuth, requireRole("admin")
 });
 
 // DELETE /finance/budgets/:budgetId/items/:itemId
-router.delete("/budgets/:budgetId/items/:itemId", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.delete("/budgets/:budgetId/items/:itemId", requireAuth, requireRole("admin"), async (req: Request<{ budgetId: string; itemId: string }>, res: Response) => {
   const { budgetId, itemId } = req.params;
   const user = req.user!;
 
@@ -1044,7 +1044,7 @@ router.delete("/budgets/:budgetId/items/:itemId", requireAuth, requireRole("admi
 });
 
 // GET /finance/budgets/:id/comparison
-router.get("/budgets/:id/comparison", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.get("/budgets/:id/comparison", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
 
   const [budget] = await db.select().from(budgetsTable).where(eq(budgetsTable.id, id));

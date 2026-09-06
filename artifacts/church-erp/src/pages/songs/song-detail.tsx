@@ -156,7 +156,7 @@ export default function SongDetailPage() {
             />
           </div>
           <a
-            href={data.youtubeUrl}
+            href={data.youtubeUrl ?? undefined}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-block mt-3 text-sm text-primary hover:underline"

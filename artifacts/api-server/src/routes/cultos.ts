@@ -318,7 +318,7 @@ async function loadCulto(cultoId: string) {
 }
 
 // GET /cultos/:id — detalhe completo
-router.get("/:id", requireAuth, async (req: Request, res: Response) => {
+router.get("/:id", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const loaded = await loadCulto(req.params.id);
   if (!loaded) {
     res.status(404).json({ error: "NOT_FOUND", message: "Culto não encontrado" });
@@ -337,7 +337,7 @@ router.get("/:id", requireAuth, async (req: Request, res: Response) => {
 });
 
 // PUT /cultos/:id — atualiza event + culto (transação)
-router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
 
@@ -424,7 +424,7 @@ router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Requ
 });
 
 // DELETE /cultos/:id — soft-delete do event (cultos persiste, filtrado por JOIN)
-router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
 
@@ -455,7 +455,7 @@ router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request, re
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // POST /cultos/:id/songs — adiciona música (auto-incrementa order)
-router.post("/:id/songs", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.post("/:id/songs", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const loaded = await loadCulto(req.params.id);
   if (!loaded) {
     res.status(404).json({ error: "NOT_FOUND", message: "Culto não encontrado" });
@@ -492,7 +492,7 @@ router.post("/:id/songs", requireAuth, requireRole("admin", "leader"), async (re
 });
 
 // PUT /cultos/:id/songs/reorder
-router.put("/:id/songs/reorder", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.put("/:id/songs/reorder", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const loaded = await loadCulto(req.params.id);
   if (!loaded) {
     res.status(404).json({ error: "NOT_FOUND", message: "Culto não encontrado" });
@@ -540,7 +540,7 @@ router.put("/:id/songs/reorder", requireAuth, requireRole("admin", "leader"), as
 });
 
 // PUT /cultos/:id/songs/:songEntryId — atualiza notes
-router.put("/:id/songs/:songEntryId", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.put("/:id/songs/:songEntryId", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string; songEntryId: string }>, res: Response) => {
   const loaded = await loadCulto(req.params.id);
   if (!loaded) {
     res.status(404).json({ error: "NOT_FOUND", message: "Culto não encontrado" });
@@ -565,7 +565,7 @@ router.put("/:id/songs/:songEntryId", requireAuth, requireRole("admin", "leader"
 });
 
 // DELETE /cultos/:id/songs/:songEntryId
-router.delete("/:id/songs/:songEntryId", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.delete("/:id/songs/:songEntryId", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string; songEntryId: string }>, res: Response) => {
   const loaded = await loadCulto(req.params.id);
   if (!loaded) {
     res.status(404).json({ error: "NOT_FOUND", message: "Culto não encontrado" });

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  useListForumTopics, useCreateForumTopic, useGetForumSummary,
+  useListForumTopics, useCreateForumTopic, useGetForumSummary, CreateForumTopicRequestCategory,
 } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useToast } from "@/hooks/use-toast";
@@ -47,7 +47,7 @@ export default function ForumPage() {
 
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [category, setCategory] = useState("geral");
+  const [category, setCategory] = useState<CreateForumTopicRequestCategory>("geral");
 
   const { data, isLoading } = useListForumTopics({
     page,
@@ -295,7 +295,10 @@ export default function ForumPage() {
                 <label className="block text-sm font-medium mb-1">Categoria *</label>
                 <select
                   value={category}
-                  onChange={(e) => setCategory(e.target.value)}
+                  onChange={(e) => {
+                    const value = Object.values(CreateForumTopicRequestCategory).find(value => value === e.target.value);
+                    if (value) setCategory(value);
+                  }}
                   className="w-full border rounded-xl px-3 py-2 text-sm bg-background"
                 >
                   {Object.entries(CATEGORY_LABELS).map(([k, v]) => (

@@ -119,7 +119,7 @@ router.get("/", requireAuth, async (req: Request, res: Response) => {
 });
 
 // GET /ministries/:id
-router.get("/:id", requireAuth, async (req: Request, res: Response) => {
+router.get("/:id", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
 
   const [ministry] = await db.select().from(ministriesTable)
@@ -173,7 +173,7 @@ router.post("/", requireAuth, requireRole("admin"), async (req: Request, res: Re
 });
 
 // PUT /ministries/:id
-router.put("/:id", requireAuth, async (req: Request, res: Response) => {
+router.put("/:id", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 
@@ -221,7 +221,7 @@ router.put("/:id", requireAuth, async (req: Request, res: Response) => {
 });
 
 // DELETE /ministries/:id
-router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 
@@ -256,7 +256,7 @@ router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request, re
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // POST /ministries/:id/members
-router.post("/:id/members", requireAuth, async (req: Request, res: Response) => {
+router.post("/:id/members", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 
@@ -332,7 +332,7 @@ router.post("/:id/members", requireAuth, async (req: Request, res: Response) => 
 });
 
 // PUT /ministries/:id/members/:memberId
-router.put("/:id/members/:memberId", requireAuth, async (req: Request, res: Response) => {
+router.put("/:id/members/:memberId", requireAuth, async (req: Request<{ id: string; memberId: string }>, res: Response) => {
   const { id, memberId } = req.params;
   const user = req.user!;
 
@@ -382,7 +382,7 @@ router.put("/:id/members/:memberId", requireAuth, async (req: Request, res: Resp
 });
 
 // DELETE /ministries/:id/members/:memberId
-router.delete("/:id/members/:memberId", requireAuth, async (req: Request, res: Response) => {
+router.delete("/:id/members/:memberId", requireAuth, async (req: Request<{ id: string; memberId: string }>, res: Response) => {
   const { id, memberId } = req.params;
   const user = req.user!;
 
@@ -446,7 +446,7 @@ function serializeGoal(g: typeof ministryGoalsTable.$inferSelect) {
 }
 
 // GET /ministries/:id/goals
-router.get("/:id/goals", requireAuth, async (req: Request, res: Response) => {
+router.get("/:id/goals", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
 
   const [ministry] = await db.select().from(ministriesTable)
@@ -464,7 +464,7 @@ router.get("/:id/goals", requireAuth, async (req: Request, res: Response) => {
 });
 
 // POST /ministries/:id/goals
-router.post("/:id/goals", requireAuth, async (req: Request, res: Response) => {
+router.post("/:id/goals", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 
@@ -520,7 +520,7 @@ router.post("/:id/goals", requireAuth, async (req: Request, res: Response) => {
 });
 
 // PUT /ministries/:id/goals/:goalId
-router.put("/:id/goals/:goalId", requireAuth, async (req: Request, res: Response) => {
+router.put("/:id/goals/:goalId", requireAuth, async (req: Request<{ id: string; goalId: string }>, res: Response) => {
   const { id, goalId } = req.params;
   const user = req.user!;
 
@@ -572,7 +572,7 @@ router.put("/:id/goals/:goalId", requireAuth, async (req: Request, res: Response
 });
 
 // DELETE /ministries/:id/goals/:goalId
-router.delete("/:id/goals/:goalId", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.delete("/:id/goals/:goalId", requireAuth, requireRole("admin"), async (req: Request<{ id: string; goalId: string }>, res: Response) => {
   const { id, goalId } = req.params;
   const user = req.user!;
 

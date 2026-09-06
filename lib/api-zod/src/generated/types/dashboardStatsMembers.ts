@@ -8,7 +8,7 @@
 import type { DashboardStatsMembersByStatus } from "./dashboardStatsMembersByStatus";
 
 export type DashboardStatsMembers = {
-  total?: number;
-  newThisMonth?: number;
-  byStatus?: DashboardStatsMembersByStatus;
+  total: number;
+  newThisMonth: number;
+  byStatus: DashboardStatsMembersByStatus;
 };

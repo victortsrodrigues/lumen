@@ -7,6 +7,6 @@
  */
 
 export type LeaderWidgetsPastoral = {
-  pending?: number;
-  overdueFollowUps?: number;
+  pending: number;
+  overdueFollowUps: number;
 };

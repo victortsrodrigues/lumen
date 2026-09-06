@@ -7,6 +7,6 @@
  */
 
 export type DashboardStatsPlanning = {
-  activeInitiatives?: number;
-  overdueInitiatives?: number;
+  activeInitiatives: number;
+  overdueInitiatives: number;
 };

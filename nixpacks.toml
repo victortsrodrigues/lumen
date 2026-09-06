@@ -14,9 +14,8 @@ cmds = ["pnpm install --frozen-lockfile --ignore-scripts"]
 [phases.build]
 cmds = [
   "pnpm audit:security",
-  "pnpm --filter @workspace/api-spec run codegen",
-  "pnpm --filter @workspace/church-erp build",
-  "pnpm --filter @workspace/api-server build"
+  "pnpm test:unit",
+  "pnpm build"
 ]
 
 [start]

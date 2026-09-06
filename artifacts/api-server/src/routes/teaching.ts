@@ -162,7 +162,7 @@ router.get("/courses", requireAuth, async (req: Request, res: Response) => {
 });
 
 // GET /teaching/courses/:id
-router.get("/courses/:id", requireAuth, async (req: Request, res: Response) => {
+router.get("/courses/:id", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const [course] = await db.select().from(coursesTable)
     .where(and(eq(coursesTable.id, req.params.id), isNull(coursesTable.deletedAt)))
     .limit(1);
@@ -253,7 +253,7 @@ router.post("/courses", requireAuth, requireRole("admin"), async (req: Request, 
 });
 
 // PUT /teaching/courses/:id
-router.put("/courses/:id", requireAuth, async (req: Request, res: Response) => {
+router.put("/courses/:id", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const role = req.user!.role;
   const ip = getIp(req);
@@ -327,7 +327,7 @@ router.put("/courses/:id", requireAuth, async (req: Request, res: Response) => {
 });
 
 // DELETE /teaching/courses/:id (soft delete)
-router.delete("/courses/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.delete("/courses/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
 
@@ -361,7 +361,7 @@ router.delete("/courses/:id", requireAuth, requireRole("admin"), async (req: Req
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // GET /teaching/courses/:courseId/lessons
-router.get("/courses/:courseId/lessons", requireAuth, async (req: Request, res: Response) => {
+router.get("/courses/:courseId/lessons", requireAuth, async (req: Request<{ courseId: string }>, res: Response) => {
   const lessons = await db.select().from(courseLessonsTable)
     .where(eq(courseLessonsTable.courseId, req.params.courseId))
     .orderBy(asc(courseLessonsTable.lessonOrder));
@@ -370,7 +370,7 @@ router.get("/courses/:courseId/lessons", requireAuth, async (req: Request, res: 
 });
 
 // POST /teaching/courses/:courseId/lessons
-router.post("/courses/:courseId/lessons", requireAuth, async (req: Request, res: Response) => {
+router.post("/courses/:courseId/lessons", requireAuth, async (req: Request<{ courseId: string }>, res: Response) => {
   const userId = req.user!.userId;
   const role = req.user!.role;
   const ip = getIp(req);
@@ -425,7 +425,7 @@ router.post("/courses/:courseId/lessons", requireAuth, async (req: Request, res:
 });
 
 // PUT /teaching/lessons/:id
-router.put("/lessons/:id", requireAuth, async (req: Request, res: Response) => {
+router.put("/lessons/:id", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const role = req.user!.role;
   const ip = getIp(req);
@@ -472,7 +472,7 @@ router.put("/lessons/:id", requireAuth, async (req: Request, res: Response) => {
 });
 
 // DELETE /teaching/lessons/:id
-router.delete("/lessons/:id", requireAuth, async (req: Request, res: Response) => {
+router.delete("/lessons/:id", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const role = req.user!.role;
   const ip = getIp(req);
@@ -514,7 +514,7 @@ router.delete("/lessons/:id", requireAuth, async (req: Request, res: Response) =
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // GET /teaching/courses/:courseId/enrollments
-router.get("/courses/:courseId/enrollments", requireAuth, async (req: Request, res: Response) => {
+router.get("/courses/:courseId/enrollments", requireAuth, async (req: Request<{ courseId: string }>, res: Response) => {
   const enrollments = await db.select().from(courseEnrollmentsTable)
     .where(eq(courseEnrollmentsTable.courseId, req.params.courseId))
     .orderBy(asc(courseEnrollmentsTable.enrolledAt));
@@ -523,7 +523,7 @@ router.get("/courses/:courseId/enrollments", requireAuth, async (req: Request, r
 });
 
 // POST /teaching/courses/:courseId/enroll
-router.post("/courses/:courseId/enroll", requireAuth, async (req: Request, res: Response) => {
+router.post("/courses/:courseId/enroll", requireAuth, async (req: Request<{ courseId: string }>, res: Response) => {
   const userId = req.user!.userId;
   const role = req.user!.role;
   const ip = getIp(req);
@@ -601,7 +601,7 @@ router.post("/courses/:courseId/enroll", requireAuth, async (req: Request, res: 
 });
 
 // DELETE /teaching/courses/:courseId/enroll/:memberId
-router.delete("/courses/:courseId/enroll/:memberId", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.delete("/courses/:courseId/enroll/:memberId", requireAuth, requireRole("admin"), async (req: Request<{ courseId: string; memberId: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
 
@@ -635,7 +635,7 @@ router.delete("/courses/:courseId/enroll/:memberId", requireAuth, requireRole("a
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // GET /teaching/lessons/:lessonId/attendance
-router.get("/lessons/:lessonId/attendance", requireAuth, async (req: Request, res: Response) => {
+router.get("/lessons/:lessonId/attendance", requireAuth, async (req: Request<{ lessonId: string }>, res: Response) => {
   const records = await db.select().from(lessonAttendanceTable)
     .where(eq(lessonAttendanceTable.lessonId, req.params.lessonId));
 
@@ -643,7 +643,7 @@ router.get("/lessons/:lessonId/attendance", requireAuth, async (req: Request, re
 });
 
 // POST /teaching/lessons/:lessonId/attendance (batch)
-router.post("/lessons/:lessonId/attendance", requireAuth, async (req: Request, res: Response) => {
+router.post("/lessons/:lessonId/attendance", requireAuth, async (req: Request<{ lessonId: string }>, res: Response) => {
   const userId = req.user!.userId;
   const role = req.user!.role;
   const ip = getIp(req);
@@ -698,7 +698,7 @@ router.post("/lessons/:lessonId/attendance", requireAuth, async (req: Request, r
 });
 
 // GET /teaching/courses/:courseId/progress/:memberId
-router.get("/courses/:courseId/progress/:memberId", requireAuth, async (req: Request, res: Response) => {
+router.get("/courses/:courseId/progress/:memberId", requireAuth, async (req: Request<{ courseId: string; memberId: string }>, res: Response) => {
   const { courseId, memberId } = req.params;
 
   const lessons = await db.select({ id: courseLessonsTable.id })
@@ -731,7 +731,7 @@ router.get("/courses/:courseId/progress/:memberId", requireAuth, async (req: Req
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // GET /teaching/courses/:courseId/certificate/:memberId
-router.get("/courses/:courseId/certificate/:memberId", requireAuth, async (req: Request, res: Response) => {
+router.get("/courses/:courseId/certificate/:memberId", requireAuth, async (req: Request<{ courseId: string; memberId: string }>, res: Response) => {
   const { courseId, memberId } = req.params;
 
   const [course] = await db.select().from(coursesTable)
@@ -954,7 +954,7 @@ async function canAccessLessonDiscussions(lessonId: string, userId: string, user
 }
 
 // GET /teaching/lessons/:lessonId/discussions — list all discussions for a lesson
-router.get("/lessons/:lessonId/discussions", requireAuth, async (req: Request, res: Response) => {
+router.get("/lessons/:lessonId/discussions", requireAuth, async (req: Request<{ lessonId: string }>, res: Response) => {
   const { lessonId } = req.params;
   const userId = req.user!.userId;
   const role = req.user!.role;
@@ -976,7 +976,7 @@ router.get("/lessons/:lessonId/discussions", requireAuth, async (req: Request, r
 });
 
 // POST /teaching/lessons/:lessonId/discussions — create discussion or reply
-router.post("/lessons/:lessonId/discussions", requireAuth, async (req: Request, res: Response) => {
+router.post("/lessons/:lessonId/discussions", requireAuth, async (req: Request<{ lessonId: string }>, res: Response) => {
   const { lessonId } = req.params;
   const userId = req.user!.userId;
   const role = req.user!.role;
@@ -1019,7 +1019,7 @@ router.post("/lessons/:lessonId/discussions", requireAuth, async (req: Request, 
 });
 
 // PUT /teaching/discussions/:id — edit own discussion
-router.put("/discussions/:id", requireAuth, async (req: Request, res: Response) => {
+router.put("/discussions/:id", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const userId = req.user!.userId;
   const role = req.user!.role;
@@ -1051,7 +1051,7 @@ router.put("/discussions/:id", requireAuth, async (req: Request, res: Response) 
 });
 
 // DELETE /teaching/discussions/:id — delete own discussion (soft)
-router.delete("/discussions/:id", requireAuth, async (req: Request, res: Response) => {
+router.delete("/discussions/:id", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const userId = req.user!.userId;
   const role = req.user!.role;

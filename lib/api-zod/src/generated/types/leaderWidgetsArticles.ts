@@ -7,6 +7,6 @@
  */
 
 export type LeaderWidgetsArticles = {
-  inReview?: number;
-  drafts?: number;
+  inReview: number;
+  drafts: number;
 };

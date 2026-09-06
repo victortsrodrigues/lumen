@@ -173,7 +173,7 @@ router.post("/suggestions", requireAuth, async (req: Request, res: Response) => 
 });
 
 // PUT /songs/suggestions/:id — static route BEFORE /:id
-router.put("/suggestions/:id", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.put("/suggestions/:id", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
 
@@ -238,7 +238,7 @@ router.put("/suggestions/:id", requireAuth, requireRole("admin", "leader"), asyn
 });
 
 // GET /songs/:id
-router.get("/:id", requireAuth, async (req: Request, res: Response) => {
+router.get("/:id", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const [song] = await db.select().from(songsTable)
     .where(and(eq(songsTable.id, req.params.id), isNull(songsTable.deletedAt)))
     .limit(1);
@@ -289,7 +289,7 @@ router.post("/", requireAuth, requireRole("admin", "leader"), async (req: Reques
 });
 
 // PUT /songs/:id
-router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
 
@@ -324,7 +324,7 @@ router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Requ
 });
 
 // DELETE /songs/:id (soft delete)
-router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
 

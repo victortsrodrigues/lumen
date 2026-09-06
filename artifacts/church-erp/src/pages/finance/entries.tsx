@@ -56,7 +56,7 @@ export default function FinanceEntries() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
-  const [typeFilter, setTypeFilter] = useState<string>("");
+  const [typeFilter, setTypeFilter] = useState<z.infer<typeof entrySchema>["type"] | "">("");
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
 
@@ -184,7 +184,14 @@ export default function FinanceEntries() {
             <Filter className="w-4 h-4 text-muted-foreground" />
             <select
               value={typeFilter}
-              onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                const value = e.target.value;
+                const parsed = entrySchema.shape.type.safeParse(value);
+                if (value === "" || parsed.success) {
+                  setTypeFilter(parsed.success ? parsed.data : "");
+                  setPage(1);
+                }
+              }}
               className="px-4 py-2 rounded-lg bg-background border border-border text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
             >
               <option value="">Todos os Tipos</option>

@@ -117,7 +117,7 @@ router.post("/config", requireAuth, requireRole("admin"), async (req: Request, r
 });
 
 // PUT /config/:id — admin only: update config
-router.put("/config/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.put("/config/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   try {
     const { id } = req.params;
     const { pixKey, pixKeyType, recipientName, city, institution, qrCodeImageUrl, isActive } = req.body;
@@ -305,7 +305,7 @@ router.get("/donations", requireAuth, requireRole("admin"), async (req: Request,
 });
 
 // PUT /donations/confirm/:id — admin only: confirm donation (static before dynamic)
-router.put("/donations/confirm/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.put("/donations/confirm/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   try {
     const { id } = req.params;
     const { notes } = req.body;
@@ -354,7 +354,7 @@ router.put("/donations/confirm/:id", requireAuth, requireRole("admin"), async (r
 });
 
 // PUT /donations/cancel/:id — admin only: cancel donation (static before dynamic)
-router.put("/donations/cancel/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.put("/donations/cancel/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   try {
     const { id } = req.params;
     const { notes } = req.body;

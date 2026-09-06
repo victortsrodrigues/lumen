@@ -1,4 +1,4 @@
-import { useListTeachingCourses } from "@workspace/api-client-react";
+import { type Course, useListTeachingCourses } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { GraduationCap, BookOpen, Loader2, Filter, X, ArrowRight, MapPin, Clock } from "lucide-react";
 import { useState } from "react";
@@ -21,7 +21,7 @@ const STATUS_COLORS: Record<string, string> = {
   encerrado: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
 };
 
-function CourseCard({ course }: { course: Record<string, unknown> }) {
+function CourseCard({ course }: { course: Course }) {
   const [, setLocation] = useLocation();
   const status = course.status as string;
   return (
@@ -137,7 +137,7 @@ export default function MyCoursesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {courses.map((course: Record<string, unknown>) => (
+          {courses.map((course) => (
             <CourseCard key={course.id as string} course={course} />
           ))}
         </div>

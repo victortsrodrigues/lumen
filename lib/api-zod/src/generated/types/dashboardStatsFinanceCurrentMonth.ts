@@ -7,7 +7,7 @@
  */
 
 export type DashboardStatsFinanceCurrentMonth = {
-  totalEntries?: string;
-  totalExpenses?: string;
-  balance?: string;
+  totalEntries: string;
+  totalExpenses: string;
+  balance: string;
 };

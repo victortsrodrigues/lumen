@@ -61,7 +61,7 @@ router.get("/public", async (req: Request, res: Response) => {
 });
 
 // GET /institutional/public/:slug — single published page by slug
-router.get("/public/:slug", async (req: Request, res: Response) => {
+router.get("/public/:slug", async (req: Request<{ slug: string }>, res: Response) => {
   const { slug } = req.params;
 
   const [page] = await db.select().from(institutionalPagesTable)
@@ -150,7 +150,7 @@ router.post("/", requireAuth, requireRole("admin"), async (req: Request, res: Re
 });
 
 // PUT /institutional/:id
-router.put("/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.put("/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 
@@ -193,7 +193,7 @@ router.put("/:id", requireAuth, requireRole("admin"), async (req: Request, res: 
 });
 
 // DELETE /institutional/:id (soft delete)
-router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 

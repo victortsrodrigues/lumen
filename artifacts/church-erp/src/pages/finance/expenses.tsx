@@ -50,7 +50,7 @@ export default function FinanceExpenses() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
-  const [categoryFilter, setCategoryFilter] = useState<string>("");
+  const [categoryFilter, setCategoryFilter] = useState<z.infer<typeof expenseSchema>["category"] | "">("");
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
 
@@ -163,7 +163,14 @@ export default function FinanceExpenses() {
             <Filter className="w-4 h-4 text-muted-foreground" />
             <select
               value={categoryFilter}
-              onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                const value = e.target.value;
+                const parsed = expenseSchema.shape.category.safeParse(value);
+                if (value === "" || parsed.success) {
+                  setCategoryFilter(parsed.success ? parsed.data : "");
+                  setPage(1);
+                }
+              }}
               className="px-4 py-2 rounded-lg bg-background border border-border text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
             >
               <option value="">Todas as Categorias</option>

@@ -19,6 +19,6 @@ export interface DashboardStats {
   events: DashboardStatsEvents;
   teaching: DashboardStatsTeaching;
   ministries: DashboardStatsMinistries;
-  planning?: DashboardStatsPlanning;
+  planning: DashboardStatsPlanning;
   smallGroups?: DashboardStatsSmallGroups;
 }

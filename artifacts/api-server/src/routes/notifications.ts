@@ -71,7 +71,7 @@ router.delete("/clear-read", requireAuth, async (req: Request, res: Response) =>
 });
 
 // DELETE /notifications/:id — remove a single notification
-router.delete("/:id", requireAuth, async (req: Request, res: Response) => {
+router.delete("/:id", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const { id } = req.params;
   await db.delete(notificationsTable).where(and(
@@ -82,7 +82,7 @@ router.delete("/:id", requireAuth, async (req: Request, res: Response) => {
 });
 
 // PUT /notifications/:id/read — mark one as read
-router.put("/:id/read", requireAuth, async (req: Request, res: Response) => {
+router.put("/:id/read", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const { id } = req.params;
 

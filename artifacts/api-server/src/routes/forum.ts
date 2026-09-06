@@ -118,13 +118,13 @@ router.get("/topics", requireAuth, async (req: Request, res: Response) => {
 // PIN TOPIC (static before dynamic)
 // =============================================================================
 
-router.put("/topics/pin/:id", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.put("/topics/pin/:id", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const user = req.user as any;
   const { id } = req.params;
 
   const [topic] = await db.select().from(forumTopicsTable)
     .where(and(eq(forumTopicsTable.id, id), isNull(forumTopicsTable.deletedAt))).limit(1);
-  if (!topic) return res.status(404).json({ error: "NOT_FOUND", message: "Topico nao encontrado" });
+  if (!topic) return void res.status(404).json({ error: "NOT_FOUND", message: "Topico nao encontrado" });
 
   const [updated] = await db.update(forumTopicsTable).set({
     isPinned: !topic.isPinned,
@@ -146,13 +146,13 @@ router.put("/topics/pin/:id", requireAuth, requireRole("admin", "leader"), async
 // LOCK TOPIC (static before dynamic)
 // =============================================================================
 
-router.put("/topics/lock/:id", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.put("/topics/lock/:id", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const user = req.user as any;
   const { id } = req.params;
 
   const [topic] = await db.select().from(forumTopicsTable)
     .where(and(eq(forumTopicsTable.id, id), isNull(forumTopicsTable.deletedAt))).limit(1);
-  if (!topic) return res.status(404).json({ error: "NOT_FOUND", message: "Topico nao encontrado" });
+  if (!topic) return void res.status(404).json({ error: "NOT_FOUND", message: "Topico nao encontrado" });
 
   const [updated] = await db.update(forumTopicsTable).set({
     isLocked: !topic.isLocked,
@@ -174,12 +174,12 @@ router.put("/topics/lock/:id", requireAuth, requireRole("admin", "leader"), asyn
 // TOPIC DETAIL (with paginated replies)
 // =============================================================================
 
-router.get("/topics/:id", requireAuth, async (req: Request, res: Response) => {
+router.get("/topics/:id", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
 
   const [topic] = await db.select().from(forumTopicsTable)
     .where(and(eq(forumTopicsTable.id, id), isNull(forumTopicsTable.deletedAt))).limit(1);
-  if (!topic) return res.status(404).json({ error: "NOT_FOUND", message: "Topico nao encontrado" });
+  if (!topic) return void res.status(404).json({ error: "NOT_FOUND", message: "Topico nao encontrado" });
 
   const page = Math.max(1, parseInt(req.query.page as string) || 1);
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
@@ -211,11 +211,11 @@ router.post("/topics", requireAuth, async (req: Request, res: Response) => {
   const { title, body, category } = req.body;
 
   if (!title || !body) {
-    return res.status(400).json({ error: "VALIDATION_ERROR", message: "Campos obrigatorios: title, body" });
+    return void res.status(400).json({ error: "VALIDATION_ERROR", message: "Campos obrigatorios: title, body" });
   }
 
   if (category && !VALID_CATEGORIES.includes(category)) {
-    return res.status(400).json({ error: "VALIDATION_ERROR", message: "Categoria invalida. Valores aceitos: " + VALID_CATEGORIES.join(", ") });
+    return void res.status(400).json({ error: "VALIDATION_ERROR", message: "Categoria invalida. Valores aceitos: " + VALID_CATEGORIES.join(", ") });
   }
 
   const authorName = await getUserName(user.userId);
@@ -226,8 +226,6 @@ router.post("/topics", requireAuth, async (req: Request, res: Response) => {
     authorId: user.userId,
     authorName,
     category: category || "geral",
-    createdByUserId: user.userId,
-    updatedByUserId: user.userId,
   }).returning();
 
   await createAuditLog({
@@ -246,22 +244,22 @@ router.post("/topics", requireAuth, async (req: Request, res: Response) => {
 // UPDATE TOPIC
 // =============================================================================
 
-router.put("/topics/:id", requireAuth, async (req: Request, res: Response) => {
+router.put("/topics/:id", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const user = req.user as any;
   const { id } = req.params;
 
   const [topic] = await db.select().from(forumTopicsTable)
     .where(and(eq(forumTopicsTable.id, id), isNull(forumTopicsTable.deletedAt))).limit(1);
-  if (!topic) return res.status(404).json({ error: "NOT_FOUND", message: "Topico nao encontrado" });
+  if (!topic) return void res.status(404).json({ error: "NOT_FOUND", message: "Topico nao encontrado" });
 
   // Only author or admin can edit
   if (topic.authorId !== user.userId && user.role !== "admin") {
-    return res.status(403).json({ error: "FORBIDDEN", message: "Sem permissao para editar este topico" });
+    return void res.status(403).json({ error: "FORBIDDEN", message: "Sem permissao para editar este topico" });
   }
 
   const { title, body } = req.body;
 
-  const updates: Record<string, any> = { updatedAt: new Date(), updatedByUserId: user.userId };
+  const updates: Record<string, any> = { updatedAt: new Date() };
   if (title) updates.title = title;
   if (body) updates.body = body;
 
@@ -283,17 +281,16 @@ router.put("/topics/:id", requireAuth, async (req: Request, res: Response) => {
 // DELETE TOPIC (soft delete — admin only)
 // =============================================================================
 
-router.delete("/topics/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.delete("/topics/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const user = req.user as any;
   const { id } = req.params;
 
   const [topic] = await db.select().from(forumTopicsTable)
     .where(and(eq(forumTopicsTable.id, id), isNull(forumTopicsTable.deletedAt))).limit(1);
-  if (!topic) return res.status(404).json({ error: "NOT_FOUND", message: "Topico nao encontrado" });
+  if (!topic) return void res.status(404).json({ error: "NOT_FOUND", message: "Topico nao encontrado" });
 
   await db.update(forumTopicsTable).set({
     deletedAt: new Date(),
-    updatedByUserId: user.userId,
     updatedAt: new Date(),
   }).where(eq(forumTopicsTable.id, id));
 
@@ -312,21 +309,21 @@ router.delete("/topics/:id", requireAuth, requireRole("admin"), async (req: Requ
 // CREATE REPLY
 // =============================================================================
 
-router.post("/topics/:id/replies", requireAuth, async (req: Request, res: Response) => {
+router.post("/topics/:id/replies", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const user = req.user as any;
   const { id } = req.params;
 
   const [topic] = await db.select().from(forumTopicsTable)
     .where(and(eq(forumTopicsTable.id, id), isNull(forumTopicsTable.deletedAt))).limit(1);
-  if (!topic) return res.status(404).json({ error: "NOT_FOUND", message: "Topico nao encontrado" });
+  if (!topic) return void res.status(404).json({ error: "NOT_FOUND", message: "Topico nao encontrado" });
 
   if (topic.isLocked) {
-    return res.status(403).json({ error: "FORBIDDEN", message: "Este topico esta trancado e nao aceita novas respostas" });
+    return void res.status(403).json({ error: "FORBIDDEN", message: "Este topico esta trancado e nao aceita novas respostas" });
   }
 
   const { body } = req.body;
   if (!body) {
-    return res.status(400).json({ error: "VALIDATION_ERROR", message: "Campo obrigatorio: body" });
+    return void res.status(400).json({ error: "VALIDATION_ERROR", message: "Campo obrigatorio: body" });
   }
 
   const authorName = await getUserName(user.userId);
@@ -336,7 +333,6 @@ router.post("/topics/:id/replies", requireAuth, async (req: Request, res: Respon
     body,
     authorId: user.userId,
     authorName,
-    createdByUserId: user.userId,
   }).returning();
 
   // Increment replyCount and set lastReplyAt
@@ -362,7 +358,7 @@ router.post("/topics/:id/replies", requireAuth, async (req: Request, res: Respon
 // UPDATE REPLY
 // =============================================================================
 
-router.put("/topics/:id/replies/:replyId", requireAuth, async (req: Request, res: Response) => {
+router.put("/topics/:id/replies/:replyId", requireAuth, async (req: Request<{ id: string; replyId: string }>, res: Response) => {
   const user = req.user as any;
   const { id, replyId } = req.params;
 
@@ -372,22 +368,21 @@ router.put("/topics/:id/replies/:replyId", requireAuth, async (req: Request, res
       eq(forumRepliesTable.topicId, id),
       isNull(forumRepliesTable.deletedAt),
     )).limit(1);
-  if (!reply) return res.status(404).json({ error: "NOT_FOUND", message: "Resposta nao encontrada" });
+  if (!reply) return void res.status(404).json({ error: "NOT_FOUND", message: "Resposta nao encontrada" });
 
   // Only author or admin can edit
   if (reply.authorId !== user.userId && user.role !== "admin") {
-    return res.status(403).json({ error: "FORBIDDEN", message: "Sem permissao para editar esta resposta" });
+    return void res.status(403).json({ error: "FORBIDDEN", message: "Sem permissao para editar esta resposta" });
   }
 
   const { body } = req.body;
   if (!body) {
-    return res.status(400).json({ error: "VALIDATION_ERROR", message: "Campo obrigatorio: body" });
+    return void res.status(400).json({ error: "VALIDATION_ERROR", message: "Campo obrigatorio: body" });
   }
 
   const [updated] = await db.update(forumRepliesTable).set({
     body,
     updatedAt: new Date(),
-    updatedByUserId: user.userId,
   }).where(eq(forumRepliesTable.id, replyId)).returning();
 
   await createAuditLog({
@@ -406,7 +401,7 @@ router.put("/topics/:id/replies/:replyId", requireAuth, async (req: Request, res
 // DELETE REPLY (soft delete — admin only)
 // =============================================================================
 
-router.delete("/topics/:id/replies/:replyId", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.delete("/topics/:id/replies/:replyId", requireAuth, requireRole("admin"), async (req: Request<{ id: string; replyId: string }>, res: Response) => {
   const user = req.user as any;
   const { id, replyId } = req.params;
 
@@ -416,11 +411,10 @@ router.delete("/topics/:id/replies/:replyId", requireAuth, requireRole("admin"),
       eq(forumRepliesTable.topicId, id),
       isNull(forumRepliesTable.deletedAt),
     )).limit(1);
-  if (!reply) return res.status(404).json({ error: "NOT_FOUND", message: "Resposta nao encontrada" });
+  if (!reply) return void res.status(404).json({ error: "NOT_FOUND", message: "Resposta nao encontrada" });
 
   await db.update(forumRepliesTable).set({
     deletedAt: new Date(),
-    updatedByUserId: user.userId,
     updatedAt: new Date(),
   }).where(eq(forumRepliesTable.id, replyId));
 

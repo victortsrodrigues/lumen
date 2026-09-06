@@ -64,8 +64,8 @@ e [avisos do Orval](https://github.com/orval-labs/orval/security/advisories).
   revisar esse script antes de alterar essa política.
 - Rodar `pnpm audit:security`: qualquer alta ou crítica faz o comando falhar.
   Não usar `--ignore-registry-errors`; falha na consulta também impede o build.
-- O workflow `Dependency security` faz auditoria completa, geração reproduzível,
-  builds, testes unitários, testes de contas em PostgreSQL isolado e testes de UI
+- O workflow `Application checks` faz auditoria completa, geração reproduzível,
+  typecheck, builds, testes unitários, testes críticos em PostgreSQL isolado e testes de UI
   com API simulada. Roda em pull requests, push em `main`, manualmente e às
   segundas-feiras às 10:30 UTC.
 - O build do Railway também começa pela auditoria. Assim, não depende apenas do
@@ -86,8 +86,9 @@ do Orval e executar codegen; não editar esses arquivos manualmente.
 
 ## Verificação
 
-Validação local concluída com Node `22.23.2`: builds do frontend e backend,
-14 testes unitários, 16 testes de contas e 7 testes de navegador aprovados.
+Na rodada original de dependências, a validação com Node `22.23.2` aprovou os
+builds, 14 testes unitários, 16 testes de contas e 7 testes de navegador.
+Os resultados atualizados de tipagem e CI estão em [ci.md](ci.md).
 A geração foi executada novamente sem modificar a saída. A instalação congelada
 também passou, sem alterar o lockfile.
 
@@ -106,14 +107,14 @@ chromium`) ou de `PLAYWRIGHT_CHROMIUM_EXECUTABLE` apontando para um navegador
 local compatível. Não usam o banco de produção nem enviam e-mails.
 
 Para `pnpm test:accounts`, provisionar **somente** um banco local descartável
-chamado `lumen_accounts_test`, aplicar `pnpm db:migrate` nele e informar
-`ACCOUNTS_TEST_DATABASE_URL`. A configuração dos testes recusa hosts remotos e
-outros nomes de banco. O workflow já provisiona esse ambiente isolado.
+chamado `lumen_accounts_test`, informar `ACCOUNTS_TEST_DATABASE_URL` e executar
+`pnpm db:test:prepare`. Esse comando cria a estrutura inicial apenas se o banco
+isolado estiver vazio e depois aplica as migrações. A configuração recusa hosts
+remotos, outros nomes de banco e opções extras na URL. O CI usa esse mesmo comando.
 
-Esta rodada não zera a dívida de TypeScript já existente. A comparação dos
-clientes gerados antigos e novos, sob as dependências atualizadas, não adicionou
-diagnósticos aos projetos da API e frontend. Os builds e testes de regressão
-não devem ser confundidos com aprovação de um typecheck global.
+Na rodada seguinte, os erros de TypeScript da aplicação de produção foram
+zerados, e o typecheck passou a ser obrigatório no CI e no build do Railway.
+O protótipo auxiliar `mockup-sandbox` não faz parte do produto publicado.
 
 O build Linux completo do Nixpacks e os testes do GitHub precisam ser confirmados
 após a publicação; o Docker local estava indisponível durante esta validação.

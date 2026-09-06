@@ -106,7 +106,7 @@ router.get("/cases", requireAuth, requireRole("admin", "leader"), async (req: Re
     if (member) {
       conditions.push(eq(counselingCasesTable.counselorId, member.id));
     } else {
-      return res.json({ cases: [], total: 0, page, limit });
+      return void res.json({ cases: [], total: 0, page, limit });
     }
   }
 
@@ -131,18 +131,18 @@ router.get("/cases", requireAuth, requireRole("admin", "leader"), async (req: Re
 // CASE DETAIL
 // ═══════════════════════════════════════════════════════════════════════════════
 
-router.get("/cases/:id", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.get("/cases/:id", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const user = req.user as any;
   const { id } = req.params;
 
   const [caseData] = await db.select().from(counselingCasesTable)
     .where(and(eq(counselingCasesTable.id, id), isNull(counselingCasesTable.deletedAt))).limit(1);
-  if (!caseData) return res.status(404).json({ error: "NOT_FOUND", message: "Caso não encontrado" });
+  if (!caseData) return void res.status(404).json({ error: "NOT_FOUND", message: "Caso não encontrado" });
 
   // Leader can only see own cases
   if (user.role === "leader") {
     const isCounselor = await isCounselorOfCase(String(id), user);
-    if (!isCounselor) return res.status(403).json({ error: "FORBIDDEN", message: "Sem permissão para ver este caso" });
+    if (!isCounselor) return void res.status(403).json({ error: "FORBIDDEN", message: "Sem permissão para ver este caso" });
   }
 
   const sessions = await db.select().from(counselingSessionsTable)
@@ -164,14 +164,14 @@ router.post("/cases", requireAuth, requireRole("admin"), async (req: Request, re
   const { memberId, counselorId, topic, startDate } = req.body;
 
   if (!memberId || !counselorId || !topic || !startDate) {
-    return res.status(400).json({ error: "VALIDATION_ERROR", message: "Campos obrigatórios: memberId, counselorId, topic, startDate" });
+    return void res.status(400).json({ error: "VALIDATION_ERROR", message: "Campos obrigatórios: memberId, counselorId, topic, startDate" });
   }
 
   const [member] = await db.select().from(membersTable).where(eq(membersTable.id, memberId)).limit(1);
-  if (!member) return res.status(404).json({ error: "NOT_FOUND", message: "Membro não encontrado" });
+  if (!member) return void res.status(404).json({ error: "NOT_FOUND", message: "Membro não encontrado" });
 
   const [counselor] = await db.select().from(membersTable).where(eq(membersTable.id, counselorId)).limit(1);
-  if (!counselor) return res.status(404).json({ error: "NOT_FOUND", message: "Conselheiro não encontrado" });
+  if (!counselor) return void res.status(404).json({ error: "NOT_FOUND", message: "Conselheiro não encontrado" });
 
   const [created] = await db.insert(counselingCasesTable).values({
     memberId,
@@ -200,18 +200,18 @@ router.post("/cases", requireAuth, requireRole("admin"), async (req: Request, re
 // UPDATE CASE
 // ═══════════════════════════════════════════════════════════════════════════════
 
-router.put("/cases/:id", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.put("/cases/:id", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const user = req.user as any;
   const { id } = req.params;
 
   const [existing] = await db.select().from(counselingCasesTable)
     .where(and(eq(counselingCasesTable.id, id), isNull(counselingCasesTable.deletedAt))).limit(1);
-  if (!existing) return res.status(404).json({ error: "NOT_FOUND", message: "Caso não encontrado" });
+  if (!existing) return void res.status(404).json({ error: "NOT_FOUND", message: "Caso não encontrado" });
 
   // Leader can only update own cases
   if (user.role === "leader") {
     const isCounselor = await isCounselorOfCase(String(id), user);
-    if (!isCounselor) return res.status(403).json({ error: "FORBIDDEN", message: "Sem permissão para editar este caso" });
+    if (!isCounselor) return void res.status(403).json({ error: "FORBIDDEN", message: "Sem permissão para editar este caso" });
   }
 
   const { topic, status } = req.body;
@@ -241,22 +241,22 @@ router.put("/cases/:id", requireAuth, requireRole("admin", "leader"), async (req
 // CREATE SESSION
 // ═══════════════════════════════════════════════════════════════════════════════
 
-router.post("/cases/:id/sessions", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.post("/cases/:id/sessions", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const user = req.user as any;
   const { id } = req.params;
 
   const [caseData] = await db.select().from(counselingCasesTable)
     .where(and(eq(counselingCasesTable.id, id), isNull(counselingCasesTable.deletedAt))).limit(1);
-  if (!caseData) return res.status(404).json({ error: "NOT_FOUND", message: "Caso não encontrado" });
+  if (!caseData) return void res.status(404).json({ error: "NOT_FOUND", message: "Caso não encontrado" });
 
   // Leader can only add sessions to own cases
   if (user.role === "leader") {
     const isCounselor = await isCounselorOfCase(String(id), user);
-    if (!isCounselor) return res.status(403).json({ error: "FORBIDDEN", message: "Sem permissão para este caso" });
+    if (!isCounselor) return void res.status(403).json({ error: "FORBIDDEN", message: "Sem permissão para este caso" });
   }
 
   const { date, notes, durationMinutes } = req.body;
-  if (!date) return res.status(400).json({ error: "VALIDATION_ERROR", message: "Campo obrigatório: date" });
+  if (!date) return void res.status(400).json({ error: "VALIDATION_ERROR", message: "Campo obrigatório: date" });
 
   const [session] = await db.insert(counselingSessionsTable).values({
     caseId: id,
@@ -291,18 +291,18 @@ router.post("/cases/:id/sessions", requireAuth, requireRole("admin", "leader"), 
 // LIST SESSIONS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-router.get("/cases/:id/sessions", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.get("/cases/:id/sessions", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const user = req.user as any;
   const { id } = req.params;
 
   // Verify case exists and user has access
   const [caseData] = await db.select().from(counselingCasesTable)
     .where(and(eq(counselingCasesTable.id, id), isNull(counselingCasesTable.deletedAt))).limit(1);
-  if (!caseData) return res.status(404).json({ error: "NOT_FOUND", message: "Caso não encontrado" });
+  if (!caseData) return void res.status(404).json({ error: "NOT_FOUND", message: "Caso não encontrado" });
 
   if (user.role === "leader") {
     const isCounselor = await isCounselorOfCase(String(id), user);
-    if (!isCounselor) return res.status(403).json({ error: "FORBIDDEN", message: "Sem permissão para este caso" });
+    if (!isCounselor) return void res.status(403).json({ error: "FORBIDDEN", message: "Sem permissão para este caso" });
   }
 
   const sessions = await db.select().from(counselingSessionsTable)
@@ -316,13 +316,13 @@ router.get("/cases/:id/sessions", requireAuth, requireRole("admin", "leader"), a
 // DELETE CASE (soft delete — admin only)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-router.delete("/cases/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.delete("/cases/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const user = req.user as any;
   const { id } = req.params;
 
   const [existing] = await db.select().from(counselingCasesTable)
     .where(and(eq(counselingCasesTable.id, id), isNull(counselingCasesTable.deletedAt))).limit(1);
-  if (!existing) return res.status(404).json({ error: "NOT_FOUND", message: "Caso não encontrado" });
+  if (!existing) return void res.status(404).json({ error: "NOT_FOUND", message: "Caso não encontrado" });
 
   await db.update(counselingCasesTable).set({
     deletedAt: new Date(),

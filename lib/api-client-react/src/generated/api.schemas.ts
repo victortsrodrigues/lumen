@@ -2022,26 +2022,26 @@ export type DashboardStatsMembersByStatus = {
 };
 
 export type DashboardStatsMembers = {
-  total?: number;
-  newThisMonth?: number;
-  byStatus?: DashboardStatsMembersByStatus;
+  total: number;
+  newThisMonth: number;
+  byStatus: DashboardStatsMembersByStatus;
 };
 
 export type DashboardStatsFinanceCurrentMonth = {
-  totalEntries?: string;
-  totalExpenses?: string;
-  balance?: string;
+  totalEntries: string;
+  totalExpenses: string;
+  balance: string;
 };
 
 export type DashboardStatsFinancePreviousMonth = {
-  totalEntries?: string;
-  totalExpenses?: string;
+  totalEntries: string;
+  totalExpenses: string;
 };
 
 export type DashboardStatsFinance = {
-  currentMonth?: DashboardStatsFinanceCurrentMonth;
-  previousMonth?: DashboardStatsFinancePreviousMonth;
-  entriesGrowth?: number;
+  currentMonth: DashboardStatsFinanceCurrentMonth;
+  previousMonth: DashboardStatsFinancePreviousMonth;
+  entriesGrowth: number;
 } | null;
 
 export type DashboardStatsEventsUpcomingItem = {
@@ -2069,8 +2069,8 @@ export type DashboardStatsMinistries = {
 };
 
 export type DashboardStatsPlanning = {
-  activeInitiatives?: number;
-  overdueInitiatives?: number;
+  activeInitiatives: number;
+  overdueInitiatives: number;
 };
 
 export type DashboardStatsSmallGroupsHealthBreakdown = {
@@ -2091,28 +2091,28 @@ export interface DashboardStats {
   events: DashboardStatsEvents;
   teaching: DashboardStatsTeaching;
   ministries: DashboardStatsMinistries;
-  planning?: DashboardStatsPlanning;
+  planning: DashboardStatsPlanning;
   smallGroups?: DashboardStatsSmallGroups;
 }
 
 export type LeaderWidgetsPastoral = {
-  pending?: number;
-  overdueFollowUps?: number;
+  pending: number;
+  overdueFollowUps: number;
 };
 
 export type LeaderWidgetsCounseling = {
-  openCases?: number;
+  openCases: number;
 };
 
 export type LeaderWidgetsArticles = {
-  inReview?: number;
-  drafts?: number;
+  inReview: number;
+  drafts: number;
 };
 
 export interface LeaderWidgets {
-  pastoral?: LeaderWidgetsPastoral;
-  counseling?: LeaderWidgetsCounseling;
-  articles?: LeaderWidgetsArticles;
+  pastoral: LeaderWidgetsPastoral;
+  counseling: LeaderWidgetsCounseling;
+  articles: LeaderWidgetsArticles;
 }
 
 export type MemberArea = (typeof MemberArea)[keyof typeof MemberArea];

@@ -364,7 +364,7 @@ export default function CourseDetailPage() {
               <p className="text-muted-foreground text-sm">Nenhuma aula cadastrada.</p>
             ) : (
               <div className="space-y-2">
-                {data.lessons.map((lesson: Record<string, unknown>) => (
+                {data.lessons.map((lesson) => (
                   <div key={lesson.id as string} className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
                     <div>
                       <p className="font-medium text-sm">
@@ -397,7 +397,7 @@ export default function CourseDetailPage() {
               <p className="text-muted-foreground text-sm">Nenhum aluno inscrito.</p>
             ) : (
               <div className="space-y-2">
-                {data.enrollments.map((e: Record<string, unknown>) => (
+                {data.enrollments.map((e) => (
                   <div key={e.id as string} className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
                     <div>
                       <p className="font-medium text-sm">{(e.memberName as string) || "Membro"}</p>

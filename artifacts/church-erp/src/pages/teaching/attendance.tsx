@@ -105,7 +105,7 @@ export default function AttendancePage() {
             className="w-full mt-1 px-3 py-2 border rounded-lg bg-background"
           >
             <option value="">Selecione uma série...</option>
-            {(coursesData?.courses || []).map((c: Record<string, unknown>) => (
+            {(coursesData?.courses || []).map((c) => (
               <option key={c.id as string} value={c.id as string}>{c.title as string}</option>
             ))}
           </select>
@@ -119,7 +119,7 @@ export default function AttendancePage() {
             className="w-full mt-1 px-3 py-2 border rounded-lg bg-background disabled:opacity-50"
           >
             <option value="">Selecione uma aula...</option>
-            {(lessonsData?.lessons || []).map((l: Record<string, unknown>) => (
+            {(lessonsData?.lessons || []).map((l) => (
               <option key={l.id as string} value={l.id as string}>
                 #{l.lessonOrder as number} — {l.title as string} {l.lessonDate ? `(${l.lessonDate})` : ""}
               </option>
@@ -146,7 +146,7 @@ export default function AttendancePage() {
           </div>
 
           <div className="space-y-2">
-            {enrollments.map((e: Record<string, unknown>) => {
+            {enrollments.map((e) => {
               const memberId = e.memberId as string;
               const isPresent = effective[memberId] ?? true;
               return (

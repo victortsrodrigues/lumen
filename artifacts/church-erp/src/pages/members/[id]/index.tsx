@@ -83,7 +83,7 @@ export default function MemberProfile() {
 
   if (isLoading) {
     return (
-      <AppLayout breadcrumbs={[{ label: "Rol de Membros", href: "/members" }, { label: member?.fullName || "Membro" }]}>
+      <AppLayout breadcrumbs={[{ label: "Rol de Membros", href: "/members" }, { label: "Membro" }]}>
         <div className="flex justify-center py-32"><Loader2 className="w-10 h-10 animate-spin text-primary" /></div>
       </AppLayout>
     );

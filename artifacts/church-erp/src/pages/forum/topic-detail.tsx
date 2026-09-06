@@ -79,7 +79,7 @@ export default function ForumTopicDetail() {
     mutation: {
       onSuccess: () => {
         invalidate();
-        toast({ title: "Sucesso", description: topic?.pinned ? "Tópico desafixado." : "Tópico fixado." });
+        toast({ title: "Sucesso", description: topic?.isPinned ? "Tópico desafixado." : "Tópico fixado." });
       },
       onError: () => {
         toast({ title: "Erro", description: "Falha ao alterar fixação.", variant: "destructive" });
@@ -91,7 +91,7 @@ export default function ForumTopicDetail() {
     mutation: {
       onSuccess: () => {
         invalidate();
-        toast({ title: "Sucesso", description: topic?.locked ? "Tópico destrancado." : "Tópico trancado." });
+        toast({ title: "Sucesso", description: topic?.isLocked ? "Tópico destrancado." : "Tópico trancado." });
       },
       onError: () => {
         toast({ title: "Erro", description: "Falha ao alterar trancamento.", variant: "destructive" });
@@ -157,8 +157,8 @@ export default function ForumTopicDetail() {
         <div className="flex items-start justify-between mb-6">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
-              {topic.pinned && <Pin className="h-5 w-5 text-primary shrink-0" />}
-              {topic.locked && <Lock className="h-5 w-5 text-muted-foreground shrink-0" />}
+              {topic.isPinned && <Pin className="h-5 w-5 text-primary shrink-0" />}
+              {topic.isLocked && <Lock className="h-5 w-5 text-muted-foreground shrink-0" />}
               <h1 className="text-2xl font-bold">{topic.title}</h1>
             </div>
             <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
@@ -176,16 +176,16 @@ export default function ForumTopicDetail() {
               <button
                 onClick={() => pinMutation.mutate({ id })}
                 disabled={pinMutation.isPending}
-                className={`p-2 rounded-xl text-sm hover:bg-muted border ${topic.pinned ? "bg-primary/10 border-primary/30" : ""}`}
-                title={topic.pinned ? "Desafixar" : "Fixar"}
+                className={`p-2 rounded-xl text-sm hover:bg-muted border ${topic.isPinned ? "bg-primary/10 border-primary/30" : ""}`}
+                title={topic.isPinned ? "Desafixar" : "Fixar"}
               >
                 <Pin className="h-4 w-4" />
               </button>
               <button
                 onClick={() => lockMutation.mutate({ id })}
                 disabled={lockMutation.isPending}
-                className={`p-2 rounded-xl text-sm hover:bg-muted border ${topic.locked ? "bg-orange-100 border-orange-300 dark:bg-orange-900/20" : ""}`}
-                title={topic.locked ? "Destrancar" : "Trancar"}
+                className={`p-2 rounded-xl text-sm hover:bg-muted border ${topic.isLocked ? "bg-orange-100 border-orange-300 dark:bg-orange-900/20" : ""}`}
+                title={topic.isLocked ? "Destrancar" : "Trancar"}
               >
                 <Lock className="h-4 w-4" />
               </button>
@@ -238,7 +238,7 @@ export default function ForumTopicDetail() {
         )}
 
         {/* Reply Form */}
-        {topic.locked ? (
+        {topic.isLocked ? (
           <div className="rounded-xl border bg-muted/50 p-4 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
             <Lock className="h-4 w-4" /> Tópico trancado. Não é possível responder.
           </div>

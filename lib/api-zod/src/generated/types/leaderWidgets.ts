@@ -10,7 +10,7 @@ import type { LeaderWidgetsCounseling } from "./leaderWidgetsCounseling";
 import type { LeaderWidgetsPastoral } from "./leaderWidgetsPastoral";
 
 export interface LeaderWidgets {
-  pastoral?: LeaderWidgetsPastoral;
-  counseling?: LeaderWidgetsCounseling;
-  articles?: LeaderWidgetsArticles;
+  pastoral: LeaderWidgetsPastoral;
+  counseling: LeaderWidgetsCounseling;
+  articles: LeaderWidgetsArticles;
 }

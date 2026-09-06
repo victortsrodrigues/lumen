@@ -113,7 +113,7 @@ router.get("/leaders", requireAuth, requireRole("admin", "leader"), async (_req:
 });
 
 // GET /discipleship/by-leader/:leaderId — members under this leader (group by area)
-router.get("/by-leader/:leaderId", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.get("/by-leader/:leaderId", requireAuth, requireRole("admin", "leader"), async (req: Request<{ leaderId: string }>, res: Response) => {
   const { leaderId } = req.params;
 
   const rows = await db.select({
@@ -146,7 +146,7 @@ router.get("/by-leader/:leaderId", requireAuth, requireRole("admin", "leader"), 
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // GET /discipleship/members/:id/areas — list 4 areas for a member
-router.get("/members/:id/areas", requireAuth, async (req: Request, res: Response) => {
+router.get("/members/:id/areas", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 
@@ -185,7 +185,7 @@ router.get("/members/:id/areas", requireAuth, async (req: Request, res: Response
 });
 
 // PUT /discipleship/members/:id/areas/:area — update one area
-router.put("/members/:id/areas/:area", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.put("/members/:id/areas/:area", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string; area: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
   const { id, area } = req.params;
@@ -301,7 +301,7 @@ router.put("/members/:id/areas/:area", requireAuth, requireRole("admin", "leader
 });
 
 // GET /discipleship/members/:id/history — area transitions
-router.get("/members/:id/history", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.get("/members/:id/history", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
 
   const rows = await db.select().from(memberAreaHistoryTable)

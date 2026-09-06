@@ -105,7 +105,7 @@ router.get("/", requireAuth, requireRole("admin", "leader"), async (req: Request
 });
 
 // GET /assets/:id
-router.get("/:id", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.get("/:id", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
 
   const [asset] = await db.select().from(assetsTable)
@@ -192,7 +192,7 @@ router.post("/", requireAuth, requireRole("admin"), async (req: Request, res: Re
 });
 
 // PUT /assets/:id
-router.put("/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.put("/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 
@@ -270,7 +270,7 @@ router.put("/:id", requireAuth, requireRole("admin"), async (req: Request, res: 
 });
 
 // DELETE /assets/:id
-router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 

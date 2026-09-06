@@ -151,7 +151,7 @@ export default function EventDetailPage() {
     );
   }
 
-  const registrations = (data.registrations || []) as Array<Record<string, unknown>>;
+  const registrations = data.registrations || [];
 
   function handleRegister() {
     if (!enrollMemberId.trim()) return;
@@ -209,7 +209,7 @@ export default function EventDetailPage() {
           <div className="flex items-center gap-2"><Clock className="h-4 w-4 text-muted-foreground" /> até {formatDateTime(data.endDate)}</div>
           {data.location && <div className="flex items-center gap-2"><MapPin className="h-4 w-4 text-muted-foreground" /> {data.location}</div>}
           {data.responsibleName && <div className="flex items-center gap-2"><Users className="h-4 w-4 text-muted-foreground" /> {data.responsibleName}</div>}
-          <div className="flex items-center gap-2">Recorrência: {RECURRENCE_LABELS[data.recurrence] || data.recurrence}</div>
+          <div className="flex items-center gap-2">Recorrência: {data.recurrence ? RECURRENCE_LABELS[data.recurrence] || data.recurrence : "Não informada"}</div>
           <div className="flex items-center gap-2">Status: {data.status}</div>
         </div>
       </div>

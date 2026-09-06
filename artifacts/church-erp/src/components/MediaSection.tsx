@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 interface MediaSectionProps {
-  entityType: "course_lesson" | "course" | "ministry" | "event" | "asset";
+  entityType: "course_lesson" | "course" | "ministry" | "event" | "asset" | "content";
   entityId: string;
   canEdit?: boolean;
 }

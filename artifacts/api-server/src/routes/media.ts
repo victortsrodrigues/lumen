@@ -142,7 +142,7 @@ router.post("/", requireAuth, requireRole("admin", "leader"), async (req: Reques
 });
 
 // PUT /media/:id
-router.put("/:id", requireAuth, async (req: Request, res: Response) => {
+router.put("/:id", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 
@@ -199,7 +199,7 @@ router.put("/:id", requireAuth, async (req: Request, res: Response) => {
 });
 
 // DELETE /media/:id
-router.delete("/:id", requireAuth, async (req: Request, res: Response) => {
+router.delete("/:id", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 

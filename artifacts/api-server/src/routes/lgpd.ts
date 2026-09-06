@@ -272,7 +272,7 @@ router.get("/requests", requireAuth, requireRole("admin"), async (req: Request, 
 });
 
 // PUT /lgpd/requests/:id — Processar solicitação (admin)
-router.put("/requests/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.put("/requests/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const adminUserId = req.user!.userId;
   const ip = getIp(req);
 

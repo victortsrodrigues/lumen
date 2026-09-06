@@ -1,17 +1,8 @@
 import { defineConfig } from "vitest/config";
+import { isolatedDatabaseUrl } from "./isolated-database";
 
 // Never run this suite against an application or production database.
-const connection = process.env.ACCOUNTS_TEST_DATABASE_URL;
-const target = connection ? new URL(connection) : null;
-if (
-  !target ||
-  !["localhost", "127.0.0.1"].includes(target.hostname) ||
-  target.pathname !== "/lumen_accounts_test"
-) {
-  throw new Error(
-    "Set ACCOUNTS_TEST_DATABASE_URL to the isolated local lumen_accounts_test database.",
-  );
-}
+const connection = isolatedDatabaseUrl(process.env.ACCOUNTS_TEST_DATABASE_URL);
 
 export default defineConfig({
   test: {

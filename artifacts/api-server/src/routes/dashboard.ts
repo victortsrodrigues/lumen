@@ -32,7 +32,7 @@ function lastDayOfMonth(year: number, month: number): string {
 router.get("/stats", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
   if (user.role === "member") {
-    return res.status(403).json({ error: "FORBIDDEN", message: "Sem permissão" });
+    return void res.status(403).json({ error: "FORBIDDEN", message: "Sem permissão" });
   }
   const isAdmin = user.role === "admin";
   const now = new Date();
@@ -243,7 +243,7 @@ router.get("/stats", requireAuth, async (req: Request, res: Response) => {
 router.get("/leader-widgets", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
   if (user.role !== "admin" && user.role !== "leader") {
-    return res.status(403).json({ error: "FORBIDDEN", message: "Sem permissão" });
+    return void res.status(403).json({ error: "FORBIDDEN", message: "Sem permissão" });
   }
 
   const linkedMember = await findLinkedMember(user);
@@ -303,7 +303,7 @@ router.get("/member-stats", requireAuth, async (req: Request, res: Response) => 
   const linkedMember = await findLinkedMember(user);
 
   if (!linkedMember) {
-    return res.json({
+    return void res.json({
       profile: null,
       enrolledCourses: 0,
       upcomingRegisteredEvents: [],

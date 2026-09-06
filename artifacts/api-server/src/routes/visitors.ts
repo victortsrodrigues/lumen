@@ -250,7 +250,7 @@ router.post("/", requireAuth, requireRole("admin", "leader"), async (req: Reques
 
 // ─── DETAIL / UPDATE / DELETE ──────────────────────────────────────────────
 
-router.get("/:id", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.get("/:id", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const [visitor] = await db.select().from(visitorsTable)
     .where(and(eq(visitorsTable.id, req.params.id), isNull(visitorsTable.deletedAt))).limit(1);
 
@@ -279,7 +279,7 @@ router.get("/:id", requireAuth, requireRole("admin", "leader"), async (req: Requ
   });
 });
 
-router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
 
@@ -356,7 +356,7 @@ router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Requ
   res.json(serializeVisitor(updated));
 });
 
-router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
 
@@ -386,7 +386,7 @@ router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request, re
 
 // ─── VISITS ────────────────────────────────────────────────────────────────
 
-router.post("/:id/visits", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.post("/:id/visits", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const visitorId = req.params.id;
 
@@ -420,7 +420,7 @@ router.post("/:id/visits", requireAuth, requireRole("admin", "leader"), async (r
   res.status(201).json(serializeVisit(visit));
 });
 
-router.put("/:id/visits/:visitId", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.put("/:id/visits/:visitId", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string; visitId: string }>, res: Response) => {
   const userId = req.user!.userId;
   const { id: visitorId, visitId } = req.params;
 
@@ -450,7 +450,7 @@ router.put("/:id/visits/:visitId", requireAuth, requireRole("admin", "leader"), 
   res.json(serializeVisit(updated));
 });
 
-router.delete("/:id/visits/:visitId", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.delete("/:id/visits/:visitId", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string; visitId: string }>, res: Response) => {
   const userId = req.user!.userId;
   const { id: visitorId, visitId } = req.params;
 
@@ -480,7 +480,7 @@ router.delete("/:id/visits/:visitId", requireAuth, requireRole("admin", "leader"
 
 // ─── CONVERT ────────────────────────────────────────────────────────────────
 
-router.post("/:id/convert", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.post("/:id/convert", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
   const visitorId = req.params.id;

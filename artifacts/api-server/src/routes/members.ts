@@ -676,7 +676,7 @@ async function loadMemberExtras(m: typeof membersTable.$inferSelect) {
 // DETAIL / UPDATE / DELETE
 // ═══════════════════════════════════════════════════════════════════════════════
 
-router.get("/:id", requireAuth, async (req: Request, res: Response) => {
+router.get("/:id", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const role = req.user!.role;
   const ip = getIp(req);
@@ -704,7 +704,7 @@ router.get("/:id", requireAuth, async (req: Request, res: Response) => {
   res.json(serializeMemberDetail(member, extras));
 });
 
-router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
 
@@ -802,7 +802,7 @@ router.put("/:id", requireAuth, requireRole("admin", "leader"), async (req: Requ
 });
 
 // DELETE /members/:id - Anonymize (LGPD-compliant, admin only)
-router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
 
@@ -917,7 +917,7 @@ router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request, re
 });
 
 // GET /members/:id/history
-router.get("/:id/history", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.get("/:id/history", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const history = await db.select().from(memberHistoryTable)
     .where(eq(memberHistoryTable.memberId, req.params.id))
     .orderBy(desc(memberHistoryTable.createdAt));
@@ -926,7 +926,7 @@ router.get("/:id/history", requireAuth, requireRole("admin", "leader"), async (r
 });
 
 // POST /members/:id/cpf/reveal
-router.post("/:id/cpf/reveal", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.post("/:id/cpf/reveal", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
 
@@ -956,7 +956,7 @@ router.post("/:id/cpf/reveal", requireAuth, requireRole("admin"), async (req: Re
 });
 
 // GET /members/:id/ministries
-router.get("/:id/ministries", requireAuth, async (req: Request, res: Response) => {
+router.get("/:id/ministries", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 
@@ -1006,7 +1006,7 @@ router.get("/:id/ministries", requireAuth, async (req: Request, res: Response) =
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // POST /members/:id/exclusion — register exclusion (admin only)
-router.post("/:id/exclusion", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.post("/:id/exclusion", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
 
@@ -1102,7 +1102,7 @@ router.post("/:id/exclusion", requireAuth, requireRole("admin"), async (req: Req
 });
 
 // POST /members/:id/exclusion/revert — revert exclusion
-router.post("/:id/exclusion/revert", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.post("/:id/exclusion/revert", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
 
@@ -1155,7 +1155,7 @@ router.post("/:id/exclusion/revert", requireAuth, requireRole("admin"), async (r
 });
 
 // POST /members/:id/exclusion/letter — link a cloud-hosted transfer letter
-router.post("/:id/exclusion/letter", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.post("/:id/exclusion/letter", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
 
@@ -1210,7 +1210,7 @@ router.post("/:id/exclusion/letter", requireAuth, requireRole("admin"), async (r
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // POST /members/:id/children — add child link (membro existente OU nome externo)
-router.post("/:id/children", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.post("/:id/children", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const parentId = req.params.id;
   const childMemberId: string | undefined = req.body?.childMemberId || undefined;
@@ -1303,7 +1303,7 @@ router.post("/:id/children", requireAuth, requireRole("admin", "leader"), async 
 });
 
 // DELETE /members/:id/children/:rowId — remove child link by row id
-router.delete("/:id/children/:rowId", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.delete("/:id/children/:rowId", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string; rowId: string }>, res: Response) => {
   const userId = req.user!.userId;
   const { id: parentId, rowId } = req.params;
 
@@ -1334,7 +1334,7 @@ router.delete("/:id/children/:rowId", requireAuth, requireRole("admin", "leader"
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // POST /members/:memberId/groups/:groupId — link member to group
-router.post("/:memberId/groups/:groupId", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.post("/:memberId/groups/:groupId", requireAuth, requireRole("admin", "leader"), async (req: Request<{ memberId: string; groupId: string }>, res: Response) => {
   const userId = req.user!.userId;
   const { memberId, groupId } = req.params;
 
@@ -1370,7 +1370,7 @@ router.post("/:memberId/groups/:groupId", requireAuth, requireRole("admin", "lea
 });
 
 // DELETE /members/:memberId/groups/:groupId — unlink
-router.delete("/:memberId/groups/:groupId", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.delete("/:memberId/groups/:groupId", requireAuth, requireRole("admin", "leader"), async (req: Request<{ memberId: string; groupId: string }>, res: Response) => {
   const userId = req.user!.userId;
   const { memberId, groupId } = req.params;
 

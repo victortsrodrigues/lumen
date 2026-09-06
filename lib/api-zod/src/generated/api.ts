@@ -19,33 +19,27 @@ export const HealthCheckResponse = zod.object({
  */
 export const GetDashboardStatsResponse = zod.object({
   members: zod.object({
-    total: zod.number().optional(),
-    newThisMonth: zod.number().optional(),
-    byStatus: zod
-      .object({
-        ativo: zod.number().optional(),
-        inativo: zod.number().optional(),
-        transferido: zod.number().optional(),
-        falecido: zod.number().optional(),
-      })
-      .optional(),
+    total: zod.number(),
+    newThisMonth: zod.number(),
+    byStatus: zod.object({
+      ativo: zod.number().optional(),
+      inativo: zod.number().optional(),
+      transferido: zod.number().optional(),
+      falecido: zod.number().optional(),
+    }),
   }),
   finance: zod
     .object({
-      currentMonth: zod
-        .object({
-          totalEntries: zod.string().optional(),
-          totalExpenses: zod.string().optional(),
-          balance: zod.string().optional(),
-        })
-        .optional(),
-      previousMonth: zod
-        .object({
-          totalEntries: zod.string().optional(),
-          totalExpenses: zod.string().optional(),
-        })
-        .optional(),
-      entriesGrowth: zod.number().optional(),
+      currentMonth: zod.object({
+        totalEntries: zod.string(),
+        totalExpenses: zod.string(),
+        balance: zod.string(),
+      }),
+      previousMonth: zod.object({
+        totalEntries: zod.string(),
+        totalExpenses: zod.string(),
+      }),
+      entriesGrowth: zod.number(),
     })
     .nullish(),
   events: zod.object({
@@ -71,12 +65,10 @@ export const GetDashboardStatsResponse = zod.object({
     total: zod.number().optional(),
     totalMembers: zod.number().optional(),
   }),
-  planning: zod
-    .object({
-      activeInitiatives: zod.number().optional(),
-      overdueInitiatives: zod.number().optional(),
-    })
-    .optional(),
+  planning: zod.object({
+    activeInitiatives: zod.number(),
+    overdueInitiatives: zod.number(),
+  }),
   smallGroups: zod
     .object({
       groupCount: zod.number().optional(),
@@ -96,23 +88,17 @@ export const GetDashboardStatsResponse = zod.object({
  * @summary Personal leader widgets (pastoral, counseling, articles)
  */
 export const GetLeaderWidgetsResponse = zod.object({
-  pastoral: zod
-    .object({
-      pending: zod.number().optional(),
-      overdueFollowUps: zod.number().optional(),
-    })
-    .optional(),
-  counseling: zod
-    .object({
-      openCases: zod.number().optional(),
-    })
-    .optional(),
-  articles: zod
-    .object({
-      inReview: zod.number().optional(),
-      drafts: zod.number().optional(),
-    })
-    .optional(),
+  pastoral: zod.object({
+    pending: zod.number(),
+    overdueFollowUps: zod.number(),
+  }),
+  counseling: zod.object({
+    openCases: zod.number(),
+  }),
+  articles: zod.object({
+    inReview: zod.number(),
+    drafts: zod.number(),
+  }),
 });
 
 /**

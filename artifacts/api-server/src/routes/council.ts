@@ -220,7 +220,7 @@ router.post("/", requireAuth, requireRole("admin"), async (req: Request, res: Re
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // GET /council/:id — detalhe completo com items + ata
-router.get("/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.get("/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const loaded = await loadMeetingWithAta(req.params.id);
   if (!loaded) {
     res.status(404).json({ error: "NOT_FOUND", message: "Reunião não encontrada" });
@@ -238,7 +238,7 @@ router.get("/:id", requireAuth, requireRole("admin"), async (req: Request, res: 
 });
 
 // PUT /council/:id
-router.put("/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.put("/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
 
@@ -293,7 +293,7 @@ router.put("/:id", requireAuth, requireRole("admin"), async (req: Request, res: 
 });
 
 // DELETE /council/:id (soft delete)
-router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const userId = req.user!.userId;
   const ip = getIp(req);
 
@@ -323,7 +323,7 @@ router.delete("/:id", requireAuth, requireRole("admin"), async (req: Request, re
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // POST /council/:id/items
-router.post("/:id/items", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.post("/:id/items", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const loaded = await loadMeetingWithAta(req.params.id);
   if (!loaded) {
     res.status(404).json({ error: "NOT_FOUND", message: "Reunião não encontrada" });
@@ -364,7 +364,7 @@ router.post("/:id/items", requireAuth, requireRole("admin"), async (req: Request
 });
 
 // PUT /council/:id/items/reorder
-router.put("/:id/items/reorder", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.put("/:id/items/reorder", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const loaded = await loadMeetingWithAta(req.params.id);
   if (!loaded) {
     res.status(404).json({ error: "NOT_FOUND", message: "Reunião não encontrada" });
@@ -412,7 +412,7 @@ router.put("/:id/items/reorder", requireAuth, requireRole("admin"), async (req: 
 });
 
 // PUT /council/:id/items/:itemId
-router.put("/:id/items/:itemId", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.put("/:id/items/:itemId", requireAuth, requireRole("admin"), async (req: Request<{ id: string; itemId: string }>, res: Response) => {
   const loaded = await loadMeetingWithAta(req.params.id);
   if (!loaded) {
     res.status(404).json({ error: "NOT_FOUND", message: "Reunião não encontrada" });
@@ -468,7 +468,7 @@ router.put("/:id/items/:itemId", requireAuth, requireRole("admin"), async (req: 
 });
 
 // DELETE /council/:id/items/:itemId
-router.delete("/:id/items/:itemId", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.delete("/:id/items/:itemId", requireAuth, requireRole("admin"), async (req: Request<{ id: string; itemId: string }>, res: Response) => {
   const loaded = await loadMeetingWithAta(req.params.id);
   if (!loaded) {
     res.status(404).json({ error: "NOT_FOUND", message: "Reunião não encontrada" });

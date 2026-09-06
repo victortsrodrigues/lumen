@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useListTeachingCourses, useCreateCourse, useUpdateCourse, useDeleteCourse } from "@workspace/api-client-react";
+import { type Course, useListTeachingCourses, useCreateCourse, useUpdateCourse, useDeleteCourse } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuth } from "@/hooks/use-auth-context";
 import { useToast } from "@/hooks/use-toast";
@@ -122,7 +122,7 @@ export default function CoursesPage() {
     form.reset({ category: "escola_biblica", status: "aberto" });
   }
 
-  function openEdit(course: Record<string, unknown>) {
+  function openEdit(course: Course) {
     setEditingId(course.id as string);
     form.reset({
       title: course.title as string,
@@ -171,7 +171,7 @@ export default function CoursesPage() {
     const params = new URLSearchParams(window.location.search);
     const editId = params.get("edit");
     if (editId && courses.length > 0 && !isModalOpen) {
-      const course = courses.find((c: Record<string, unknown>) => c.id === editId);
+      const course = courses.find((c) => c.id === editId);
       if (course) {
         openEdit(course);
         // Clean the URL
@@ -261,7 +261,7 @@ export default function CoursesPage() {
                   </td>
                 </tr>
               )}
-              {courses.map((course: Record<string, unknown>) => (
+              {courses.map((course) => (
                 <tr
                   key={course.id as string}
                   className="border-b last:border-0 hover:bg-muted/50 cursor-pointer"

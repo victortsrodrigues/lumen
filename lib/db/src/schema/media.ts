@@ -17,6 +17,7 @@ export const mediaEntityTypeEnum = pgEnum("media_entity_type", [
   "event",
   "asset",
   "content",
+  "council_meeting",
 ]);
 
 // ─── MEDIA LINKS ─────────────────────────────────────────────────────────────

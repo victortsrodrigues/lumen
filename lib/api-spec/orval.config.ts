@@ -33,6 +33,7 @@ export default defineConfig({
       formatter: "prettier",
       indexFiles: true,
       override: {
+        query: { version: 5 },
         fetch: {
           includeHttpResponseReturnType: false,
         },

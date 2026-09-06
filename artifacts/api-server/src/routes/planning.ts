@@ -222,7 +222,7 @@ router.get("/directives", requireAuth, requireRole("admin", "leader"), async (_r
   res.json({ directives: directives.map(serializeDirective) });
 });
 
-router.get("/directives/:id", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.get("/directives/:id", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
 
   const [directive] = await db.select().from(strategicDirectivesTable)
@@ -269,7 +269,7 @@ router.post("/directives", requireAuth, requireRole("admin"), async (req: Reques
   res.status(201).json(serializeDirective(d));
 });
 
-router.put("/directives/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.put("/directives/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 
@@ -290,7 +290,7 @@ router.put("/directives/:id", requireAuth, requireRole("admin"), async (req: Req
   res.json(serializeDirective(updated));
 });
 
-router.delete("/directives/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.delete("/directives/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 
@@ -307,7 +307,7 @@ router.delete("/directives/:id", requireAuth, requireRole("admin"), async (req: 
 // OBJECTIVES
 // ═══════════════════════════════════════════════════════════════════════════════
 
-router.post("/directives/:id/objectives", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.post("/directives/:id/objectives", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 
@@ -329,7 +329,7 @@ router.post("/directives/:id/objectives", requireAuth, requireRole("admin"), asy
   res.status(201).json(serializeObjective(o));
 });
 
-router.put("/objectives/:id", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.put("/objectives/:id", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 
@@ -352,7 +352,7 @@ router.put("/objectives/:id", requireAuth, requireRole("admin", "leader"), async
   res.json(serializeObjective(updated));
 });
 
-router.delete("/objectives/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.delete("/objectives/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 
@@ -388,7 +388,7 @@ router.get("/initiatives", requireAuth, requireRole("admin", "leader"), async (r
   res.json({ initiatives: initiatives.map(serializeInitiative) });
 });
 
-router.get("/initiatives/:id", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.get("/initiatives/:id", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
 
   const [initiative] = await db.select().from(planningInitiativesTable)
@@ -455,7 +455,7 @@ router.post("/initiatives", requireAuth, requireRole("admin"), async (req: Reque
   res.status(201).json(serializeInitiative(i));
 });
 
-router.put("/initiatives/:id", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.put("/initiatives/:id", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 
@@ -510,7 +510,7 @@ router.put("/initiatives/:id", requireAuth, requireRole("admin", "leader"), asyn
   res.json(serializeInitiative(updated));
 });
 
-router.delete("/initiatives/:id", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.delete("/initiatives/:id", requireAuth, requireRole("admin"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 
@@ -527,7 +527,7 @@ router.delete("/initiatives/:id", requireAuth, requireRole("admin"), async (req:
 // STEPS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-router.post("/initiatives/:id/steps", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.post("/initiatives/:id/steps", requireAuth, requireRole("admin", "leader"), async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const user = req.user!;
 
@@ -546,7 +546,7 @@ router.post("/initiatives/:id/steps", requireAuth, requireRole("admin", "leader"
   res.status(201).json(serializeStep(step));
 });
 
-router.put("/initiatives/:initiativeId/steps/:stepId", requireAuth, requireRole("admin", "leader"), async (req: Request, res: Response) => {
+router.put("/initiatives/:initiativeId/steps/:stepId", requireAuth, requireRole("admin", "leader"), async (req: Request<{ initiativeId: string; stepId: string }>, res: Response) => {
   const { initiativeId, stepId } = req.params;
   const user = req.user!;
 
@@ -570,7 +570,7 @@ router.put("/initiatives/:initiativeId/steps/:stepId", requireAuth, requireRole(
   res.json(serializeStep(updated));
 });
 
-router.delete("/initiatives/:initiativeId/steps/:stepId", requireAuth, requireRole("admin"), async (req: Request, res: Response) => {
+router.delete("/initiatives/:initiativeId/steps/:stepId", requireAuth, requireRole("admin"), async (req: Request<{ initiativeId: string; stepId: string }>, res: Response) => {
   const { initiativeId, stepId } = req.params;
   const user = req.user!;
 

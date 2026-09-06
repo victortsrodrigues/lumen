@@ -1,4 +1,4 @@
-import { beforeAll, afterAll, describe, expect, it } from "vitest";
+import { beforeAll, afterAll, describe, expect, it, vi } from "vitest";
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import type { Server } from "node:http";
@@ -7,6 +7,8 @@ import { pool } from "../../lib/db/src";
 import { signToken } from "../../artifacts/api-server/src/lib/jwt";
 import { generateCsrfToken } from "../../artifacts/api-server/src/lib/csrf";
 import { hashAuthToken } from "../../artifacts/api-server/src/lib/email";
+import * as emailService from "../../artifacts/api-server/src/lib/email";
+import { decrypt } from "../../artifacts/api-server/src/lib/crypto";
 import { notifyMember } from "../../artifacts/api-server/src/lib/notifications";
 import { deleteOwnAccountData } from "../../artifacts/api-server/src/lib/accountDeletion";
 
@@ -83,7 +85,15 @@ async function request(
     },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  return { status: response.status, body: await response.json() };
+  return {
+    status: response.status,
+    body: await response.json(),
+    cookie:
+      response.headers
+        .getSetCookie()
+        .find((value) => value.startsWith("auth_token="))
+        ?.split(";")[0] ?? "",
+  };
 }
 const action = (id: string, name: string, body: unknown = {}) =>
   request("POST", `/admin/accounts/${id}/${name}`, body);
@@ -536,6 +546,346 @@ describe("account lifecycle and member identity", () => {
   });
 });
 
+describe("critical release flows", () => {
+  it("requires verification and approval, then resets the password once and invalidates old sessions", async () => {
+    // Only delivery is stubbed. Token creation, encrypted outbox, HTTP routes,
+    // password hashing and the PostgreSQL transactions remain real.
+    const delivery = vi
+      .spyOn(emailService, "dispatchEmailOutboxItem")
+      .mockResolvedValue(false);
+    vi.stubEnv("EMAIL_PROVIDER", "resend");
+    vi.stubEnv("RESEND_API_KEY", "isolated-test-never-sent");
+    vi.stubEnv("EMAIL_FROM", "test@example.test");
+    const address = `${randomUUID()}@example.test`;
+    const password = "Initial-test-password123!";
+    try {
+      const existingMember = await member(address);
+      const countBefore = (
+        await pool.query("SELECT count(*)::int AS n FROM members")
+      ).rows[0].n;
+      const registered = await request(
+        "POST",
+        "/auth/register",
+        {
+          email: address,
+          password,
+          name: `${prefix} signup`,
+          consentAccepted: true,
+        },
+        null,
+      );
+      expect(registered.status).toBe(202);
+      expect(registered.cookie).toBe("");
+      const id = registered.body.user.id;
+      expect(await row(id)).toMatchObject({
+        status: "pending",
+        email_verified_at: null,
+      });
+      expect(
+        (await pool.query("SELECT count(*)::int AS n FROM members")).rows[0].n,
+      ).toBe(countBefore);
+
+      async function tokenFor(template: string) {
+        const outbox = (
+          await pool.query(
+            "SELECT payload_encrypted FROM email_outbox WHERE user_id=$1 AND template=$2 ORDER BY created_at DESC LIMIT 1",
+            [id, template],
+          )
+        ).rows[0];
+        const payload = JSON.parse(decrypt(outbox.payload_encrypted));
+        const token = new URLSearchParams(
+          new URL(payload.link).hash.slice(1),
+        ).get("token")!;
+        expect(token.length).toBeGreaterThan(31);
+        expect(outbox.payload_encrypted).not.toContain(token);
+        expect(
+          (
+            await pool.query(
+              "SELECT token_hash FROM auth_tokens WHERE user_id=$1 AND token_hash=$2",
+              [id, hashAuthToken(token)],
+            )
+          ).rowCount,
+        ).toBe(1);
+        return token;
+      }
+      const login = () =>
+        request("POST", "/auth/login", { email: address, password }, null);
+      expect((await login()).body.error).toBe("EMAIL_NOT_VERIFIED");
+      const verification = await tokenFor("email_verification");
+      expect(
+        (
+          await request(
+            "POST",
+            "/auth/verify-email",
+            { token: verification },
+            null,
+          )
+        ).status,
+      ).toBe(200);
+      expect(
+        (
+          await request(
+            "POST",
+            "/auth/verify-email",
+            { token: verification },
+            null,
+          )
+        ).status,
+      ).toBe(400);
+      expect((await login()).body.error).toBe("ACCOUNT_PENDING");
+      expect((await action(id, "approve")).status).toBe(200);
+      expect((await row(id)).member_id).toBe(existingMember);
+      const loggedIn = await login();
+      expect(loggedIn.status).toBe(200);
+      expect(loggedIn.cookie).toContain("auth_token=");
+
+      const forgot = await request(
+        "POST",
+        "/auth/forgot-password",
+        { email: address },
+        null,
+      );
+      const unknown = await request(
+        "POST",
+        "/auth/forgot-password",
+        { email: `${randomUUID()}@example.test` },
+        null,
+      );
+      expect(forgot.status).toBe(200);
+      expect(unknown.body).toEqual(forgot.body);
+      const resetToken = await tokenFor("password_reset");
+      const newPassword = "Changed-test-password123!";
+      expect(
+        (
+          await request(
+            "POST",
+            "/auth/reset-password",
+            { token: verification, password: newPassword },
+            null,
+          )
+        ).status,
+      ).toBe(400);
+      expect(
+        (
+          await request(
+            "POST",
+            "/auth/reset-password",
+            { token: resetToken, password: newPassword },
+            null,
+          )
+        ).status,
+      ).toBe(200);
+      expect(
+        (
+          await request(
+            "POST",
+            "/auth/reset-password",
+            { token: resetToken, password: newPassword },
+            null,
+          )
+        ).status,
+      ).toBe(400);
+      expect(
+        (
+          await request(
+            "GET",
+            "/auth/me",
+            undefined,
+            null,
+            true,
+            loggedIn.cookie,
+          )
+        ).status,
+      ).toBe(401);
+      expect((await login()).status).toBe(401);
+      expect(
+        (
+          await request(
+            "POST",
+            "/auth/login",
+            { email: address, password: newPassword },
+            null,
+          )
+        ).status,
+      ).toBe(200);
+      expect(delivery).toHaveBeenCalled();
+    } finally {
+      delivery.mockRestore();
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("rejects expired recovery tokens without changing the account", async () => {
+    const id = await account({ status: "active" });
+    const before = await row(id);
+    const token = randomUUID().replaceAll("-", "") + randomUUID();
+    await pool.query(
+      "INSERT INTO auth_tokens(id,user_id,purpose,token_hash,expires_at) VALUES($1,$2,'reset_password',$3,now()-interval '1 minute')",
+      [randomUUID(), id, hashAuthToken(token)],
+    );
+    expect(
+      (
+        await request(
+          "POST",
+          "/auth/reset-password",
+          { token, password: "Unused-test-password123!" },
+          null,
+        )
+      ).status,
+    ).toBe(400);
+    expect(await row(id)).toEqual(before);
+  });
+
+  it("protects logout, disabled uploads and wildcard downloads", async () => {
+    for (const [method, path] of [
+      ["POST", "/auth/logout"],
+      ["POST", "/storage/uploads/request-url"],
+      ["PUT", "/storage/upload-target/does-not-exist"],
+    ]) {
+      expect((await request(method, path, {}, null)).status).toBe(401);
+      expect((await request(method, path, {}, adminId, false)).status).toBe(
+        403,
+      );
+      expect((await request(method, path, {})).status).toBe(
+        path === "/auth/logout" ? 200 : 410,
+      );
+    }
+    const path = `/storage/objects/${randomUUID()}/missing.pdf`;
+    expect((await request("GET", path, undefined, null)).status).toBe(401);
+    expect((await request("GET", path)).status).toBe(404);
+  });
+
+  it("rejects an arbitrary Origin without reflecting credentialed CORS headers", async () => {
+    const response = await fetch(`${base}/healthz`, {
+      headers: { Origin: "https://site-malicioso.example" },
+    });
+    expect(response.status).toBe(403);
+    expect(response.headers.get("access-control-allow-origin")).toBeNull();
+    expect(response.headers.get("access-control-allow-credentials")).toBeNull();
+  });
+
+  it("limits financial changes to administrators and freezes closed months", async () => {
+    const year = 4000 + Math.floor(Math.random() * 4000);
+    const payload = {
+      type: "doacao",
+      date: `${year}-02-10`,
+      amount: 25.5,
+      paymentMethod: "pix",
+      isAnonymous: true,
+    };
+    for (const role of ["member", "leader"]) {
+      const actor = await account({ status: "active", role });
+      expect(
+        (await request("POST", "/finance/entries", payload, actor)).status,
+      ).toBe(403);
+      expect(
+        (await request("GET", "/finance/dashboard", undefined, actor)).status,
+      ).toBe(403);
+    }
+    expect(
+      (await request("POST", "/finance/entries", payload, adminId, false))
+        .status,
+    ).toBe(403);
+    const created = await request("POST", "/finance/entries", payload);
+    expect(created.status).toBe(201);
+    const id = created.body.id;
+    expect((await request("GET", `/finance/entries/${id}`)).body.amount).toBe(
+      "25.50",
+    );
+    expect(
+      (await request("PUT", `/finance/entries/${id}`, { amount: 30 })).status,
+    ).toBe(200);
+    const closing = await request("POST", "/finance/closings", {
+      year,
+      month: 2,
+    });
+    expect(closing.status).toBe(201);
+    expect(
+      (await request("PUT", `/finance/entries/${id}`, { amount: 50 })).status,
+    ).toBe(409);
+    expect((await request("DELETE", `/finance/entries/${id}`)).status).toBe(
+      409,
+    );
+    expect((await request("POST", "/finance/entries", payload)).status).toBe(
+      409,
+    );
+    expect((await request("GET", `/finance/entries/${id}`)).body.amount).toBe(
+      "30.00",
+    );
+  });
+
+  it("keeps member profiles and LGPD requests tied to the authenticated account", async () => {
+    const a = await account({ status: "active" });
+    const b = await account({ status: "active" });
+    const ma = await member();
+    const mb = await member();
+    await link(a, ma);
+    await link(b, mb);
+    expect((await request("GET", "/members/me", undefined, a)).body.id).toBe(
+      ma,
+    );
+    expect(
+      (await request("GET", `/lgpd/my-data?memberId=${mb}`, undefined, a)).body
+        .member.id,
+    ).toBe(ma);
+    const created = await request(
+      "POST",
+      "/lgpd/requests",
+      {
+        requestType: "correcao",
+        description: "Isolated test",
+        memberId: mb,
+        userId: b,
+      },
+      a,
+    );
+    expect(created.status).toBe(201);
+    expect(created.body).toMatchObject({ memberId: ma, userId: a });
+    expect(
+      (await request("GET", "/lgpd/requests/mine", undefined, b)).body.requests,
+    ).toEqual([]);
+    expect((await request("GET", "/lgpd/requests", undefined, a)).status).toBe(
+      403,
+    );
+    expect(
+      (
+        await request(
+          "POST",
+          "/lgpd/requests",
+          { requestType: "correcao" },
+          a,
+          false,
+        )
+      ).status,
+    ).toBe(403);
+  });
+
+  it("stores council minutes as HTTPS links and rejects unsafe replacements", async () => {
+    const created = await request("POST", "/media", {
+      entityType: "council_meeting",
+      entityId: randomUUID(),
+      url: "https://example.test/ata.pdf",
+      title: "Ata de teste",
+    });
+    expect(created.status).toBe(201);
+    expect(created.body.entityType).toBe("council_meeting");
+    expect(
+      (
+        await request("PUT", `/media/${created.body.id}`, {
+          url: "http://example.test/ata.pdf",
+        })
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await request("PUT", `/media/${created.body.id}`, {
+          url: "javascript:alert(1)",
+        })
+      ).status,
+    ).toBe(400);
+  });
+});
+
 describe("versioned migration", () => {
   it("upgrades the legacy schema and refuses duplicate/orphan links without altering them", async () => {
     const migration3 = await readFile(
@@ -552,11 +902,30 @@ describe("versioned migration", () => {
       ),
       "utf8",
     );
+    const migration5 = await readFile(
+      new URL(
+        "../../lib/db/migrations/0005_council_media_type.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
     const client = await pool.connect();
     const schema = `migration_test_${randomUUID().replaceAll("-", "")}`;
     try {
       await client.query(`CREATE SCHEMA ${schema}`);
       await client.query(`SET search_path TO ${schema}`);
+      await client.query(
+        "CREATE TYPE media_entity_type AS ENUM ('content', 'course')",
+      );
+      await client.query(migration5);
+      await client.query(migration5);
+      expect(
+        (
+          await client.query(
+            "SELECT 'council_meeting'::media_entity_type AS value",
+          )
+        ).rows[0].value,
+      ).toBe("council_meeting");
       await client.query(
         "CREATE TYPE account_status AS ENUM ('pending','active','blocked','revoked','deleting'); CREATE TABLE members(id text PRIMARY KEY); CREATE TABLE users(id text PRIMARY KEY, member_id text, status account_status DEFAULT 'pending'); INSERT INTO members VALUES ('m'); INSERT INTO users VALUES ('a','m'),('b','m')",
       );
