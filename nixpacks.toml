@@ -16,4 +16,4 @@ cmds = [
 ]
 
 [start]
-cmd = "pnpm db:push && node artifacts/api-server/dist/index.cjs"
+cmd = "pnpm db:migrate && node artifacts/api-server/dist/index.cjs"

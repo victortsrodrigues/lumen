@@ -4,7 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "pnpm db:push && node artifacts/api-server/dist/index.cjs",
+    "startCommand": "pnpm db:migrate && node artifacts/api-server/dist/index.cjs",
     "healthcheckPath": "/api/healthz",
     "restartPolicyType": "ON_FAILURE"
   }
