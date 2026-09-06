@@ -254,17 +254,13 @@ O banco **não é revertido** (dados persistem). Se a mudança que quebrou foi d
 
 ## Backup do banco
 
-O Railway faz backups automáticos no plano Hobby. Para backup manual:
+No plano Hobby, o painel atual do projeto restringe os backups nativos e a recuperação point-in-time (PITR). No plano Pro, habilite as agendas semanal e mensal na aba **Backups** e confirme a conclusão do primeiro snapshot.
 
-```bash
-# Exportar (use a URL pública da aba Connect do Postgres)
-pg_dump "<connection-string-publica>" > backup_$(date +%Y%m%d).sql
+Para o Hobby, a proteção principal da Lumen é o serviço de dump lógico para armazenamento externo. No Pro, ele continua necessário como cópia independente do Railway. A configuração, a verificação semanal e o teste seguro de restauração estão documentados em [`ops/postgres-backup/RUNBOOK.md`](ops/postgres-backup/RUNBOOK.md).
 
-# Restaurar (em outro ambiente)
-psql "<nova-url>" < backup_20260414.sql
-```
+O serviço externo deve executar aos domingos às 03:00 de Brasília (`0 6 * * 0` em UTC), com retenção de 56 dias para as cópias semanais. O backup do primeiro domingo de cada mês também recebe uma cópia mensal, mantida por 400 dias. O serviço e a agenda foram preparados no Railway; ainda faltam as credenciais S3, a publicação do código, um primeiro backup e o teste de restauração para considerar a rotina ativa e validada.
 
-Guarde os backups fora do Railway (Google Drive, Dropbox, S3).
+Nunca restaure diretamente sobre produção. Antes de uma migração destrutiva, gere e confirme um dump externo; no Pro, crie também um snapshot manual.
 
 ---
 
