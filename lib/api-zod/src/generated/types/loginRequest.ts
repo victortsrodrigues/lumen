@@ -9,5 +9,4 @@
 export interface LoginRequest {
   email: string;
   password: string;
-  csrfToken: string;
 }

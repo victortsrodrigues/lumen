@@ -3,7 +3,6 @@ import { Link } from "wouter";
 import { CheckCircle2, Loader2, MailCheck, XCircle } from "lucide-react";
 import { useVerifyEmail } from "@workspace/api-client-react";
 import { AuthLayout } from "@/components/layout/AuthLayout";
-import { useAuth } from "@/hooks/use-auth-context";
 
 function tokenFromFragment(): string {
   return (
@@ -13,7 +12,6 @@ function tokenFromFragment(): string {
 }
 
 export default function VerifyEmail() {
-  const { getValidCsrfToken } = useAuth();
   const verify = useVerifyEmail({ mutation: { meta: { silentError: true } } });
   const [token] = useState(tokenFromFragment);
   const [state, setState] = useState<"ready" | "success" | "error">(
@@ -25,8 +23,7 @@ export default function VerifyEmail() {
 
   async function confirmEmail() {
     try {
-      const csrfToken = await getValidCsrfToken();
-      const response = await verify.mutateAsync({ data: { token, csrfToken } });
+      const response = await verify.mutateAsync({ data: { token } });
       window.history.replaceState(
         null,
         "",

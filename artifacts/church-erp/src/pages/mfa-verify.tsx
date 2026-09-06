@@ -17,7 +17,7 @@ const mfaSchema = z.object({
 export default function MfaVerify() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { getValidCsrfToken, checkSession } = useAuth();
+  const { checkSession } = useAuth();
   const { mutateAsync: verifyMutation } = useVerifyMfa();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -28,9 +28,8 @@ export default function MfaVerify() {
   const onSubmit = async (data: any) => {
     setIsSubmitting(true);
     try {
-      const csrfToken = await getValidCsrfToken();
       await verifyMutation({
-        data: { code: data.code, csrfToken }
+        data: { code: data.code }
       });
 
       await checkSession();

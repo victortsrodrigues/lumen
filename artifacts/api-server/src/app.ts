@@ -7,6 +7,8 @@ import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { securityHeaders } from "./middlewares/security";
+import { corsOptions, enforceAllowedOrigin } from "./middlewares/cors";
+import { csrfProtection } from "./middlewares/csrf";
 
 const app: Express = express();
 
@@ -34,11 +36,10 @@ app.use(
 );
 
 app.use(securityHeaders);
-app.use(cors({
-  origin: true,
-  credentials: true,
-}));
+app.use(enforceAllowedOrigin);
+app.use(cors(corsOptions));
 app.use(cookieParser());
+app.use("/api", csrfProtection);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

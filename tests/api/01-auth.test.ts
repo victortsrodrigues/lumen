@@ -84,9 +84,15 @@ describe("01-auth", () => {
     cookie = res.cookie;
   });
 
-  it("9. Login invalid CSRF → 400", async () => {
-    const res = await request("POST", "/auth/login", { email, password, csrfToken: "bad" });
-    expect(res.status).toBe(400);
+  it("9. Login invalid CSRF → 403", async () => {
+    const res = await request(
+      "POST",
+      "/auth/login",
+      { email, password },
+      undefined,
+      { "X-CSRF-Token": "bad" },
+    );
+    expect(res.status).toBe(403);
     expect(res.body.error).toBe("CSRF_ERROR");
   });
 
@@ -145,9 +151,31 @@ describe("01-auth", () => {
   });
 
   it("17. Logout", async () => {
+    const rejected = await request(
+      "POST",
+      "/auth/logout",
+      undefined,
+      cookie,
+      { "X-CSRF-Token": "" },
+    );
+    expect(rejected.status).toBe(403);
+
     const res = await request("POST", "/auth/logout", undefined, cookie);
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Logout realizado com sucesso");
+  });
+
+  it("17b. A CSRF header must match its cookie", async () => {
+    const csrf = await getCsrfToken();
+    const res = await request(
+      "POST",
+      "/auth/login",
+      { email, password },
+      undefined,
+      { "X-CSRF-Token": csrf, Cookie: "lumen_csrf=invalid" },
+    );
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe("CSRF_ERROR");
   });
 
   it("18. Forgot password → always 200", async () => {
@@ -156,9 +184,15 @@ describe("01-auth", () => {
     expect(res.status).toBe(200);
   });
 
-  it("19. Forgot password without CSRF → 400", async () => {
-    const res = await request("POST", "/auth/forgot-password", { email });
-    expect(res.status).toBe(400);
+  it("19. Forgot password without CSRF → 403", async () => {
+    const res = await request(
+      "POST",
+      "/auth/forgot-password",
+      { email },
+      undefined,
+      { "X-CSRF-Token": "" },
+    );
+    expect(res.status).toBe(403);
   });
 
   it("20. Reset password with valid token", async () => {

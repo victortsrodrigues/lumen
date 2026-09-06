@@ -3,7 +3,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRegister } from '@workspace/api-client-react';
-import { useAuth } from '@/hooks/use-auth-context';
 import { Link } from 'wouter';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { useToast } from '@/hooks/use-toast';
@@ -23,7 +22,6 @@ type RegisterForm = z.infer<typeof registerSchema>;
 
 export default function Register() {
   const { toast } = useToast();
-  const { getValidCsrfToken } = useAuth();
   const { mutateAsync: registerMutation } = useRegister();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -36,9 +34,8 @@ export default function Register() {
   const onSubmit = async (data: RegisterForm) => {
     setIsSubmitting(true);
     try {
-      const csrfToken = await getValidCsrfToken();
       const response = await registerMutation({
-        data: { ...data, csrfToken }
+        data
       });
 
       setSubmission({ email: data.email, verificationRequired: response.emailVerificationRequired === true });

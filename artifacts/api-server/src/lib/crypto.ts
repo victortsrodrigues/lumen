@@ -1,13 +1,13 @@
 import crypto from "crypto";
+import { runtimeConfig } from "../config/runtime.js";
 
-const ENCRYPTION_KEY_RAW = process.env.FIELD_ENCRYPTION_KEY || "church-erp-default-encryption-key-32chars";
 const ALGORITHM = "aes-256-gcm";
 const KEY_LENGTH = 32;
 const IV_LENGTH = 12;
 const TAG_LENGTH = 16;
 
 function getKey(): Buffer {
-  return crypto.scryptSync(ENCRYPTION_KEY_RAW, "church-erp-salt", KEY_LENGTH);
+  return crypto.scryptSync(runtimeConfig.fieldEncryptionKey, "church-erp-salt", KEY_LENGTH);
 }
 
 export function encrypt(plaintext: string): string {

@@ -12,5 +12,4 @@ export interface RegisterRequest {
   password: string;
   name: string;
   consentAccepted: boolean;
-  csrfToken: string;
 }

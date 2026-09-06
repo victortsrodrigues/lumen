@@ -12,5 +12,4 @@ export interface VerifyEmailRequest {
    * @maxLength 512
    */
   token: string;
-  csrfToken: string;
 }

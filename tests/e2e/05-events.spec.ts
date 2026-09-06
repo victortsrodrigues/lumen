@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import {
-  truncateAll, apiRegisterAdmin, apiCreateMember, apiCreateEvent, loginAs,
+  truncateAll, apiRegisterAdmin, apiCreateMember, apiCreateEvent, apiRequest, loginAs,
 } from "./helpers";
 
 const P = "evt-" + Date.now().toString(36);
@@ -103,10 +103,7 @@ test.describe("05-events", () => {
       title: `Full ${P}`, type: "reuniao", startDate: futureDate(), endDate: futureEndDate(), maxSlots: 1,
     });
     // Fill the slot via API
-    await fetch(`http://localhost:3000/api/events/${ev.id}/register`, {
-      method: "POST", headers: { "Content-Type": "application/json", Cookie: adminCk },
-      body: JSON.stringify({ memberId }),
-    });
+    await apiRequest("POST", `/events/${ev.id}/register`, { memberId }, adminCk);
     await loginAs(page, adminEmail, adminPw);
     await page.goto(`/events/${ev.id}`);
     // Try to register another

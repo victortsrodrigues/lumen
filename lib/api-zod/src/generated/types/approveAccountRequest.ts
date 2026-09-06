@@ -7,6 +7,5 @@
  */
 
 export interface ApproveAccountRequest {
-  csrfToken: string;
   memberId?: string | null;
 }

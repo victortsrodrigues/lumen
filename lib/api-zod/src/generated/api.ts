@@ -192,7 +192,6 @@ export const RegisterBody = zod.object({
   password: zod.string().min(registerBodyPasswordMin),
   name: zod.string(),
   consentAccepted: zod.boolean(),
-  csrfToken: zod.string(),
 });
 
 /**
@@ -201,7 +200,6 @@ export const RegisterBody = zod.object({
 export const LoginBody = zod.object({
   email: zod.string().email(),
   password: zod.string(),
-  csrfToken: zod.string(),
 });
 
 export const LoginResponse = zod.object({
@@ -250,7 +248,6 @@ export const GetMeResponse = zod.object({
  */
 export const ForgotPasswordBody = zod.object({
   email: zod.string().email(),
-  csrfToken: zod.string(),
 });
 
 export const ForgotPasswordResponse = zod.object({
@@ -262,7 +259,6 @@ export const ForgotPasswordResponse = zod.object({
  */
 export const ResendVerificationBody = zod.object({
   email: zod.string().email(),
-  csrfToken: zod.string(),
 });
 
 export const ResendVerificationResponse = zod.object({
@@ -277,7 +273,6 @@ export const verifyEmailBodyTokenMax = 512;
 
 export const VerifyEmailBody = zod.object({
   token: zod.string().min(verifyEmailBodyTokenMin).max(verifyEmailBodyTokenMax),
-  csrfToken: zod.string(),
 });
 
 export const VerifyEmailResponse = zod.object({
@@ -302,7 +297,6 @@ export const ResetPasswordBody = zod.object({
     .string()
     .min(resetPasswordBodyPasswordMin)
     .max(resetPasswordBodyPasswordMax),
-  csrfToken: zod.string(),
 });
 
 export const ResetPasswordResponse = zod.object({
@@ -323,7 +317,6 @@ export const SetupMfaResponse = zod.object({
  */
 export const VerifyMfaBody = zod.object({
   code: zod.string(),
-  csrfToken: zod.string(),
 });
 
 export const VerifyMfaResponse = zod.object({
@@ -357,7 +350,6 @@ export const GetCsrfTokenResponse = zod.object({
 export const DeleteOwnAccountBody = zod.object({
   password: zod.string(),
   confirmation: zod.enum(["EXCLUIR"]),
-  csrfToken: zod.string(),
 });
 
 export const DeleteOwnAccountResponse = zod.object({
@@ -444,7 +436,6 @@ export const ApproveAccountParams = zod.object({
 });
 
 export const ApproveAccountBody = zod.object({
-  csrfToken: zod.string(),
   memberId: zod.string().nullish(),
 });
 
@@ -473,7 +464,6 @@ export const BlockAccountParams = zod.object({
 });
 
 export const BlockAccountBody = zod.object({
-  csrfToken: zod.string(),
   reason: zod.string().min(1),
 });
 
@@ -501,10 +491,6 @@ export const UnblockAccountParams = zod.object({
   id: zod.coerce.string(),
 });
 
-export const UnblockAccountBody = zod.object({
-  csrfToken: zod.string(),
-});
-
 export const UnblockAccountResponse = zod.object({
   id: zod.string(),
   email: zod.string().email(),
@@ -530,7 +516,6 @@ export const RevokeAccountParams = zod.object({
 });
 
 export const RevokeAccountBody = zod.object({
-  csrfToken: zod.string(),
   reason: zod.string().min(1),
 });
 
@@ -558,10 +543,6 @@ export const ReactivateAccountParams = zod.object({
   id: zod.coerce.string(),
 });
 
-export const ReactivateAccountBody = zod.object({
-  csrfToken: zod.string(),
-});
-
 export const ReactivateAccountResponse = zod.object({
   id: zod.string(),
   email: zod.string().email(),
@@ -587,7 +568,6 @@ export const UpdateAccountRoleParams = zod.object({
 });
 
 export const UpdateAccountRoleBody = zod.object({
-  csrfToken: zod.string(),
   role: zod.enum(["member", "leader"]),
 });
 
@@ -616,7 +596,6 @@ export const UpdateAccountMemberLinkParams = zod.object({
 });
 
 export const UpdateAccountMemberLinkBody = zod.object({
-  csrfToken: zod.string(),
   memberId: zod.string().nullish(),
 });
 

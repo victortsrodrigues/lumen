@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { loginAsNewAdmin, apiRegisterAdmin, apiCreateDirective, apiCreateObjective, apiCreateInitiative } from "./helpers";
+import { loginAsNewAdmin, apiRegisterAdmin, apiCreateDirective, apiCreateObjective, apiCreateInitiative, apiRequest } from "./helpers";
 
 const P = "e2e-plan-" + Date.now().toString(36);
 
@@ -37,10 +37,10 @@ test.describe("16-planning", () => {
   test("4. Detalhe da iniciativa com etapas", async ({ page }) => {
     const admin = await apiRegisterAdmin(`${P}-4`);
     const init = await apiCreateInitiative(admin.cookie, { title: `StepTest ${P}`, type: "outro" });
-    await fetch(`http://localhost:3000/api/planning/initiatives/${init.id}/steps`, {
-      method: "POST", headers: { "Content-Type": "application/json", Cookie: admin.cookie },
-      body: JSON.stringify({ title: "Etapa para concluir", sortOrder: 1 }),
-    });
+    await apiRequest("POST", `/planning/initiatives/${init.id}/steps`, {
+      title: "Etapa para concluir",
+      sortOrder: 1,
+    }, admin.cookie);
 
     await loginAsNewAdmin(page, `${P}-4b`);
     await page.goto("/planning/initiatives");

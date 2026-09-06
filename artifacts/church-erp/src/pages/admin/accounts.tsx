@@ -58,7 +58,7 @@ type ConfirmAction = {
 } | null;
 
 export default function AccountsAdminPage() {
-  const { user, getValidCsrfToken } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
@@ -97,23 +97,20 @@ export default function AccountsAdminPage() {
 
   const isMutating = approve.isPending || block.isPending || unblock.isPending || revoke.isPending || reactivate.isPending || updateRole.isPending;
 
-  async function runSimpleAction(kind: "approve" | "unblock" | "reactivate", account: AdminAccount) {
-    const csrfToken = await getValidCsrfToken();
-    if (kind === "approve") approve.mutate({ id: account.id, data: { csrfToken } });
-    if (kind === "unblock") unblock.mutate({ id: account.id, data: { csrfToken } });
-    if (kind === "reactivate") reactivate.mutate({ id: account.id, data: { csrfToken } });
+  function runSimpleAction(kind: "approve" | "unblock" | "reactivate", account: AdminAccount) {
+    if (kind === "approve") approve.mutate({ id: account.id, data: {} });
+    if (kind === "unblock") unblock.mutate({ id: account.id });
+    if (kind === "reactivate") reactivate.mutate({ id: account.id });
   }
 
-  async function changeRole(account: AdminAccount) {
-    const csrfToken = await getValidCsrfToken();
+  function changeRole(account: AdminAccount) {
     const nextRole = account.role === "leader" ? "member" : "leader";
-    updateRole.mutate({ id: account.id, data: { csrfToken, role: nextRole } });
+    updateRole.mutate({ id: account.id, data: { role: nextRole } });
   }
 
-  async function confirmStatusAction() {
+  function confirmStatusAction() {
     if (!confirmAction || !reason.trim()) return;
-    const csrfToken = await getValidCsrfToken();
-    const payload = { id: confirmAction.account.id, data: { csrfToken, reason: reason.trim() } };
+    const payload = { id: confirmAction.account.id, data: { reason: reason.trim() } };
     if (confirmAction.kind === "block") block.mutate(payload);
     else revoke.mutate(payload);
     setConfirmAction(null);

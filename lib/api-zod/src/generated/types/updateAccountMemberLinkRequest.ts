@@ -7,6 +7,5 @@
  */
 
 export interface UpdateAccountMemberLinkRequest {
-  csrfToken: string;
   memberId?: string | null;
 }

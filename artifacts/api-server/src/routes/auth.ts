@@ -11,10 +11,10 @@ import {
 } from "@workspace/db";
 import { and, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import { signToken } from "../lib/jwt.js";
-import { generateCsrfToken, validateCsrfToken } from "../lib/csrf.js";
 import { createAuditLog } from "../lib/audit.js";
 import { checkActionRateLimit, checkLoginRateLimit, resetLoginRateLimit } from "../lib/rateLimit.js";
 import { requireAuth } from "../middlewares/auth.js";
+import { issueCsrfToken } from "../middlewares/csrf.js";
 import { notifyRole } from "../lib/notifications.js";
 import { deleteOwnAccountData, LastActiveAdminError } from "../lib/accountDeletion.js";
 import {
@@ -47,19 +47,11 @@ function setAuthCookie(res: Response, token: string): void {
   });
 }
 
-router.get("/csrf", (_req, res) => {
-  const token = generateCsrfToken();
-  res.json({ csrfToken: token });
-});
+router.get("/csrf", issueCsrfToken);
 
 router.post("/register", async (req: Request, res: Response) => {
-  const { email, password, name, consentAccepted, csrfToken } = req.body;
+  const { email, password, name, consentAccepted } = req.body;
   const ip = getClientIp(req);
-
-  if (!csrfToken || !validateCsrfToken(csrfToken)) {
-    res.status(400).json({ error: "CSRF_ERROR", message: "Token CSRF inválido" });
-    return;
-  }
 
   if (typeof email !== "string" || typeof password !== "string" || typeof name !== "string") {
     res.status(400).json({ error: "VALIDATION_ERROR", message: "Campos obrigatórios ausentes" });
@@ -170,13 +162,8 @@ router.post("/register", async (req: Request, res: Response) => {
 });
 
 router.post("/login", async (req: Request, res: Response) => {
-  const { email, password, csrfToken } = req.body;
+  const { email, password } = req.body;
   const ip = getClientIp(req);
-
-  if (!csrfToken || !validateCsrfToken(csrfToken)) {
-    res.status(400).json({ error: "CSRF_ERROR", message: "Token CSRF inválido" });
-    return;
-  }
 
   const rateCheck = checkLoginRateLimit(ip);
   if (!rateCheck.allowed) {
@@ -306,13 +293,8 @@ router.get("/me", requireAuth, async (req: Request, res: Response) => {
 });
 
 router.post("/forgot-password", async (req: Request, res: Response) => {
-  const { email, csrfToken } = req.body;
+  const { email } = req.body;
   const ip = getClientIp(req);
-
-  if (!csrfToken || !validateCsrfToken(csrfToken)) {
-    res.status(400).json({ error: "CSRF_ERROR", message: "Token CSRF inválido" });
-    return;
-  }
 
   if (typeof email !== "string" || !email.trim()) {
     res.status(400).json({ error: "VALIDATION_ERROR", message: "E-mail obrigatório" });
@@ -360,14 +342,9 @@ router.post("/forgot-password", async (req: Request, res: Response) => {
 });
 
 router.post("/resend-verification", async (req: Request, res: Response) => {
-  const { email, csrfToken } = req.body;
+  const { email } = req.body;
   const ip = getClientIp(req);
   const genericMessage = "Se houver uma conta aguardando verificação, enviaremos uma nova mensagem";
-
-  if (!csrfToken || !validateCsrfToken(csrfToken)) {
-    res.status(400).json({ error: "CSRF_ERROR", message: "Token CSRF inválido" });
-    return;
-  }
   if (typeof email !== "string" || !email.trim()) {
     res.status(400).json({ error: "VALIDATION_ERROR", message: "E-mail obrigatório" });
     return;
@@ -412,13 +389,8 @@ router.post("/resend-verification", async (req: Request, res: Response) => {
 });
 
 router.post("/verify-email", async (req: Request, res: Response) => {
-  const { token, csrfToken } = req.body;
+  const { token } = req.body;
   const ip = getClientIp(req);
-
-  if (!csrfToken || !validateCsrfToken(csrfToken)) {
-    res.status(400).json({ error: "CSRF_ERROR", message: "Token CSRF inválido" });
-    return;
-  }
   if (typeof token !== "string" || token.length < 32 || token.length > 512) {
     res.status(400).json({ error: "INVALID_TOKEN", message: "Link inválido ou expirado" });
     return;
@@ -476,13 +448,8 @@ router.post("/verify-email", async (req: Request, res: Response) => {
 });
 
 router.post("/reset-password", async (req: Request, res: Response) => {
-  const { token, password, csrfToken } = req.body;
+  const { token, password } = req.body;
   const ip = getClientIp(req);
-
-  if (!csrfToken || !validateCsrfToken(csrfToken)) {
-    res.status(400).json({ error: "CSRF_ERROR", message: "Token CSRF inválido" });
-    return;
-  }
 
   if (typeof token !== "string" || token.length < 32 || token.length > 512
     || typeof password !== "string" || password.length < 8 || password.length > 128) {
@@ -545,12 +512,7 @@ router.post("/reset-password", async (req: Request, res: Response) => {
 });
 
 router.delete("/account", requireAuth, async (req: Request, res: Response) => {
-  const { password, confirmation, csrfToken } = req.body;
-
-  if (!csrfToken || !validateCsrfToken(csrfToken)) {
-    res.status(400).json({ error: "CSRF_ERROR", message: "Token CSRF inválido" });
-    return;
-  }
+  const { password, confirmation } = req.body;
   if (!password || confirmation !== "EXCLUIR") {
     res.status(400).json({
       error: "VALIDATION_ERROR",
@@ -610,13 +572,8 @@ router.post("/mfa/setup", requireAuth, async (req: Request, res: Response) => {
 });
 
 router.post("/mfa/verify", requireAuth, async (req: Request, res: Response) => {
-  const { code, csrfToken } = req.body;
+  const { code } = req.body;
   const ip = getClientIp(req);
-
-  if (!csrfToken || !validateCsrfToken(csrfToken)) {
-    res.status(400).json({ error: "CSRF_ERROR", message: "Token CSRF inválido" });
-    return;
-  }
 
   const userId = req.user!.userId;
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);

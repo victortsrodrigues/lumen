@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import {
-  truncateAll, apiRegisterAdmin, apiCreateMember, apiCreateCourse, loginAs,
+  truncateAll, apiRegisterAdmin, apiCreateMember, apiCreateCourse, apiRequest, loginAs,
 } from "./helpers";
 
 const P = "teach-" + Date.now().toString(36);
@@ -105,10 +105,9 @@ test.describe("04-teaching", () => {
     // Create course with 1 slot, fill it via API
     const c = await apiCreateCourse(adminCk, { title: `Full ${P}`, category: "escola_biblica", teacherId, maxSlots: 1 });
     // Enroll first student via API
-    await fetch(`http://localhost:3000/api/teaching/courses/${c.id}/enroll`, {
-      method: "POST", headers: { "Content-Type": "application/json", Cookie: adminCk },
-      body: JSON.stringify({ memberId: studentId }),
-    });
+    await apiRequest("POST", `/teaching/courses/${c.id}/enroll`, {
+      memberId: studentId,
+    }, adminCk);
     // Try to enroll another via UI
     await loginAs(page, adminEmail, adminPw);
     await page.goto(`/teaching/courses/${c.id}`);

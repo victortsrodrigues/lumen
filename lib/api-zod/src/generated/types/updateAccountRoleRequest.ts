@@ -8,6 +8,5 @@
 import type { UpdateAccountRoleRequestRole } from "./updateAccountRoleRequestRole";
 
 export interface UpdateAccountRoleRequest {
-  csrfToken: string;
   role: UpdateAccountRoleRequestRole;
 }

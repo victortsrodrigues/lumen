@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import {
-  truncateAll, loginAsNewAdmin, apiRegisterAdmin, apiCreateMember,
+  truncateAll, loginAsNewAdmin, apiRegisterAdmin, apiCreateMember, apiRequest,
 } from "./helpers";
 
 const P = "coun-" + Date.now().toString(36);
@@ -52,12 +52,13 @@ test.describe("21-counseling", () => {
     const counselor = await apiCreateMember(admin.cookie, { fullName: `Consel3 ${P}`, email: `consel3-${P}@test.local` });
 
     // Create case via API
-    const caseRes = await fetch("http://localhost:3000/api/counseling/cases", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: admin.cookie },
-      body: JSON.stringify({ memberId: member.id, counselorId: counselor.id, topic: `Sessao ${P}`, startDate: "2026-04-01" }),
-    });
-    const caseData = await caseRes.json();
+    const caseRes = await apiRequest("POST", "/counseling/cases", {
+      memberId: member.id,
+      counselorId: counselor.id,
+      topic: `Sessao ${P}`,
+      startDate: "2026-04-01",
+    }, admin.cookie);
+    const caseData = caseRes.body;
 
     await loginAsNewAdmin(page, `${P}-3b`);
     await page.goto(`/counseling/${caseData.id}`);

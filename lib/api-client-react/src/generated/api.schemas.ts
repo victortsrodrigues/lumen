@@ -28,23 +28,19 @@ export interface RegisterRequest {
   password: string;
   name: string;
   consentAccepted: boolean;
-  csrfToken: string;
 }
 
 export interface LoginRequest {
   email: string;
   password: string;
-  csrfToken: string;
 }
 
 export interface ForgotPasswordRequest {
   email: string;
-  csrfToken: string;
 }
 
 export interface ResendVerificationRequest {
   email: string;
-  csrfToken: string;
 }
 
 export interface VerifyEmailRequest {
@@ -53,7 +49,6 @@ export interface VerifyEmailRequest {
    * @maxLength 512
    */
   token: string;
-  csrfToken: string;
 }
 
 export interface ResetPasswordRequest {
@@ -67,7 +62,6 @@ export interface ResetPasswordRequest {
    * @maxLength 128
    */
   password: string;
-  csrfToken: string;
 }
 
 export interface MfaSetupResponse {
@@ -78,7 +72,6 @@ export interface MfaSetupResponse {
 
 export interface MfaVerifyRequest {
   code: string;
-  csrfToken: string;
 }
 
 export type UserProfileRole =
@@ -161,18 +154,12 @@ export interface AccountsListResponse {
   limit: number;
 }
 
-export interface AccountCsrfRequest {
-  csrfToken: string;
-}
-
 export interface AccountReasonRequest {
-  csrfToken: string;
   /** @minLength 1 */
   reason: string;
 }
 
 export interface ApproveAccountRequest {
-  csrfToken: string;
   memberId?: string | null;
 }
 
@@ -185,12 +172,10 @@ export const UpdateAccountRoleRequestRole = {
 } as const;
 
 export interface UpdateAccountRoleRequest {
-  csrfToken: string;
   role: UpdateAccountRoleRequestRole;
 }
 
 export interface UpdateAccountMemberLinkRequest {
-  csrfToken: string;
   memberId?: string | null;
 }
 
@@ -204,7 +189,6 @@ export const DeleteOwnAccountRequestConfirmation = {
 export interface DeleteOwnAccountRequest {
   password: string;
   confirmation: DeleteOwnAccountRequestConfirmation;
-  csrfToken: string;
 }
 
 export interface DeleteOwnAccountResponse {

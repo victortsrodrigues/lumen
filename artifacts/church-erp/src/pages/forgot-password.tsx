@@ -3,7 +3,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useForgotPassword } from '@workspace/api-client-react';
-import { useAuth } from '@/hooks/use-auth-context';
 import { Link } from 'wouter';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { useToast } from '@/hooks/use-toast';
@@ -16,7 +15,6 @@ const schema = z.object({
 
 export default function ForgotPassword() {
   const { toast } = useToast();
-  const { getValidCsrfToken } = useAuth();
   const { mutateAsync: forgotMutation } = useForgotPassword();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -28,9 +26,8 @@ export default function ForgotPassword() {
   const onSubmit = async (data: any) => {
     setIsSubmitting(true);
     try {
-      const csrfToken = await getValidCsrfToken();
       await forgotMutation({
-        data: { email: data.email, csrfToken }
+        data: { email: data.email }
       });
       setIsSuccess(true);
     } catch (error: any) {

@@ -8,5 +8,4 @@
 
 export interface ForgotPasswordRequest {
   email: string;
-  csrfToken: string;
 }

@@ -7,7 +7,6 @@
  */
 
 export interface AccountReasonRequest {
-  csrfToken: string;
   /** @minLength 1 */
   reason: string;
 }

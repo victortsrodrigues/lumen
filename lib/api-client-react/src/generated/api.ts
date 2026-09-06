@@ -17,7 +17,6 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
-  AccountCsrfRequest,
   AccountReasonRequest,
   AccountsListResponse,
   AddBudgetItems201,
@@ -1964,14 +1963,11 @@ export const getUnblockAccountUrl = (id: string) => {
 
 export const unblockAccount = async (
   id: string,
-  accountCsrfRequest: AccountCsrfRequest,
   options?: RequestInit,
 ): Promise<AdminAccount> => {
   return customFetch<AdminAccount>(getUnblockAccountUrl(id), {
     ...options,
     method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(accountCsrfRequest),
   });
 };
 
@@ -1982,14 +1978,14 @@ export const getUnblockAccountMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof unblockAccount>>,
     TError,
-    { id: string; data: BodyType<AccountCsrfRequest> },
+    { id: string },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof unblockAccount>>,
   TError,
-  { id: string; data: BodyType<AccountCsrfRequest> },
+  { id: string },
   TContext
 > => {
   const mutationKey = ["unblockAccount"];
@@ -2003,11 +1999,11 @@ export const getUnblockAccountMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof unblockAccount>>,
-    { id: string; data: BodyType<AccountCsrfRequest> }
+    { id: string }
   > = (props) => {
-    const { id, data } = props ?? {};
+    const { id } = props ?? {};
 
-    return unblockAccount(id, data, requestOptions);
+    return unblockAccount(id, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -2016,7 +2012,7 @@ export const getUnblockAccountMutationOptions = <
 export type UnblockAccountMutationResult = NonNullable<
   Awaited<ReturnType<typeof unblockAccount>>
 >;
-export type UnblockAccountMutationBody = BodyType<AccountCsrfRequest>;
+
 export type UnblockAccountMutationError = ErrorType<unknown>;
 
 /**
@@ -2029,14 +2025,14 @@ export const useUnblockAccount = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof unblockAccount>>,
     TError,
-    { id: string; data: BodyType<AccountCsrfRequest> },
+    { id: string },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof unblockAccount>>,
   TError,
-  { id: string; data: BodyType<AccountCsrfRequest> },
+  { id: string },
   TContext
 > => {
   return useMutation(getUnblockAccountMutationOptions(options));
@@ -2138,14 +2134,11 @@ export const getReactivateAccountUrl = (id: string) => {
 
 export const reactivateAccount = async (
   id: string,
-  accountCsrfRequest: AccountCsrfRequest,
   options?: RequestInit,
 ): Promise<AdminAccount> => {
   return customFetch<AdminAccount>(getReactivateAccountUrl(id), {
     ...options,
     method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(accountCsrfRequest),
   });
 };
 
@@ -2156,14 +2149,14 @@ export const getReactivateAccountMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof reactivateAccount>>,
     TError,
-    { id: string; data: BodyType<AccountCsrfRequest> },
+    { id: string },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof reactivateAccount>>,
   TError,
-  { id: string; data: BodyType<AccountCsrfRequest> },
+  { id: string },
   TContext
 > => {
   const mutationKey = ["reactivateAccount"];
@@ -2177,11 +2170,11 @@ export const getReactivateAccountMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof reactivateAccount>>,
-    { id: string; data: BodyType<AccountCsrfRequest> }
+    { id: string }
   > = (props) => {
-    const { id, data } = props ?? {};
+    const { id } = props ?? {};
 
-    return reactivateAccount(id, data, requestOptions);
+    return reactivateAccount(id, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -2190,7 +2183,7 @@ export const getReactivateAccountMutationOptions = <
 export type ReactivateAccountMutationResult = NonNullable<
   Awaited<ReturnType<typeof reactivateAccount>>
 >;
-export type ReactivateAccountMutationBody = BodyType<AccountCsrfRequest>;
+
 export type ReactivateAccountMutationError = ErrorType<unknown>;
 
 /**
@@ -2203,14 +2196,14 @@ export const useReactivateAccount = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof reactivateAccount>>,
     TError,
-    { id: string; data: BodyType<AccountCsrfRequest> },
+    { id: string },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof reactivateAccount>>,
   TError,
-  { id: string; data: BodyType<AccountCsrfRequest> },
+  { id: string },
   TContext
 > => {
   return useMutation(getReactivateAccountMutationOptions(options));

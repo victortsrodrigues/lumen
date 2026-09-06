@@ -105,6 +105,8 @@ Copie cada uma das 3 strings (64 caracteres hex) — você vai precisar delas.
 
 > ⚠️ **IMPORTANTE sobre `FIELD_ENCRYPTION_KEY`:** essa chave criptografa CPFs e telefones dos membros. **Se você trocar depois que tiver dados cadastrados, os dados ficam ilegíveis pra sempre.** Guarde essa chave num lugar seguro (ex: um gerenciador de senhas).
 
+> Em produção, o servidor recusa a inicialização se `JWT_SECRET`, `CSRF_SECRET` ou `FIELD_ENCRYPTION_KEY` estiver ausente ou vazia. Não existem valores padrão para produção.
+
 ### 5.2 — Cadastrar cada variável
 
 | Nome | Valor |
@@ -120,6 +122,8 @@ Copie cada uma das 3 strings (64 caracteres hex) — você vai precisar delas.
 | `BOOTSTRAP_ADMIN_NAME` | `Victor Tadeu` |
 
 > 🟢 `DATABASE_URL` e `PORT` são automáticos. Não mexer.
+
+O CORS de produção aceita exclusivamente `https://iplumen.com`. Todas as operações `POST`, `PUT`, `PATCH` e `DELETE` da API exigem o par cookie/cabeçalho CSRF emitido pela própria aplicação.
 
 ### 5.3 — Salvar e redeployar
 

@@ -565,12 +565,6 @@ paths:
         - cookieAuth: []
       parameters:
         - { in: path, name: id, required: true, schema: { type: string } }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AccountCsrfRequest"
       responses:
         "200":
           description: Active account
@@ -611,12 +605,6 @@ paths:
         - cookieAuth: []
       parameters:
         - { in: path, name: id, required: true, schema: { type: string } }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AccountCsrfRequest"
       responses:
         "200":
           description: Active account
@@ -5917,14 +5905,11 @@ components:
           type: string
         consentAccepted:
           type: boolean
-        csrfToken:
-          type: string
       required:
         - email
         - password
         - name
         - consentAccepted
-        - csrfToken
 
     LoginRequest:
       type: object
@@ -5934,12 +5919,9 @@ components:
           format: email
         password:
           type: string
-        csrfToken:
-          type: string
       required:
         - email
         - password
-        - csrfToken
 
     ForgotPasswordRequest:
       type: object
@@ -5947,11 +5929,8 @@ components:
         email:
           type: string
           format: email
-        csrfToken:
-          type: string
       required:
         - email
-        - csrfToken
 
     ResendVerificationRequest:
       type: object
@@ -5959,11 +5938,8 @@ components:
         email:
           type: string
           format: email
-        csrfToken:
-          type: string
       required:
         - email
-        - csrfToken
 
     VerifyEmailRequest:
       type: object
@@ -5972,11 +5948,8 @@ components:
           type: string
           minLength: 32
           maxLength: 512
-        csrfToken:
-          type: string
       required:
         - token
-        - csrfToken
 
     ResetPasswordRequest:
       type: object
@@ -5989,12 +5962,9 @@ components:
           type: string
           minLength: 8
           maxLength: 128
-        csrfToken:
-          type: string
       required:
         - token
         - password
-        - csrfToken
 
     MfaSetupResponse:
       type: object
@@ -6017,11 +5987,8 @@ components:
       properties:
         code:
           type: string
-        csrfToken:
-          type: string
       required:
         - code
-        - csrfToken
 
     UserProfile:
       type: object
@@ -6127,49 +6094,36 @@ components:
         limit: { type: integer }
       required: [accounts, summary, total, page, limit]
 
-    AccountCsrfRequest:
-      type: object
-      properties:
-        csrfToken: { type: string }
-      required: [csrfToken]
-
     AccountReasonRequest:
       type: object
       properties:
-        csrfToken: { type: string }
         reason: { type: string, minLength: 1 }
-      required: [csrfToken, reason]
+      required: [reason]
 
     ApproveAccountRequest:
       type: object
       properties:
-        csrfToken: { type: string }
         memberId: { type: string, nullable: true }
-      required: [csrfToken]
 
     UpdateAccountRoleRequest:
       type: object
       properties:
-        csrfToken: { type: string }
         role:
           type: string
           enum: [member, leader]
-      required: [csrfToken, role]
+      required: [role]
 
     UpdateAccountMemberLinkRequest:
       type: object
       properties:
-        csrfToken: { type: string }
         memberId: { type: string, nullable: true }
-      required: [csrfToken]
 
     DeleteOwnAccountRequest:
       type: object
       properties:
         password: { type: string }
         confirmation: { type: string, enum: [EXCLUIR] }
-        csrfToken: { type: string }
-      required: [password, confirmation, csrfToken]
+      required: [password, confirmation]
 
     DeleteOwnAccountResponse:
       type: object

@@ -6,7 +6,6 @@ import { Link } from "wouter";
 import { CheckCircle2, Eye, EyeOff, Loader2, XCircle } from "lucide-react";
 import { useResetPassword } from "@workspace/api-client-react";
 import { AuthLayout } from "@/components/layout/AuthLayout";
-import { useAuth } from "@/hooks/use-auth-context";
 
 const schema = z
   .object({
@@ -31,7 +30,6 @@ function tokenFromFragment(): string {
 }
 
 export default function ResetPassword() {
-  const { getValidCsrfToken } = useAuth();
   const reset = useResetPassword({ mutation: { meta: { silentError: true } } });
   const [token] = useState(tokenFromFragment);
   const [showPassword, setShowPassword] = useState(false);
@@ -51,9 +49,8 @@ export default function ResetPassword() {
 
   async function onSubmit(data: ResetPasswordForm) {
     try {
-      const csrfToken = await getValidCsrfToken();
       const response = await reset.mutateAsync({
-        data: { token, password: data.password, csrfToken },
+        data: { token, password: data.password },
       });
       window.history.replaceState(
         null,

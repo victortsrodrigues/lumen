@@ -8,5 +8,4 @@
 
 export interface MfaVerifyRequest {
   code: string;
-  csrfToken: string;
 }

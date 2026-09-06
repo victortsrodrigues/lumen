@@ -10,6 +10,17 @@ const pool = new Pool({
     process.env.DATABASE_URL ||
     "postgresql://church_erp:church_erp@localhost:5433/church_erp",
 });
+const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+let csrfTokenCache = "";
+let csrfCookieCache = "";
+
+function cookiePair(setCookie: string): string {
+  return setCookie.split(";", 1)[0]?.trim() ?? "";
+}
+
+function mergeCookies(...cookies: Array<string | undefined>): string {
+  return cookies.map(value => value ? cookiePair(value) : "").filter(Boolean).join("; ");
+}
 
 // ─── DB HELPERS ──────────────────────────────────────────────────────────────
 
@@ -23,15 +34,21 @@ export async function truncateAll() {
 
 // ─── API HELPERS (fast setup without browser) ────────────────────────────────
 
-async function apiRequest(
+export async function apiRequest(
   method: string,
   path: string,
   body?: any,
   cookie?: string
 ): Promise<{ status: number; body: any; cookie: string }> {
+  const normalizedMethod = method.toUpperCase();
+  if (MUTATING_METHODS.has(normalizedMethod) && !csrfTokenCache) {
+    await apiGetCsrf();
+  }
   const headers: Record<string, string> = {};
   if (body) headers["Content-Type"] = "application/json";
-  if (cookie) headers["Cookie"] = cookie;
+  const requestCookie = mergeCookies(cookie, csrfCookieCache);
+  if (requestCookie) headers["Cookie"] = requestCookie;
+  if (MUTATING_METHODS.has(normalizedMethod)) headers["X-CSRF-Token"] = csrfTokenCache;
 
   const res = await fetch(`${API_URL}${path}`, {
     method,
@@ -49,7 +66,9 @@ async function apiRequest(
 
 async function apiGetCsrf(): Promise<string> {
   const res = await apiRequest("GET", "/auth/csrf");
-  return res.body.csrfToken;
+  csrfTokenCache = res.body.csrfToken;
+  csrfCookieCache = res.cookie;
+  return csrfTokenCache;
 }
 
 export async function apiRegisterUser(

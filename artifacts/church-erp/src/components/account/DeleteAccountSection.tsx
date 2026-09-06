@@ -3,12 +3,10 @@ import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Loader2, Trash2 } from "lucide-react";
 import { useDeleteOwnAccount } from "@workspace/api-client-react";
-import { useAuth } from "@/hooks/use-auth-context";
 import { useToast } from "@/hooks/use-toast";
 
 export function DeleteAccountSection() {
   const [, setLocation] = useLocation();
-  const { getValidCsrfToken } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -33,10 +31,9 @@ export function DeleteAccountSection() {
     },
   });
 
-  async function submit() {
+  function submit() {
     if (!password || confirmation !== "EXCLUIR") return;
-    const csrfToken = await getValidCsrfToken();
-    deletion.mutate({ data: { password, confirmation: "EXCLUIR", csrfToken } });
+    deletion.mutate({ data: { password, confirmation: "EXCLUIR" } });
   }
 
   function close() {

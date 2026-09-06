@@ -10,6 +10,8 @@ export type AuthTokenGetter = () => Promise<string | null> | string | null;
 
 const NO_BODY_STATUS = new Set([204, 205, 304]);
 const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
+const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+const CSRF_HEADER = "x-csrf-token";
 
 // ---------------------------------------------------------------------------
 // Module-level configuration
@@ -17,6 +19,8 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
+let _csrfToken: string | null = null;
+let _csrfTokenPromise: Promise<string> | null = null;
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -73,6 +77,48 @@ function resolveUrl(input: RequestInfo | URL): string {
   if (typeof input === "string") return input;
   if (isUrl(input)) return input.toString();
   return input.url;
+}
+
+function csrfEndpoint(): string {
+  return _baseUrl ? `${_baseUrl}/api/auth/csrf` : "/api/auth/csrf";
+}
+
+async function fetchCsrfToken(forceRefresh = false): Promise<string> {
+  if (forceRefresh) _csrfToken = null;
+  if (_csrfToken) return _csrfToken;
+  if (_csrfTokenPromise) return _csrfTokenPromise;
+
+  _csrfTokenPromise = (async () => {
+    const response = await fetch(csrfEndpoint(), {
+      method: "GET",
+      credentials: "include",
+      cache: "no-store",
+      headers: { accept: DEFAULT_JSON_ACCEPT },
+    });
+    if (!response.ok) {
+      throw new Error("Não foi possível iniciar a sessão de segurança.");
+    }
+    const data = await response.json() as { csrfToken?: unknown };
+    if (typeof data.csrfToken !== "string" || !data.csrfToken) {
+      throw new Error("O servidor não forneceu um token de segurança válido.");
+    }
+    _csrfToken = data.csrfToken;
+    return data.csrfToken;
+  })().finally(() => {
+    _csrfTokenPromise = null;
+  });
+
+  return _csrfTokenPromise;
+}
+
+async function isCsrfFailure(response: Response): Promise<boolean> {
+  if (response.status !== 403 || typeof response.clone !== "function") return false;
+  try {
+    const data = await response.clone().json() as { error?: unknown };
+    return data.error === "CSRF_ERROR";
+  } catch {
+    return false;
+  }
 }
 
 function mergeHeaders(...sources: Array<HeadersInit | undefined>): Headers {
@@ -357,7 +403,27 @@ export async function customFetch<T = unknown>(
 
   const requestInfo = { method, url: resolveUrl(input) };
 
-  const response = await fetch(input, { ...init, method, headers });
+  const isMutation = MUTATING_METHODS.has(method);
+  const hasExplicitCsrfHeader = headers.has(CSRF_HEADER);
+
+  const send = async (forceCsrfRefresh = false): Promise<Response> => {
+    const requestHeaders = new Headers(headers);
+    if (isMutation && !hasExplicitCsrfHeader) {
+      requestHeaders.set(CSRF_HEADER, await fetchCsrfToken(forceCsrfRefresh));
+    }
+    const requestInput = isRequest(input) ? input.clone() : input;
+    return fetch(requestInput, {
+      ...init,
+      credentials: init.credentials ?? "include",
+      method,
+      headers: requestHeaders,
+    });
+  };
+
+  let response = await send();
+  if (isMutation && !hasExplicitCsrfHeader && await isCsrfFailure(response)) {
+    response = await send(true);
+  }
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);

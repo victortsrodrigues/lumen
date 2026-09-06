@@ -2,7 +2,6 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { and, asc, count, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { db, membersTable, usersTable } from "@workspace/db";
 import { requireAuth, requireRole } from "../middlewares/auth.js";
-import { validateCsrfToken } from "../lib/csrf.js";
 import { createAuditLog } from "../lib/audit.js";
 import { createNotification } from "../lib/notifications.js";
 
@@ -14,14 +13,6 @@ function getIp(req: Request): string {
   const forwarded = req.headers["x-forwarded-for"];
   if (typeof forwarded === "string") return forwarded.split(",")[0].trim();
   return req.socket?.remoteAddress ?? "unknown";
-}
-
-function requireValidCsrf(req: Request, res: Response): boolean {
-  if (!req.body?.csrfToken || !validateCsrfToken(req.body.csrfToken)) {
-    res.status(400).json({ error: "CSRF_ERROR", message: "Token CSRF inválido" });
-    return false;
-  }
-  return true;
 }
 
 async function getAccount(id: string) {
@@ -148,7 +139,6 @@ router.get("/:id", async (req: Request, res: Response) => {
 
 // POST /admin/accounts/:id/approve
 router.post("/:id/approve", async (req: Request, res: Response) => {
-  if (!requireValidCsrf(req, res)) return;
   const account = await getAccount(String(req.params.id));
   if (!account) {
     res.status(404).json({ error: "NOT_FOUND", message: "Conta não encontrada" });
@@ -222,7 +212,6 @@ async function changeStatus(
   action: string,
   requireReason = false,
 ) {
-  if (!requireValidCsrf(req, res)) return;
   const account = await getAccount(String(req.params.id));
   if (!account) {
     res.status(404).json({ error: "NOT_FOUND", message: "Conta não encontrada" });
@@ -269,7 +258,6 @@ router.post("/:id/reactivate", (req, res) => changeStatus(req, res, ["revoked"],
 
 // PATCH /admin/accounts/:id/role — deliberately excludes admin promotion.
 router.patch("/:id/role", async (req: Request, res: Response) => {
-  if (!requireValidCsrf(req, res)) return;
   const role = req.body.role as "member" | "leader";
   if (!["member", "leader"].includes(role)) {
     res.status(400).json({ error: "INVALID_ROLE", message: "O papel deve ser membro ou líder" });
@@ -309,7 +297,6 @@ router.patch("/:id/role", async (req: Request, res: Response) => {
 
 // PATCH /admin/accounts/:id/member-link
 router.patch("/:id/member-link", async (req: Request, res: Response) => {
-  if (!requireValidCsrf(req, res)) return;
   const account = await getAccount(String(req.params.id));
   if (!account) {
     res.status(404).json({ error: "NOT_FOUND", message: "Conta não encontrada" });

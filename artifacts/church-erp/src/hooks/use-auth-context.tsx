@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { useGetMe, getCsrfToken, logout, UserProfile } from '@workspace/api-client-react';
+import { useGetMe, logout, UserProfile } from '@workspace/api-client-react';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 
@@ -9,7 +9,6 @@ interface AuthContextType {
   isAuthenticated: boolean;
   checkSession: () => void;
   clearSession: () => void;
-  getValidCsrfToken: () => Promise<string>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -39,16 +38,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     setLocation('/login');
   }, [setLocation]);
-
-  const getValidCsrfToken = async () => {
-    try {
-      const response = await getCsrfToken();
-      return response.csrfToken;
-    } catch (error) {
-      console.error("Failed to fetch CSRF token", error);
-      throw new Error("Não foi possível obter o token de segurança.");
-    }
-  };
 
   // Activity tracking for timeout
   useEffect(() => {
@@ -105,7 +94,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated: !!user,
     checkSession: refetch,
     clearSession,
-    getValidCsrfToken,
   };
 
   return (

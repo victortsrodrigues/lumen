@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { loginAsNewAdmin, apiRegisterAdmin, apiCreateMinistry, apiCreateMinistryGoal } from "./helpers";
+import { loginAsNewAdmin, apiRegisterAdmin, apiCreateMinistry, apiCreateMinistryGoal, apiRequest } from "./helpers";
 
 const P = "e2e-goal-" + Date.now().toString(36);
 
@@ -34,10 +34,9 @@ test.describe("18-ministry-goals", () => {
     const ministry = await apiCreateMinistry(admin.cookie, { name: `GoalMin3 ${P}`, category: "servico" });
     const goal = await apiCreateMinistryGoal(admin.cookie, ministry.id, { title: `3 ações ${P}`, targetValue: 10 });
     // Update currentValue via API
-    await fetch(`http://localhost:3000/api/ministries/${ministry.id}/goals/${goal.id}`, {
-      method: "PUT", headers: { "Content-Type": "application/json", Cookie: admin.cookie },
-      body: JSON.stringify({ currentValue: 5 }),
-    });
+    await apiRequest("PUT", `/ministries/${ministry.id}/goals/${goal.id}`, {
+      currentValue: 5,
+    }, admin.cookie);
 
     await loginAsNewAdmin(page, `${P}-3b`);
     await page.goto(`/ministries/${ministry.id}`);

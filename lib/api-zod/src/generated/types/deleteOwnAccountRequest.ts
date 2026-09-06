@@ -10,5 +10,4 @@ import type { DeleteOwnAccountRequestConfirmation } from "./deleteOwnAccountRequ
 export interface DeleteOwnAccountRequest {
   password: string;
   confirmation: DeleteOwnAccountRequestConfirmation;
-  csrfToken: string;
 }

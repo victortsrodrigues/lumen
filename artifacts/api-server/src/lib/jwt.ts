@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
+import { runtimeConfig } from "../config/runtime.js";
 
-const JWT_SECRET = process.env.JWT_SECRET || "church-erp-dev-secret-change-in-production";
 const JWT_EXPIRY = "1h";
 
 export interface JwtPayload {
@@ -13,12 +13,12 @@ export interface JwtPayload {
 }
 
 export function signToken(payload: JwtPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRY });
+  return jwt.sign(payload, runtimeConfig.jwtSecret, { expiresIn: JWT_EXPIRY });
 }
 
 export function verifyToken(token: string): JwtPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as JwtPayload;
+    return jwt.verify(token, runtimeConfig.jwtSecret) as JwtPayload;
   } catch {
     return null;
   }

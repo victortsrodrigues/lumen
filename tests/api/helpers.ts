@@ -13,6 +13,17 @@ export const pool = new Pool({
 });
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev-jwt-secret-mude-em-producao";
+const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+let csrfTokenCache = "";
+let csrfCookieCache = "";
+
+function cookiePair(setCookie: string): string {
+  return setCookie.split(";", 1)[0]?.trim() ?? "";
+}
+
+function mergeCookies(...cookies: Array<string | undefined>): string {
+  return cookies.map(value => value ? cookiePair(value) : "").filter(Boolean).join("; ");
+}
 
 // ─── REQUEST HELPER ──────────────────────────────────────────────────────────
 
@@ -30,11 +41,19 @@ export async function request(
   cookie?: string,
   extraHeaders?: Record<string, string>
 ): Promise<ApiResponse> {
+  const normalizedMethod = method.toUpperCase();
+  if (MUTATING_METHODS.has(normalizedMethod) && !csrfTokenCache) {
+    await getCsrfToken();
+  }
+  const requestCookie = mergeCookies(cookie, csrfCookieCache);
   const headers: Record<string, string> = {
     ...(body !== undefined && !(body instanceof Buffer)
       ? { "Content-Type": "application/json" }
       : {}),
-    ...(cookie ? { Cookie: cookie } : {}),
+    ...(requestCookie ? { Cookie: requestCookie } : {}),
+    ...(MUTATING_METHODS.has(normalizedMethod)
+      ? { "X-CSRF-Token": csrfTokenCache }
+      : {}),
     ...extraHeaders,
   };
 
@@ -75,7 +94,9 @@ export async function request(
 
 export async function getCsrfToken(): Promise<string> {
   const res = await request("GET", "/auth/csrf");
-  return res.body.csrfToken;
+  csrfTokenCache = res.body.csrfToken;
+  csrfCookieCache = res.cookie;
+  return csrfTokenCache;
 }
 
 export async function registerUser(

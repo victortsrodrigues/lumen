@@ -21,7 +21,7 @@ type LoginForm = z.infer<typeof loginSchema>;
 export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { getValidCsrfToken, checkSession } = useAuth();
+  const { checkSession } = useAuth();
   const { mutateAsync: loginMutation } = useLogin({
     mutation: { meta: { silentError: true } },
   });
@@ -38,9 +38,8 @@ export default function Login() {
     setIsSubmitting(true);
     setUnverifiedEmail(null);
     try {
-      const csrfToken = await getValidCsrfToken();
       const response = await loginMutation({
-        data: { ...data, csrfToken }
+        data
       });
 
       if (response.requiresMfa) {
@@ -66,8 +65,7 @@ export default function Login() {
   const resendEmail = async () => {
     if (!unverifiedEmail) return;
     try {
-      const csrfToken = await getValidCsrfToken();
-      await resendVerification.mutateAsync({ data: { email: unverifiedEmail, csrfToken } });
+      await resendVerification.mutateAsync({ data: { email: unverifiedEmail } });
       toast({
         title: "Solicitação recebida",
         description: "Se a conta ainda estiver aguardando verificação, enviaremos uma nova mensagem.",

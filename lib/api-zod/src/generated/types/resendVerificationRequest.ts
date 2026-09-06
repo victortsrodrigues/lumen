@@ -8,5 +8,4 @@
 
 export interface ResendVerificationRequest {
   email: string;
-  csrfToken: string;
 }

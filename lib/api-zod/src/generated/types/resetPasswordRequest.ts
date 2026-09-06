@@ -17,5 +17,4 @@ export interface ResetPasswordRequest {
    * @maxLength 128
    */
   password: string;
-  csrfToken: string;
 }
