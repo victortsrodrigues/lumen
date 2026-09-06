@@ -3,7 +3,7 @@
  * 1. Backend response `message` field
  * 2. Backend response `error` field (legacy backend pattern)
  * 3. Backend response `detail` field (problem+json)
- * 4. ApiError.message (generic HTTP status)
+ * 4. Error message, when it is not a technical HTTP status
  * 5. Fallback generic message
  *
  * Works with the custom-fetch ApiError class (err.data) and also axios-style
@@ -39,7 +39,10 @@ export function getErrorMessage(err: unknown, fallback = "Ocorreu um erro inespe
   }
 
   if (typeof errObj.message === "string" && errObj.message.trim()) {
-    return errObj.message;
+    const message = errObj.message.trim();
+    // ApiError prefixes its fallback with the HTTP status. That information is
+    // useful in logs, but should not be exposed as copy in the user interface.
+    if (!/^HTTP\s+\d{3}(?:\s|:|$)/i.test(message)) return message;
   }
 
   return fallback;

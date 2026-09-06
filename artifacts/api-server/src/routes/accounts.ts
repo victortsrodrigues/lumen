@@ -205,9 +205,7 @@ router.post("/:id/approve", async (req: Request, res: Response) => {
     userId: account.id,
     type: "account.approved",
     title: "Acesso aprovado",
-    message: account.emailVerifiedAt
-      ? "Sua conta foi aprovada. Você já pode acessar a plataforma."
-      : "Sua conta foi aprovada. Confirme seu e-mail para acessar a plataforma.",
+    message: "Sua conta foi aprovada pela administração.",
     link: "/",
     entityType: "user",
     entityId: account.id,

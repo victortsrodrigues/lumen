@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/use-auth-context';
 import { Link, useLocation } from 'wouter';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { useToast } from '@/hooks/use-toast';
+import { getErrorMessage } from '@/lib/api-error';
 import { Loader2, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -21,7 +22,9 @@ export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { getValidCsrfToken, checkSession } = useAuth();
-  const { mutateAsync: loginMutation } = useLogin();
+  const { mutateAsync: loginMutation } = useLogin({
+    mutation: { meta: { silentError: true } },
+  });
   const resendVerification = useResendVerification();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -48,10 +51,11 @@ export default function Login() {
         setLocation('/');
       }
     } catch (error: any) {
-      if (error?.data?.error === 'EMAIL_NOT_VERIFIED') setUnverifiedEmail(data.email);
+      const emailNotVerified = error?.data?.error === 'EMAIL_NOT_VERIFIED';
+      if (emailNotVerified) setUnverifiedEmail(data.email);
       toast({
-        title: "Erro no login",
-        description: error?.message || "Verifique suas credenciais e tente novamente.",
+        title: emailNotVerified ? "Confirme seu e-mail" : "Não foi possível entrar",
+        description: getErrorMessage(error, "Verifique suas credenciais e tente novamente."),
         variant: "destructive"
       });
     } finally {

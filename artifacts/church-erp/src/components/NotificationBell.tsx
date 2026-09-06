@@ -23,6 +23,13 @@ function formatRelative(iso: string): string {
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
 }
 
+function notificationMessage(notification: { type?: string; message: string }): string {
+  if (notification.type === "account.approved") {
+    return "Sua conta foi aprovada pela administração.";
+  }
+  return notification.message;
+}
+
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -137,7 +144,7 @@ export function NotificationBell() {
                             {n.title}
                           </p>
                           <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                            {n.message}
+                            {notificationMessage(n)}
                           </p>
                           <p className="text-[10px] text-muted-foreground mt-1">
                             {formatRelative(n.createdAt)}
