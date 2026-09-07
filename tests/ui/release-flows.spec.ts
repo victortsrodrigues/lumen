@@ -19,8 +19,10 @@ test("privacy and terms are public on desktop and mobile even when the session r
     await page.setViewportSize({ width, height: 844 });
     await page.goto("/privacidade");
     await expect(page.getByRole("heading", { name: "Política de Privacidade", exact: true })).toBeVisible();
+    await expect(page.getByRole("banner").getByRole("link", { name: "Entrar", exact: true })).toBeVisible();
+    await expect(page.getByRole("banner").getByRole("link", { name: /^(Sobre|Contribuir)$/ })).toHaveCount(0);
     await expect(page.getByText("Igreja Presbiteriana Lumen", { exact: true })).toBeVisible();
-    await expect(page.getByRole("link", { name: "(32) 98454-9686" })).toHaveAttribute("href", "tel:+5532984549686");
+    await expect(page.getByRole("link", { name: "(32) 99922-1949" })).toHaveAttribute("href", "tel:+5532999221949");
     await expect(page.locator("article")).toContainText("400 dias");
     await expect(page).toHaveURL(/\/privacidade$/);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

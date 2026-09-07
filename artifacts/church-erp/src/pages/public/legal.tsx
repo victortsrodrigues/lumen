@@ -20,8 +20,8 @@ function Contact() {
     <p>
       A responsável pelo Lumen e pelas decisões sobre os dados é a <strong>Igreja Presbiteriana Lumen</strong>.
       Para dúvidas, pedidos sobre dados pessoais ou relatos de problemas de segurança, fale com
-      {" "}<strong>Felipe Roth Couri</strong> pelo telefone{" "}
-      <a href="tel:+5532984549686" className="underline underline-offset-4">(32) 98454-9686</a>.
+      {" "}<strong>o Responsável</strong> pelo telefone{" "}
+      <a href="tel:+5532999221949" className="underline underline-offset-4">(32) 99922-1949</a>.
       Não é necessário ter uma conta para fazer contato.
     </p>
   );
