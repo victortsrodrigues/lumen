@@ -21,6 +21,8 @@ test("privacy and terms are public on desktop and mobile even when the session r
     await expect(page.getByRole("heading", { name: "Política de Privacidade", exact: true })).toBeVisible();
     await expect(page.getByRole("banner").getByRole("link", { name: "Entrar", exact: true })).toBeVisible();
     await expect(page.getByRole("banner").getByRole("link", { name: /^(Sobre|Contribuir)$/ })).toHaveCount(0);
+    await expect(page.getByRole("banner").getByRole("link").first()).toHaveAttribute("href", "/login");
+    await expect(page.locator('a[href="/site"], a[href^="/site/"], a[href="/donate"]')).toHaveCount(0);
     await expect(page.getByText("Igreja Presbiteriana Lumen", { exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "(32) 99922-1949" })).toHaveAttribute("href", "tel:+5532999221949");
     await expect(page.locator("article")).toContainText("400 dias");
@@ -29,8 +31,35 @@ test("privacy and terms are public on desktop and mobile even when the session r
     await page.getByRole("navigation", { name: "Informações legais" }).getByRole("link", { name: "Termos de uso" }).click();
     await expect(page.getByRole("heading", { name: "Termos de Uso", exact: true })).toBeVisible();
     await expect(page).toHaveURL(/\/termos$/);
+    await expect(page.getByRole("banner").getByRole("link", { name: /^(Sobre|Contribuir)$/ })).toHaveCount(0);
+    await expect(page.locator('a[href="/site"], a[href^="/site/"], a[href="/donate"]')).toHaveCount(0);
+    await page.getByRole("banner").getByRole("link").first().click();
+    await expect(page).toHaveURL(/\/login$/);
   }
 });
+
+for (const authenticated of [false, true]) {
+  test(`retired public pages redirect to login without loading content (authenticated=${authenticated})`, async ({ page }) => {
+    await anonymousApi(page);
+    if (authenticated) {
+      await page.route("**/api/auth/me", (route) => route.fulfill({
+        json: { id: "test-admin", name: "Admin de teste", email: "admin@example.test", role: "admin", status: "active", mfaEnabled: false },
+      }));
+    }
+    const retiredRequests: string[] = [];
+    page.on("request", (request) => {
+      const path = new URL(request.url()).pathname;
+      if (path.startsWith("/api/pages/public") || path === "/api/pix/donate") retiredRequests.push(path);
+    });
+    for (const path of ["/site", "/site/sobre", "/donate"]) {
+      await page.goto(path);
+      await expect(page).toHaveURL(/\/login$/);
+      await expect(page.getByRole("button", { name: "Entrar no sistema" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: /Nossa Igreja|Contribuir via PIX/ })).toHaveCount(0);
+    }
+    expect(retiredRequests).toEqual([]);
+  });
+}
 
 test("registration links open separately and require an unchecked, versioned legal acceptance", async ({ page }) => {
   await anonymousApi(page);
