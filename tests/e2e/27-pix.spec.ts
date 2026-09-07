@@ -19,8 +19,9 @@ test.describe("27-pix", () => {
     await expect(page.getByText(/sucesso|salva/i).first()).toBeVisible({ timeout: 5000 });
   });
 
-  test("2. Public donate page loads without login", async ({ page }) => {
+  test("2. Retired public donation page redirects to login", async ({ page }) => {
     await page.goto("/donate");
-    await expect(page.locator("body")).toBeVisible();
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(page.getByRole("button", { name: "Entrar no sistema" })).toBeVisible();
   });
 });

@@ -1,4 +1,4 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Redirect, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider, MutationCache } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -118,9 +118,6 @@ import PixAdminPage from "./pages/pix/admin";
 import ContributionsPage from "./pages/contributions";
 
 // Public Pages
-import PublicSite from "./pages/public/site";
-import PublicPage from "./pages/public/page";
-import PublicDonate from "./pages/public/donate";
 import { PrivacyPolicy, TermsOfUse } from "./pages/public/legal";
 
 // LGPD Module
@@ -165,10 +162,12 @@ queryClient = new QueryClient({
 function Router() {
   return (
     <Switch>
-      {/* Public Pages (no auth) */}
-      <Route path="/site/:slug" component={PublicPage} />
-      <Route path="/site" component={PublicSite} />
-      <Route path="/donate" component={PublicDonate} />
+      {/* Retired public pages: old links lead to login without loading content. */}
+      <Route path="/site/:slug"><Redirect to="/login" replace /></Route>
+      <Route path="/site"><Redirect to="/login" replace /></Route>
+      <Route path="/donate"><Redirect to="/login" replace /></Route>
+
+      {/* Public legal pages (no auth) */}
       <Route path="/privacidade" component={PrivacyPolicy} />
       <Route path="/termos" component={TermsOfUse} />
 

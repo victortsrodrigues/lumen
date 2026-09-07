@@ -19,8 +19,9 @@ test.describe("26-institutional", () => {
     await expect(page.getByText(/sucesso|criada/i).first()).toBeVisible({ timeout: 5000 });
   });
 
-  test("2. Public site loads without login", async ({ page }) => {
+  test("2. Retired public site redirects to login", async ({ page }) => {
     await page.goto("/site");
-    await expect(page.locator("body")).toBeVisible();
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(page.getByRole("button", { name: "Entrar no sistema" })).toBeVisible();
   });
 });

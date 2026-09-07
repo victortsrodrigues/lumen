@@ -6,7 +6,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-[#0a0a0a] text-white">
         <div className="max-w-4xl mx-auto flex items-center justify-between px-4 sm:px-6 h-14 gap-4">
-          <Link href="/site" className="flex items-center gap-2 shrink-0">
+          <Link href="/login" className="flex items-center gap-2 shrink-0">
             <img src="/lumen-symbol.svg" alt="LUMEN" className="w-6 h-6" />
             <span className="font-bold text-lg tracking-tight">LUMEN</span>
           </Link>
