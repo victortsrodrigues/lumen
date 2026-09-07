@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import { Link } from "wouter";
 import { LegalDocumentsVersion } from "@workspace/api-client-react";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { useAuth } from "@/hooks/use-auth-context";
 
 // The API contract is the source of truth for the version sent at registration.
 export const LEGAL_DOCUMENTS_VERSION = Object.values(LegalDocumentsVersion)[0];
@@ -28,17 +30,19 @@ function Contact() {
 }
 
 function LegalPage({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <PublicLayout>
-      <article className="mx-auto max-w-3xl space-y-7 leading-relaxed text-foreground/90">
-        <header>
-          <h1 className="text-3xl font-bold text-foreground">{title}</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Versão {LEGAL_DOCUMENTS_VERSION} · Atualizado em 6 de setembro de 2026</p>
-        </header>
-        {children}
-      </article>
-    </PublicLayout>
+  const { isAuthenticated } = useAuth();
+  const content = (
+    <article className="mx-auto max-w-3xl space-y-7 leading-relaxed text-foreground/90">
+      <header>
+        <h1 className="text-3xl font-bold text-foreground">{title}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Versão {LEGAL_DOCUMENTS_VERSION} · Atualizado em 7 de setembro de 2026</p>
+      </header>
+      {children}
+    </article>
   );
+  return isAuthenticated
+    ? <AppLayout breadcrumbs={[{ label: title }]}>{content}</AppLayout>
+    : <PublicLayout>{content}</PublicLayout>;
 }
 
 export function PrivacyPolicy() {
@@ -73,7 +77,7 @@ export function PrivacyPolicy() {
 
       <Section title="5. Seus direitos e como pedir">
         <p>Você pode pedir confirmação e acesso aos dados, correção, informação sobre compartilhamento, anonimização, bloqueio ou exclusão de dados desnecessários ou irregulares e, quando aplicável, portabilidade, exclusão de dados tratados com consentimento e revogação desse consentimento. Também pode perguntar sobre a possibilidade e as consequências de não consentir, e apresentar reclamação à ANPD.</p>
-        <p>Faça o pedido gratuitamente pelo telefone acima. Podemos confirmar sua identidade para proteger seus dados. Quem tem conta pode usar Meu Perfil para excluir a conta e, se tiver cadastro de membro vinculado, Meus Dados para consultar informações e enviar pedidos. O contato continua disponível mesmo sem acesso ao sistema.</p>
+        <p>Faça o pedido gratuitamente pelo telefone acima. Podemos confirmar sua identidade para proteger seus dados. Quem tem conta pode usar Meu Perfil para excluir a conta. O contato continua disponível mesmo sem acesso ao sistema.</p>
       </Section>
 
       <Section title="6. Segurança e alterações">

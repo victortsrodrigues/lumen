@@ -7,6 +7,7 @@ export default defineConfig({
     "accounts.spec.ts",
     "dependency-regression.spec.ts",
     "release-flows.spec.ts",
+    "legal-navigation.spec.ts",
   ],
   workers: 1,
   timeout: 30_000,

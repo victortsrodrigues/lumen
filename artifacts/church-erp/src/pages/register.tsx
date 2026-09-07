@@ -82,7 +82,7 @@ export default function Register() {
   }
 
   return (
-    <AuthLayout title="Criar conta" subtitle="Preencha os dados abaixo para começar.">
+    <AuthLayout title="Criar conta" subtitle="Preencha os dados abaixo para começar." showLegalLinks={false}>
       <motion.form 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -146,13 +146,11 @@ export default function Register() {
           </div>
           <div className="ml-3 text-sm">
             <label htmlFor="legal-acceptance" className="font-medium text-foreground cursor-pointer">
-              Li a Política de Privacidade e aceito os Termos de Uso.
+              Li a{' '}
+              <a href="/privacidade" target="_blank" rel="noopener noreferrer" title="Abre em nova aba" className="underline underline-offset-4 hover:text-primary">Política de Privacidade</a>
+              {' '}e aceito os{' '}
+              <a href="/termos" target="_blank" rel="noopener noreferrer" title="Abre em nova aba" className="underline underline-offset-4 hover:text-primary">Termos de Uso</a>.
             </label>
-            <p className="mt-1 text-muted-foreground">
-              <Link href="/privacidade" target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">Ler Política de Privacidade (nova aba)</Link>
-              {' · '}
-              <Link href="/termos" target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">Ler Termos de Uso (nova aba)</Link>
-            </p>
           </div>
         </div>
         {errors.consentAccepted && <p id="legal-acceptance-error" className="text-sm text-destructive">{errors.consentAccepted.message}</p>}

@@ -61,6 +61,45 @@ for (const authenticated of [false, true]) {
   });
 }
 
+test("registration legal links appear only once and preserve the form when opened on desktop and mobile", async ({ page, context }) => {
+  await anonymousApi(page);
+  // New tabs must also stay isolated from the application database.
+  await context.route(/^https:\/\//, (route) => route.abort());
+  await context.route("**/api/**", (route) => route.fulfill({ status: 401, json: { error: "UNAUTHORIZED" } }));
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto("/register");
+    await expect(page.locator('a[href="/privacidade"]')).toHaveCount(1);
+    await expect(page.locator('a[href="/termos"]')).toHaveCount(1);
+    await expect(page.getByRole("navigation", { name: "Informações legais" })).toHaveCount(0);
+    const checkbox = page.getByRole("checkbox", { name: "Li a Política de Privacidade e aceito os Termos de Uso." });
+    await expect(checkbox).not.toBeChecked();
+    await page.getByPlaceholder("João Silva").fill("Pessoa de Teste");
+    await page.getByPlaceholder("seu@email.com").fill("person@example.test");
+    await page.getByPlaceholder("Mínimo 8 caracteres").fill("Test-password123!");
+    for (const [name, path] of [["Política de Privacidade", "/privacidade"], ["Termos de Uso", "/termos"]]) {
+      const link = page.getByRole("link", { name, exact: true });
+      await expect(link).toHaveAttribute("target", "_blank");
+      await expect(link).toHaveAttribute("rel", "noopener noreferrer");
+      const popupPromise = page.waitForEvent("popup");
+      await link.click();
+      const popup = await popupPromise;
+      await expect(popup).toHaveURL(new RegExp(`${path}$`));
+      await popup.close();
+      await expect(page).toHaveURL(/\/register$/);
+      await expect(checkbox).not.toBeChecked();
+    }
+    await expect(page.getByPlaceholder("João Silva")).toHaveValue("Pessoa de Teste");
+    await expect(page.getByPlaceholder("seu@email.com")).toHaveValue("person@example.test");
+    await expect(page.getByPlaceholder("Mínimo 8 caracteres")).toHaveValue("Test-password123!");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  }
+  await page.goto("/login");
+  await expect(page.getByRole("navigation", { name: "Informações legais" })).toBeVisible();
+  await expect(page.locator('a[href="/privacidade"]')).toHaveCount(1);
+  await expect(page.locator('a[href="/termos"]')).toHaveCount(1);
+});
+
 test("registration links open separately and require an unchecked, versioned legal acceptance", async ({ page }) => {
   await anonymousApi(page);
   let submitted: Record<string, unknown> | undefined;
@@ -71,10 +110,10 @@ test("registration links open separately and require an unchecked, versioned leg
   await page.goto("/register");
   const checkbox = page.getByRole("checkbox", { name: "Li a Política de Privacidade e aceito os Termos de Uso." });
   await expect(checkbox).not.toBeChecked();
-  const link = page.getByRole("link", { name: "Ler Política de Privacidade (nova aba)" });
+  const link = page.getByRole("link", { name: "Política de Privacidade", exact: true });
   await expect(link).toHaveAttribute("target", "_blank");
   await expect(link).toHaveAttribute("href", "/privacidade");
-  await expect(page.getByRole("link", { name: "Ler Termos de Uso (nova aba)" })).toHaveAttribute("href", "/termos");
+  await expect(page.getByRole("link", { name: "Termos de Uso", exact: true })).toHaveAttribute("href", "/termos");
   await page.getByPlaceholder("João Silva").fill("Pessoa de Teste");
   await page.getByPlaceholder("seu@email.com").fill("person@example.test");
   await page.getByPlaceholder("Mínimo 8 caracteres").fill("Test-password123!");
@@ -85,6 +124,8 @@ test("registration links open separately and require an unchecked, versioned leg
   await page.getByRole("button", { name: "Criar minha conta" }).click();
   await expect(page.getByRole("heading", { name: "Solicitação enviada", exact: true })).toBeVisible();
   expect(submitted).toMatchObject({ consentAccepted: true, legalDocumentsVersion: Object.values(LegalDocumentsVersion)[0] });
+  await expect(page.locator('a[href="/privacidade"]')).toHaveCount(1);
+  await expect(page.locator('a[href="/termos"]')).toHaveCount(1);
 });
 
 test("login shows an actionable verification message without the HTTP status code", async ({

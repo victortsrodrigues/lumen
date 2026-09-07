@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth-context";
 import { useGetMemberStats } from "@workspace/api-client-react";
 import {
   Calendar, BookOpen, UsersRound, Loader2, MapPin, Clock,
-  User, Award, Newspaper, MessageSquare, Music, ArrowRight,
+  Award, Newspaper, MessageSquare, Music, ArrowRight,
 } from "lucide-react";
 import { motion, type Variants } from "framer-motion";
 import { Link } from "wouter";
@@ -120,7 +120,7 @@ export default function MemberDashboard() {
           )}
 
           {/* KPI Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
             <Link href="/teaching/my-courses">
               <motion.div variants={item} className="bg-card rounded-2xl p-6 border border-border/60 shadow-sm hover:border-primary/40 transition-colors cursor-pointer">
                 <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center mb-3">
@@ -148,16 +148,6 @@ export default function MemberDashboard() {
                 </div>
                 <p className="text-2xl font-bold">{myMinistries.length}</p>
                 <p className="text-sm text-muted-foreground">Meus ministérios</p>
-              </motion.div>
-            </Link>
-
-            <Link href="/lgpd/my-data">
-              <motion.div variants={item} className="bg-card rounded-2xl p-6 border border-border/60 shadow-sm hover:border-primary/40 transition-colors cursor-pointer">
-                <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center mb-3">
-                  <User className="w-6 h-6" />
-                </div>
-                <p className="text-sm font-semibold mt-2">Meus Dados</p>
-                <p className="text-xs text-muted-foreground">LGPD</p>
               </motion.div>
             </Link>
           </div>

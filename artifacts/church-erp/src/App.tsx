@@ -120,10 +120,6 @@ import ContributionsPage from "./pages/contributions";
 // Public Pages
 import { PrivacyPolicy, TermsOfUse } from "./pages/public/legal";
 
-// LGPD Module
-import LgpdMyData from "./pages/lgpd/my-data";
-import LgpdAdminRequests from "./pages/lgpd/admin-requests";
-
 // Global mutation cache:
 // - onSuccess: auto-invalidates all /api/* queries so lists/details refresh
 //   without manual invalidation calls.
@@ -272,9 +268,10 @@ function Router() {
       <Route path="/finance/pix" component={PixAdminPage} />
       <Route path="/contributions" component={ContributionsPage} />
 
-      {/* LGPD Module */}
-      <Route path="/lgpd/my-data" component={LgpdMyData} />
-      <Route path="/lgpd/admin-requests" component={LgpdAdminRequests} />
+      {/* Retired LGPD screens: preserve old bookmarks without loading personal data. */}
+      <Route path="/lgpd"><Redirect to="/privacidade" replace /></Route>
+      <Route path="/lgpd/my-data"><Redirect to="/privacidade" replace /></Route>
+      <Route path="/lgpd/admin-requests"><Redirect to="/privacidade" replace /></Route>
 
       {/* Teaching Module */}
       <Route path="/teaching" component={TeachingDashboard} />

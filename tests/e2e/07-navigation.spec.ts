@@ -14,7 +14,7 @@ test.describe("07-navigation", () => {
 
   test("1. Sidebar shows all items (admin)", async ({ page }) => {
     await loginAs(page, adminEmail, adminPw);
-    for (const item of ["Dashboard", "Membros", "Financeiro", "Ensino", "Eventos", "LGPD"]) {
+    for (const item of ["Dashboard", "Membros", "Financeiro", "Ensino", "Eventos", "Privacidade e termos"]) {
       await expect(page.getByText(item).first()).toBeVisible();
     }
   });
@@ -36,11 +36,12 @@ test.describe("07-navigation", () => {
     await expect(page.getByText(/meus cursos/i).first()).toBeVisible();
   });
 
-  test("4. LGPD submenu expands", async ({ page }) => {
+  test("4. Privacy and terms submenu expands", async ({ page }) => {
     await loginAs(page, adminEmail, adminPw);
-    await page.getByText("LGPD").click();
-    await expect(page.getByText(/meus dados/i)).toBeVisible();
-    await expect(page.getByText(/solicitações/i)).toBeVisible();
+    const navigation = page.getByRole("navigation", { name: "Menu principal", exact: true });
+    await navigation.getByRole("button", { name: "Privacidade e termos", exact: true }).click();
+    await expect(navigation.getByRole("link", { name: "Política de Privacidade", exact: true })).toBeVisible();
+    await expect(navigation.getByRole("link", { name: "Termos de Uso", exact: true })).toBeVisible();
   });
 
   test("5. Navigation between pages", async ({ page }) => {

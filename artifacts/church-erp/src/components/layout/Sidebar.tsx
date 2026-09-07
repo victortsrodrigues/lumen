@@ -67,11 +67,12 @@ const MENU_ITEMS = [
   { icon: Target, label: "Planejamento", href: "/planning", roles: ["admin", "leader"] },
   {
     icon: Shield,
-    label: "LGPD",
-    href: "/lgpd",
+    label: "Privacidade e termos",
+    href: "/privacidade",
+    toggleOnly: true,
     subItems: [
-      { icon: User, label: "Meus Dados", href: "/lgpd/my-data" },
-      { icon: Shield, label: "Solicitações", href: "/lgpd/admin-requests", roles: ["admin"] },
+      { icon: Shield, label: "Política de Privacidade", href: "/privacidade" },
+      { icon: FileText, label: "Termos de Uso", href: "/termos" },
     ],
   },
 ];
@@ -87,12 +88,9 @@ export function Sidebar({ open = false, onClose }: SidebarProps = {}) {
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
     "/finance": location.startsWith("/finance"),
     "/teaching": location.startsWith("/teaching"),
-    "/lgpd": location.startsWith("/lgpd"),
+    "/privacidade": location === "/privacidade" || location === "/termos",
     "/members": location.startsWith("/members"),
   });
-
-  // Expand sidebar menus based on current location
-
 
   const getRoleColor = (role?: string) => {
     switch (role) {
@@ -129,29 +127,30 @@ export function Sidebar({ open = false, onClose }: SidebarProps = {}) {
       </div>
 
       {/* Navigation */}
-      <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
+      <nav aria-label="Menu principal" className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
         <div className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-4 px-2">
           Menu Principal
         </div>
 
         {MENU_ITEMS.filter((item) => !(item as any).roles || (item as any).roles.includes(user?.role)).map((item) => {
-          const isActive =
-            item.href === "/"
+          const toggleOnly = "toggleOnly" in item && item.toggleOnly;
+          const isActive = toggleOnly
+            ? item.subItems?.some((sub) => location === sub.href)
+            : item.href === "/"
               ? location === "/"
               : location.startsWith(item.href);
           const hasSubItems = "subItems" in item && item.subItems && item.subItems.length > 0;
           const isOpen = openMenus[item.href];
+          const submenuId = `submenu-${item.href.slice(1)}`;
 
           if (hasSubItems) {
             return (
               <div key={item.href}>
                 <button
-                  onClick={() => {
-                    toggleMenu(item.href);
-                    if (!isOpen) {
-                      // Navigate to parent on first open
-                    }
-                  }}
+                  type="button"
+                  onClick={() => toggleMenu(item.href)}
+                  aria-expanded={!!isOpen}
+                  aria-controls={submenuId}
                   className={cn(
                     "w-full flex items-center px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative",
                     isActive
@@ -161,16 +160,20 @@ export function Sidebar({ open = false, onClose }: SidebarProps = {}) {
                 >
                   <item.icon
                     className={cn(
-                      "w-5 h-5 mr-3 transition-colors",
+                      "w-5 h-5 mr-3 shrink-0 transition-colors",
                       isActive ? "text-[#00c6d7]" : "text-white/40 group-hover:text-white"
                     )}
                   />
-                  <Link href={item.href} className="flex-1 text-left" onClick={(e) => e.stopPropagation()}>
-                    {item.label}
-                  </Link>
+                  {toggleOnly ? (
+                    <span className="flex-1 text-left">{item.label}</span>
+                  ) : (
+                    <Link href={item.href} className="flex-1 text-left" onClick={(e) => e.stopPropagation()}>
+                      {item.label}
+                    </Link>
+                  )}
                   <ChevronDown
                     className={cn(
-                      "w-4 h-4 transition-transform duration-200",
+                      "w-4 h-4 shrink-0 transition-transform duration-200",
                       isOpen ? "rotate-180" : ""
                     )}
                   />
@@ -184,13 +187,15 @@ export function Sidebar({ open = false, onClose }: SidebarProps = {}) {
                     .filter((sub) => location === sub.href || location.startsWith(sub.href + "/"))
                     .sort((a, b) => b.href.length - a.href.length)[0]?.href;
                   return (
-                  <div className="mt-1 ml-4 pl-4 border-l border-white/10 space-y-1">
+                  <div id={submenuId} className="mt-1 ml-4 pl-4 border-l border-white/10 space-y-1">
                     {visibleSubs.map((sub) => {
                       const subActive = sub.href === activeSubHref;
                       return (
                         <Link
                           key={sub.href}
                           href={sub.href}
+                          aria-current={subActive ? "page" : undefined}
+                          onClick={onClose}
                           className={cn(
                             "flex items-center px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 group",
                             subActive
@@ -200,7 +205,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps = {}) {
                         >
                           <sub.icon
                             className={cn(
-                              "w-4 h-4 mr-3 transition-colors",
+                              "w-4 h-4 mr-3 shrink-0 transition-colors",
                               subActive ? "text-[#00c6d7]" : "text-white/30 group-hover:text-white"
                             )}
                           />
@@ -300,7 +305,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps = {}) {
             </Link>
           </>
         )}
-      </div>
+      </nav>
 
       {/* User Profile Footer */}
       <div className="p-4 border-t border-white/10">
