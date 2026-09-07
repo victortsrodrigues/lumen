@@ -11,8 +11,6 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
             <span className="font-bold text-lg tracking-tight">LUMEN</span>
           </Link>
           <div className="flex gap-3 sm:gap-4 text-sm">
-            <Link href="/site" className="text-white/70 hover:text-white hidden sm:inline">Sobre</Link>
-            <Link href="/donate" className="text-white/70 hover:text-white">Contribuir</Link>
             <Link href="/login" className="text-[#00c6d7] hover:text-[#00c6d7]/80">Entrar</Link>
           </div>
         </div>
