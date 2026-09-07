@@ -13,5 +13,5 @@ export type LegalDocumentsVersion =
   (typeof LegalDocumentsVersion)[keyof typeof LegalDocumentsVersion];
 
 export const LegalDocumentsVersion = {
-  "2026-09-06": "2026-09-06",
+  "2026-09-07": "2026-09-07",
 } as const;

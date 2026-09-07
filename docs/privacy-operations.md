@@ -1,11 +1,12 @@
 # Privacidade — procedimento mínimo da Lumen
 
-Revisado em 06/09/2026. Documento interno: não é uma certificação de conformidade nem garantia contra responsabilidade. Não adiciona assinatura paga, MFA, plataforma jurídica ou SLA comercial.
+Revisado em 07/09/2026. Documento interno: não é uma certificação de conformidade nem garantia contra responsabilidade. Não adiciona assinatura paga, MFA, plataforma jurídica ou SLA comercial.
 
 ## Textos e contato
 
 - Igreja responsável: Igreja Presbiteriana Lumen. Contato informado pelo administrador (32) 99922-1949. CNPJ ainda não informado; não foi inventado nem publicado um número provisório.
 - Textos públicos: `/privacidade` e `/termos`, em `artifacts/church-erp/src/pages/public/legal.tsx`. A versão está em `LegalDocumentsVersion`, no OpenAPI.
+- Navegação: o menu lateral **Privacidade e termos** dá acesso aos textos para todos os tipos de conta. As antigas telas **Meus Dados** e **Solicitações LGPD** foram retiradas; seus endereços redirecionam à política. Pedidos são atendidos pelo contato informado. As APIs e os registros existentes não foram removidos, e a exclusão da própria conta continua no perfil.
 - Cadastro: aceite dos termos e ciência da política, com caixa inicialmente desmarcada, data, IP e versão registrados no banco existente. Isso não é consentimento para qualquer tratamento de dados sensíveis.
 - As contas anteriores não recebem aceite retroativo. Preserve o texto de cada versão no Git; em alterações posteriores à publicação, avance a versão no contrato e informe mudanças relevantes aos usuários. Não altere silenciosamente o significado de uma versão já aceita.
 
@@ -21,7 +22,7 @@ Base: [LGPD, especialmente arts. 7–11, 14–19, 33 e 41](https://www.planalto.
 ## Quando chegar um pedido de dados
 
 1. Registrar recebimento, pedido, quem vai tratar e conclusão, em local restrito. Confirmar a identidade proporcionalmente, sem pedir senha nem acumular cópias de documentos desnecessárias. Aceitar pedidos também de quem não tem conta.
-2. Consultar os dados envolvidos; usar Meu Perfil e Meus Dados quando aplicáveis. Esses recursos não abrangem automaticamente todos os documentos externos, dados de terceiros ou conteúdo publicado. Pedidos de confirmação/acesso têm as modalidades de resposta do art. 19; não confundir seu prazo de até 15 dias para declaração completa com um prazo universal para todos os direitos. Observar os prazos legais aplicáveis e informar o andamento.
+2. Consultar os dados envolvidos nos módulos internos, respeitando as permissões de acesso. Meu Perfil continua disponível ao titular. Esses recursos não abrangem automaticamente todos os documentos externos, dados de terceiros ou conteúdo publicado. Pedidos de confirmação/acesso têm as modalidades de resposta do art. 19; não confundir seu prazo de até 15 dias para declaração completa com um prazo universal para todos os direitos. Observar os prazos legais aplicáveis e informar o andamento.
 3. Para correção ou exclusão, verificar também campos livres, documentos externos e destinatários com quem os dados foram compartilhados, quando aplicável. A exclusão de conta remove ou desassocia vários registros, mas não garante anonimização irreversível de todo conteúdo. Não declarar atendimento integral sem conferir o pedido concreto. Explicar eventual conservação, com fundamento e duração, ou a impossibilidade justificada de atendimento.
 4. Backups não são apagados seletivamente pela exclusão de conta. Seguir a retenção do [procedimento de backup](../ops/postgres-backup/RUNBOOK.md) e, antes de disponibilizar uma restauração, conferir e reaplicar exclusões e correções posteriores à cópia. Esse controle de pedidos e reaplicação é operacional, não uma automação já existente.
 

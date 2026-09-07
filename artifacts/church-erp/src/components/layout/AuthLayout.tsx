@@ -5,9 +5,10 @@ interface AuthLayoutProps {
   children: React.ReactNode;
   title: string;
   subtitle?: string;
+  showLegalLinks?: boolean;
 }
 
-export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
+export function AuthLayout({ children, title, subtitle, showLegalLinks = true }: AuthLayoutProps) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-6 py-10 selection:bg-primary/20">
       <div className="w-full max-w-md">
@@ -24,7 +25,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
         </div>
 
         {children}
-        <LegalLinks />
+        {showLegalLinks && <LegalLinks />}
       </div>
     </div>
   );

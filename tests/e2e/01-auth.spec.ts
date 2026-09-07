@@ -100,7 +100,7 @@ test.describe("01-auth", () => {
   test("12. Admin sees all modules", async ({ page }) => {
     const admin = await apiRegisterAdmin(`${P}-all`);
     await loginAs(page, admin.email, admin.password);
-    for (const item of ["Dashboard", "Membros", "Financeiro", "Ensino", "Eventos", "LGPD"]) {
+    for (const item of ["Dashboard", "Membros", "Financeiro", "Ensino", "Eventos", "Privacidade e termos"]) {
       await expect(page.getByText(item).first()).toBeVisible();
     }
   });
