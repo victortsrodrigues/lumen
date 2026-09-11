@@ -12,5 +12,8 @@ export interface UpcomingCultoItem {
   title: string;
   startDate: string;
   location?: string | null;
+  responsibleName?: string | null;
   hasCommunion?: boolean;
+  hasBaptism?: boolean;
+  hasMemberReception?: boolean;
 }

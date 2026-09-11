@@ -4877,7 +4877,7 @@ paths:
     get:
       operationId: getUpcomingCultos
       tags: [cultos]
-      summary: Next 5 upcoming cultos
+      summary: Next 5 scheduled cultos, ordered by start date
       security: [{ cookieAuth: [] }]
       responses:
         "200":
@@ -9908,7 +9908,10 @@ components:
         title: { type: string }
         startDate: { type: string }
         location: { type: string, nullable: true }
+        responsibleName: { type: string, nullable: true }
         hasCommunion: { type: boolean }
+        hasBaptism: { type: boolean }
+        hasMemberReception: { type: boolean }
       required: [cultoId, eventId, title, startDate]
 
     UpcomingCultosResponse:

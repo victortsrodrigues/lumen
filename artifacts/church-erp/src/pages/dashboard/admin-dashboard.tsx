@@ -1,4 +1,5 @@
 import { AppLayout } from "@/components/layout/AppLayout";
+import { UpcomingCultoCard } from "@/components/dashboard/UpcomingCultoCard";
 import { useAuth } from "@/hooks/use-auth-context";
 import { useGetDashboardStats } from "@workspace/api-client-react";
 import {
@@ -46,6 +47,8 @@ export default function AdminDashboard() {
           Visão executiva da igreja.
         </p>
       </div>
+
+      <UpcomingCultoCard />
 
       {isLoading && (
         <div className="flex justify-center py-20">

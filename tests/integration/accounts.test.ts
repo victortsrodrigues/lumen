@@ -549,6 +549,71 @@ describe("account lifecycle and member identity", () => {
   });
 });
 
+describe("upcoming cultos dashboard", () => {
+  it("requires authentication without granting members write access", async () => {
+    expect((await request("GET", "/cultos/upcoming", undefined, null)).status).toBe(401);
+    const actor = await account({ role: "member", status: "active" });
+    expect((await request("POST", "/cultos", {}, actor)).status).toBe(403);
+    expect((await request("PUT", "/cultos/nonexistent-culto", {}, actor)).status).toBe(403);
+  });
+
+  it("returns the first five scheduled future cultos with display details for every role", async () => {
+    const fixturePrefix = randomUUID();
+    const eventIds: string[] = [];
+    const now = Date.now();
+    const expectedIds = Array.from({ length: 5 }, (_, index) => `${fixturePrefix}-culto-${index}`);
+    async function fixture(index: number, minutes: number, status = "agendado", deleted = false) {
+      const eventId = `${fixturePrefix}-event-${index}`;
+      const cultoId = `${fixturePrefix}-culto-${index}`;
+      eventIds.push(eventId);
+      await pool.query(
+        `INSERT INTO events (id,title,type,start_date,end_date,location,responsible_name,status,
+          deleted_at,created_by_user_id,updated_by_user_id)
+         VALUES ($1,$2,'culto',$3,$4,'Templo de teste','Responsável de teste',$5,$6,$7,$7)`,
+        [eventId, `${fixturePrefix} culto ${index}`,
+          new Date(now + minutes * 60_000).toISOString(),
+          new Date(now + (minutes + 60) * 60_000).toISOString(),
+          status, deleted ? new Date().toISOString() : null, adminId],
+      );
+      await pool.query(
+        `INSERT INTO cultos (id,event_id,has_communion,has_baptism,has_member_reception,
+          created_by_user_id,updated_by_user_id) VALUES ($1,$2,$3,$3,$3,$4,$4)`,
+        [cultoId, eventId, index === 0, adminId],
+      );
+    }
+    try {
+      // Insert out of chronological order; the first two also test the ID tiebreaker.
+      for (const index of [6, 1, 4, 0, 3, 2, 5]) await fixture(index, (Math.max(1, index) + 2) * 60);
+      await fixture(7, 1, "cancelado");
+      await fixture(8, 1, "encerrado");
+      await fixture(9, 1, "em_andamento");
+      await fixture(10, 1, "agendado", true);
+      await fixture(11, -60);
+      for (const role of ["admin", "leader", "member"]) {
+        const actor = role === "admin" ? adminId : await account({ role, status: "active" });
+        const result = await request("GET", "/cultos/upcoming", undefined, actor);
+        expect(result.status).toBe(200);
+        expect(result.body.items.map((item: { cultoId: string }) => item.cultoId)).toEqual(expectedIds);
+        expect(result.body.items[0]).toMatchObject({
+          eventId: `${fixturePrefix}-event-0`,
+          title: `${fixturePrefix} culto 0`,
+          startDate: new Date(now + 180 * 60_000).toISOString(),
+          location: "Templo de teste",
+          responsibleName: "Responsável de teste",
+          hasCommunion: true,
+          hasBaptism: true,
+          hasMemberReception: true,
+        });
+        expect(result.body.items[1]).toMatchObject({ hasCommunion: false, hasBaptism: false, hasMemberReception: false });
+      }
+    } finally {
+      // Only remove the synthetic fixtures created by this test, in the guarded local database.
+      await pool.query("DELETE FROM events WHERE id = ANY($1::text[])", [eventIds]);
+    }
+    expect((await request("GET", "/cultos/upcoming")).body).toEqual({ items: [] });
+  });
+});
+
 describe("critical release flows", () => {
   it("refuses missing or stale legal versions and truthy non-boolean acceptance without creating accounts", async () => {
     const email = `${randomUUID()}@example.test`;

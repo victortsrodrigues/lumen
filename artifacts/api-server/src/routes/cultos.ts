@@ -124,7 +124,7 @@ router.get("/reports/annual", requireAuth, requireRole("admin", "leader"), async
   res.json({ year, totals, items });
 });
 
-// GET /cultos/upcoming — próximos 5 cultos (member-friendly)
+// GET /cultos/upcoming — próximos 5 cultos agendados (member-friendly)
 router.get("/upcoming", requireAuth, async (_req: Request, res: Response) => {
   const now = new Date();
   const rows = await db
@@ -134,15 +134,19 @@ router.get("/upcoming", requireAuth, async (_req: Request, res: Response) => {
       title: eventsTable.title,
       startDate: eventsTable.startDate,
       location: eventsTable.location,
+      responsibleName: eventsTable.responsibleName,
       hasCommunion: cultosTable.hasCommunion,
+      hasBaptism: cultosTable.hasBaptism,
+      hasMemberReception: cultosTable.hasMemberReception,
     })
     .from(cultosTable)
     .innerJoin(eventsTable, eq(eventsTable.id, cultosTable.eventId))
     .where(and(
       isNull(eventsTable.deletedAt),
       gte(eventsTable.startDate, now),
+      eq(eventsTable.status, "agendado"),
     ))
-    .orderBy(asc(eventsTable.startDate))
+    .orderBy(asc(eventsTable.startDate), asc(cultosTable.id))
     .limit(5);
 
   res.json({
