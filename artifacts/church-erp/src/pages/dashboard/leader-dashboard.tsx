@@ -1,4 +1,5 @@
 import { AppLayout } from "@/components/layout/AppLayout";
+import { UpcomingCultoCard } from "@/components/dashboard/UpcomingCultoCard";
 import { useAuth } from "@/hooks/use-auth-context";
 import { useGetDashboardStats, useGetLeaderWidgets } from "@workspace/api-client-react";
 import {
@@ -42,6 +43,8 @@ export default function LeaderDashboard() {
           Painel de gestão dos seus ministérios e atividades.
         </p>
       </div>
+
+      <UpcomingCultoCard />
 
       {isLoading && (
         <div className="flex justify-center py-20">

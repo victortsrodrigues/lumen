@@ -13,6 +13,7 @@ import { useState } from "react";
 // roles: undefined = visible to all, otherwise only visible to listed roles
 const MENU_ITEMS = [
   { icon: Home, label: "Dashboard", href: "/" },
+  { icon: BookMarked, label: "Cultos", href: "/cultos" },
   { icon: User, label: "Meu Perfil", href: "/profile", roles: ["leader", "member"] },
   {
     icon: Users,
@@ -58,7 +59,6 @@ const MENU_ITEMS = [
   { icon: ShieldCheck, label: "Aconselhamento", href: "/counseling", roles: ["admin", "leader"] },
   { icon: Gavel, label: "Conselho", href: "/conselho", roles: ["admin"] },
   { icon: Music, label: "Músicas", href: "/songs" },
-  { icon: BookMarked, label: "Cultos", href: "/cultos" },
   { icon: QrCode, label: "Contribuições", href: "/contributions", roles: ["member", "leader"] },
   { icon: Newspaper, label: "Artigos & Devocionais", href: "/articles" },
   { icon: MessageSquare, label: "Fórum", href: "/forum" },

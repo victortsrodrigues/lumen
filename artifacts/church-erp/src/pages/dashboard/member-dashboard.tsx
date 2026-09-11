@@ -1,4 +1,5 @@
 import { AppLayout } from "@/components/layout/AppLayout";
+import { UpcomingCultoCard } from "@/components/dashboard/UpcomingCultoCard";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth-context";
 import { useGetMemberStats } from "@workspace/api-client-react";
@@ -58,6 +59,8 @@ export default function MemberDashboard() {
           Acompanhe o dia a dia da Lumen!
         </p>
       </div>
+
+      <UpcomingCultoCard />
 
       {isLoading && (
         <div className="flex justify-center py-20">

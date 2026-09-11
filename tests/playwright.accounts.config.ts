@@ -9,6 +9,7 @@ export default defineConfig({
     "release-flows.spec.ts",
     "legal-navigation.spec.ts",
     "contributions.spec.ts",
+    "cultos-dashboard.spec.ts",
   ],
   workers: 1,
   timeout: 30_000,

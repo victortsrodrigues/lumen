@@ -8,6 +8,11 @@ const apiRequire = createRequire(
 const webRequire = createRequire(
   new URL("../../artifacts/church-erp/package.json", import.meta.url),
 );
+const specRequire = createRequire(
+  new URL("../../lib/api-spec/package.json", import.meta.url),
+);
+const orvalRequire = createRequire(specRequire.resolve("orval/package.json"));
+const yaml = orvalRequire("js-yaml");
 const routerRequire = createRequire(apiRequire.resolve("router"));
 const { PgDialect } = apiRequire("drizzle-orm/pg-core");
 const { sql } = apiRequire("drizzle-orm");
@@ -51,6 +56,24 @@ describe("patched runtime dependencies", () => {
 
   it("uses the patched official SheetJS distribution", () => {
     expect(XLSX.version).toBe("0.20.3");
+  });
+});
+
+describe("patched build dependencies", () => {
+  it("counts repeated empty YAML merge sources toward the total work limit", () => {
+    // Small deterministic regression for GHSA-2883-xcg3-v3hh, not a CPU stress test.
+    const document = "sources: &sources [{}, {}, {}]\nfirst:\n  <<: *sources\nsecond:\n  <<: *sources\n";
+    expect(() => yaml.load(document, { maxTotalMergeKeys: 5 })).toThrow(
+      /merge keys exceeded maxTotalMergeKeys/,
+    );
+  });
+
+  it("preserves ordinary YAML parsing and merges below the work limit", () => {
+    const document = "defaults: &defaults\n  enabled: true\nservice:\n  <<: *defaults\n  name: Lumen\n";
+    expect(yaml.load(document)).toEqual({
+      defaults: { enabled: true },
+      service: { enabled: true, name: "Lumen" },
+    });
   });
 });
 

@@ -6264,7 +6264,7 @@ export const GetAnnualCultoReportResponse = zod.object({
 });
 
 /**
- * @summary Next 5 upcoming cultos
+ * @summary Next 5 scheduled cultos, ordered by start date
  */
 export const GetUpcomingCultosResponse = zod.object({
   items: zod.array(
@@ -6274,7 +6274,10 @@ export const GetUpcomingCultosResponse = zod.object({
       title: zod.string(),
       startDate: zod.string(),
       location: zod.string().nullish(),
+      responsibleName: zod.string().nullish(),
       hasCommunion: zod.boolean().optional(),
+      hasBaptism: zod.boolean().optional(),
+      hasMemberReception: zod.boolean().optional(),
     }),
   ),
 });

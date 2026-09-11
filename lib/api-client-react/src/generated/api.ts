@@ -25547,7 +25547,7 @@ export const getGetUpcomingCultosUrl = () => {
 };
 
 /**
- * @summary Next 5 upcoming cultos
+ * @summary Next 5 scheduled cultos, ordered by start date
  */
 export const getUpcomingCultos = async (
   options?: RequestInit,
@@ -25666,7 +25666,7 @@ export function useGetUpcomingCultos<
   queryKey: DataTag<QueryKey, TData, TError>;
 };
 /**
- * @summary Next 5 upcoming cultos
+ * @summary Next 5 scheduled cultos, ordered by start date
  */
 
 export function useGetUpcomingCultos<
