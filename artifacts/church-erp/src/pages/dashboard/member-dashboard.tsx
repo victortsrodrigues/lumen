@@ -140,7 +140,7 @@ export default function MemberDashboard() {
                   <Calendar className="w-6 h-6" />
                 </div>
                 <p className="text-2xl font-bold">{upcomingRegisteredEvents.length}</p>
-                <p className="text-sm text-muted-foreground">Eventos inscritos</p>
+                <p className="text-sm text-muted-foreground">Próximas atividades</p>
               </motion.div>
             </Link>
 
