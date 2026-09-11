@@ -2,7 +2,7 @@
 
 Revisão de 06/09/2026, limitada a vulnerabilidades altas e críticas conhecidas.
 
-## Resultado local
+## Resultado local da revisão inicial (06/09/2026)
 
 | Auditoria | Altas | Críticas | Moderadas | Baixas |
 | --- | ---: | ---: | ---: | ---: |
@@ -17,6 +17,20 @@ silenciado ou colocado em lista de exceções.
 Esses números descrevem o lockfile local e os avisos publicados na data da
 consulta, não uma garantia de ausência de falhas nem o estado do deploy atual.
 Moderadas e baixas continuam fora do escopo desta rodada.
+
+## Atualização de 11/09/2026 — js-yaml
+
+O CI do PR de destaque de Cultos identificou o aviso alto
+[GHSA-2883-xcg3-v3hh](https://github.com/advisories/GHSA-2883-xcg3-v3hh)
+na versão `4.3.1` de `js-yaml`, dependência transitiva do Orval. Fontes vazias de
+merge YAML podiam consumir CPU sem serem contabilizadas no limite de trabalho.
+O override da linha 4.x e o lockfile foram atualizados para `4.3.2`, sem mudar
+outras versões nem desativar a auditoria obrigatória.
+
+Após a atualização, `pnpm audit:security` passou: **0 altas, 0 críticas,
+18 moderadas e 7 baixas** no workspace completo. Os testes unitários usam a
+dependência resolvida pelo próprio Orval e verificam tanto a rejeição de merges
+vazios acima de um limite pequeno quanto a preservação de merges normais.
 
 ## Correções e impacto
 
@@ -38,7 +52,7 @@ versão, evitando substituir indiscriminadamente versões principais:
 - `nanoid`: `3.3.18`;
 - `browserslist`: `4.28.7`;
 - `brace-expansion`: `2.1.4`;
-- `js-yaml`: `4.3.1`;
+- `js-yaml`: `4.3.2` (atualização de segurança em 11/09/2026);
 - `fast-uri`: `3.1.6`;
 - `linkify-it`: `5.0.2`.
 
