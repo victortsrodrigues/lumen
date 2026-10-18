@@ -34,6 +34,57 @@ vazios acima de um limite pequeno quanto a preservação de merges normais.
 
 ## Correções e impacto
 
+### Atualização de 17/10/2026 — alertas da verificação semanal
+
+A execução semanal de 12/10/2026, [Application checks #23](https://github.com/victortsrodrigues/lumen/actions/runs/38300794845),
+parou na auditoria com 2 alertas críticos e 7 altos. O lockfile foi atualizado
+sem trocar as versões principais do produto, desativar a auditoria ou criar
+exceções para avisos:
+
+| Dependência | Resolução anterior | Resolução corrigida |
+| --- | --- | --- |
+| `compression` | `1.8.1` | `1.8.2` |
+| `proxy-addr` (Express) | `2.0.7` | `2.0.8` |
+| `shell-quote` (concurrently) | `1.9.0` | `1.11.0` |
+| `fast-uri` (geração OpenAPI) | `3.1.6` | `3.1.7` |
+| `brace-expansion` (ferramentas do Orval) | `5.0.9` | `5.0.11` |
+| `source-map-js` (build do frontend) | `1.2.1` | `1.2.2` |
+
+O piso preventivo de `brace-expansion` na linha 2.x também passou a `2.1.6`.
+Os overrides permanecem limitados às linhas compatíveis. A distribuição oficial
+do SheetJS `0.20.3` foi preservada.
+
+O aviso de `braces` não tinha versão corrigida indicada. Seu único caminho era
+`mockup-sandbox → fast-glob → micromatch → braces`. O plugin auxiliar agora usa
+`tinyglobby 0.2.17`, já resolvido no projeto, preservando padrões, exclusões,
+diretório base e caminhos de importação. A cadeia antiga saiu do lockfile.
+O protótipo continua fora do produto publicado.
+
+Dois testes novos verificam resposta gzip íntegra e destruição do compressor
+real quando o cliente encerra a conexão antes do fim da resposta, seguida de
+outra resposta bem-sucedida. Dois testes do plugin verificam descoberta de
+previews em subpastas, exclusões, arquivos ocultos, links simbólicos, imports
+relativos e atualização após adicionar/remover arquivos.
+
+Validação local em 17/10/2026: auditoria completa com **0 altas, 0 críticas,
+22 moderadas e 8 baixas**; instalação congelada, geração reproduzível, tipagem,
+build e 93 testes aprovados. Ambiente e limites estão em [ci.md](ci.md).
+Os resultados não comprovam execução do workflow atualizado no GitHub nem
+publicação no Railway. Não foram necessárias novas migrações ou alterações
+de dados e permissões.
+
+Avisos oficiais: [compression](https://github.com/advisories/GHSA-vc2v-76pw-4v95),
+[proxy-addr](https://github.com/advisories/GHSA-jqcg-44mw-7w3h),
+[shell-quote](https://github.com/advisories/GHSA-pqg4-j6r4-53mv),
+[fast-uri: porta](https://github.com/advisories/GHSA-qw65-cvwx-89v3),
+[fast-uri: host](https://github.com/advisories/GHSA-58mr-gqgx-xq4g),
+[brace-expansion: grupos](https://github.com/advisories/GHSA-qhr7-859c-m2p7),
+[brace-expansion: vírgulas](https://github.com/advisories/GHSA-6j4f-fj2g-mc7p),
+[source-map-js](https://github.com/advisories/GHSA-68fv-2mgg-jv7q) e
+[braces](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm).
+
+### Revisão inicial de setembro de 2026
+
 | Componente | Risco e contexto | Correção |
 | --- | --- | --- |
 | Drizzle ORM | Identificadores SQL mal escapados podem permitir injeção quando nomes são derivados de entradas não confiáveis. Valores continuam devendo ser parametrizados. | Catálogo fixado em `0.45.2`; teste de aspas em identificadores e de parâmetros. |
