@@ -1,7 +1,45 @@
 # Validação essencial para publicação
 
-Revisão de 06/09/2026. Escopo: aplicação de produção, sem MFA, mudanças visuais
-ou reescrita dos módulos.
+Revisão inicial de 06/09/2026. Escopo: aplicação de produção, sem MFA, mudanças
+visuais ou reescrita dos módulos. Os resultados dessa revisão são históricos;
+a validação mais recente está abaixo.
+
+## Validação local de 17/10/2026
+
+Após as correções de dependências descritas em [dependency-security.md](dependency-security.md):
+
+| Verificação | Resultado |
+| --- | --- |
+| Instalação congelada sem scripts | Aprovada |
+| Auditoria do workspace completo | 0 altas, 0 críticas; 22 moderadas e 8 baixas |
+| Geração da API | Sem alterações nos clientes e validadores versionados |
+| Tipagem e build do produto | Aprovados |
+| Testes unitários | 25 aprovados |
+| Integração com banco descartável | 31 aprovados |
+| Navegador com API simulada | 37 aprovados |
+
+Total: **93 testes aprovados**, incluindo quatro regressões novas de compressão
+e descoberta de previews. Os fluxos existentes exercitam autenticação,
+recuperação de senha, gestão e vínculo de contas, autorização, proteção de atas,
+finanças, Cultos, exportação de planilhas e navegação jurídica.
+
+Ambiente: macOS arm64, Node `22.23.2`, pnpm `10.33.0`, Chromium do Playwright
+`1.58.2` e PostgreSQL `18.6` temporário restrito a loopback. O banco exclusivo
+`lumen_accounts_test` foi criado vazio e preparado com `pnpm db:test:prepare`,
+aplicando as cinco migrações existentes. O CI continua usando PostgreSQL 16.
+Não foram usados banco de produção ou envio real de e-mail. Os avisos já
+existentes de sourcemap e tamanho do bundle continuam sem bloquear o build.
+
+O workflow foi atualizado para `actions/checkout v7.0.1` e
+`actions/setup-node v7.1.0`, ambos fixados por SHA e com runtime Node 24 interno.
+O Node da aplicação permanece definido pela `.nvmrc`. O cache automático de
+pacotes foi explicitamente desativado e o runner foi fixado em `ubuntu-24.04`
+para controlar a transição anunciada de `ubuntu-latest`. Permissões mínimas,
+credenciais não persistidas e todos os bloqueios de segurança foram mantidos.
+
+Esta seção registra a validação local anterior à publicação. O resultado das
+novas actions deve ser conferido no CI do PR e da `main`; a publicação Linux
+deve ser confirmada pelo deployment correspondente no Railway e pelo healthcheck.
 
 ## Varredura e correções
 
