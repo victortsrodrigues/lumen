@@ -9,7 +9,7 @@ const webRequire = createRequire(
 const XLSX = webRequire("xlsx");
 
 for (const empty of [false, true]) {
-  test(`financial Excel export preserves ${empty ? "empty reports" : "amounts, dates, accents and literal text"}`, async ({
+  test(`financial exports preserve ${empty ? "empty reports" : "amounts, dates, accents and literal text"}`, async ({
     page,
   }) => {
     await page.route(/^https:\/\//, (route) => route.abort());
@@ -65,6 +65,9 @@ for (const empty of [false, true]) {
     const button = page.getByRole("button", { name: /Excel/i });
     if (empty) {
       await expect(button).toBeDisabled();
+      await expect(
+        page.getByRole("button", { name: "PDF", exact: true }),
+      ).toBeDisabled();
       return;
     }
     await expect(button).toBeEnabled();
@@ -95,6 +98,13 @@ for (const empty of [false, true]) {
     expect(sheet.D3.t).toBe("s");
     expect(sheet.D3.v).toBe("=1+1");
     expect(sheet.D3.f).toBeUndefined();
+    const pdfDownloaded = page.waitForEvent("download");
+    await page.getByRole("button", { name: "PDF", exact: true }).click();
+    const pdf = await pdfDownloaded;
+    expect(pdf.suggestedFilename()).toMatch(/^relatorio-financeiro-.*\.pdf$/);
+    const pdfBuffer = await readFile((await pdf.path())!);
+    expect(pdfBuffer.subarray(0, 5).toString()).toBe("%PDF-");
+    expect(pdfBuffer.length).toBeGreaterThan(500);
   });
 }
 

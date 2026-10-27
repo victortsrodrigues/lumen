@@ -6,6 +6,7 @@ export default defineConfig({
   testMatch: [
     "accounts.spec.ts",
     "dependency-regression.spec.ts",
+    "zod-forms.spec.ts",
     "release-flows.spec.ts",
     "legal-navigation.spec.ts",
     "contributions.spec.ts",

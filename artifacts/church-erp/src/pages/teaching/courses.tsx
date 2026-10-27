@@ -44,12 +44,12 @@ const courseSchema = z.object({
   description: z.string().min(1, "Descrição é obrigatória"),
   syllabus: z.string().min(1, "Ementa é obrigatória"),
   introVideoUrl: z.string().optional(),
-  teacherId: z.string().min(1, "Professor é obrigatório"),
+  teacherId: z.string({ error: "Professor é obrigatório" }).min(1, "Professor é obrigatório"),
   category: z.enum(["pregacao", "escola_biblica", "pequeno_grupo", "cursos_livres"], {
-    errorMap: () => ({ message: "Categoria é obrigatória" }),
+    error: "Categoria é obrigatória",
   }),
   status: z.enum(["aberto", "em_andamento", "encerrado"], {
-    errorMap: () => ({ message: "Status é obrigatório" }),
+    error: "Status é obrigatório",
   }),
   startDate: z.string().min(1, "Data de início é obrigatória"),
   endDate: z.string().min(1, "Data de fim é obrigatória"),
@@ -82,7 +82,7 @@ export default function CoursesPage() {
     ...(categoryFilter ? { category: categoryFilter } : {}),
   });
 
-  const form = useForm<CourseForm>({
+  const form = useForm<z.input<typeof courseSchema>, unknown, CourseForm>({
     resolver: zodResolver(courseSchema),
     defaultValues: { category: "escola_biblica", status: "aberto" },
   });

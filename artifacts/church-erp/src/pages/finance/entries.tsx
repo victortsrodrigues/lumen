@@ -100,7 +100,7 @@ export default function FinanceEntries() {
     }
   });
 
-  const form = useForm<EntryFormValues>({
+  const form = useForm<z.input<typeof entrySchema>, unknown, EntryFormValues>({
     resolver: zodResolver(entrySchema),
     defaultValues: { type: "dizimo", paymentMethod: "pix", isAnonymous: false }
   });

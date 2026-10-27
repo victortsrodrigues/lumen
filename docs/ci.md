@@ -4,6 +4,42 @@ Revisão inicial de 06/09/2026. Escopo: aplicação de produção, sem MFA, muda
 visuais ou reescrita dos módulos. Os resultados dessa revisão são históricos;
 a validação mais recente está abaixo.
 
+## Validação local de 27/10/2026
+
+Após as atualizações de segurança e a migração real para Zod 4 descritas em
+[dependency-security.md](dependency-security.md):
+
+| Verificação | Resultado |
+| --- | --- |
+| Instalação congelada sem scripts | Aprovada |
+| Auditoria do workspace completo | 0 altas, 0 críticas; 16 moderadas e 4 baixas |
+| Geração da API | Configuração v4 e validadores regenerados |
+| Tipagem e builds de frontend/backend | Aprovados |
+| Testes unitários | 28 aprovados |
+| Integração com banco descartável | 31 aprovados |
+| Navegador com API simulada | 46 aprovados |
+
+Total: **105 testes aprovados**. Além dos fluxos existentes, há duas regressões
+do encerramento de decodificadores HTTP comprimidos, uma do limite antecipado
+de coleções Zod e nove dos formulários de entradas, despesas, eventos, séries,
+aulas, membros e visitantes. Os testes preservam a exigência de aceite LGPD,
+valores monetários, conversões de números, campos opcionais e valores padrão.
+A verificação dos relatórios agora inclui download de PDF e Excel.
+
+Ambiente: macOS arm64, Node `22.23.2`, pnpm `10.33.0`, Chromium do Playwright
+`1.58.2` e PostgreSQL `18.4` temporário, restrito a loopback. O banco exclusivo
+`lumen_accounts_test` foi criado vazio e preparado com as cinco migrações
+existentes. O CI usa PostgreSQL 16. Não foram usados banco de produção ou envio
+real de e-mail nos testes; não há novas migrações nesta mudança.
+
+Os builds mantêm avisos não bloqueantes de sourcemap e tamanho de bundle, além
+de dois comentários de anotação de otimização da dependência Zod que o Rollup
+descarta. A tipagem continua obrigatória e não recebeu supressões.
+
+Este registro descreve os testes locais anteriores ao PR. O CI do PR e da
+`main`, o deployment do Railway e a disponibilidade após a publicação devem
+ser confirmados separadamente para o commit publicado.
+
 ## Validação local de 17/10/2026
 
 Após as correções de dependências descritas em [dependency-security.md](dependency-security.md):

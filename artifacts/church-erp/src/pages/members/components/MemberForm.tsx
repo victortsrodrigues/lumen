@@ -80,7 +80,7 @@ export default function MemberForm({ initialData, isEditing = false }: MemberFor
   const { mutateAsync: createMember } = useCreateMember();
   const { mutateAsync: updateMember } = useUpdateMember();
 
-  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<FormValues>({
+  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<z.input<typeof formSchema>, unknown, FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       fullName: initialData?.fullName || '',
