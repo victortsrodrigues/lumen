@@ -34,6 +34,55 @@ vazios acima de um limite pequeno quanto a preservação de merges normais.
 
 ## Correções e impacto
 
+### Atualização de 27/10/2026 — auditoria semanal de 26/10
+
+A [execução de 26/10](https://github.com/victortsrodrigues/lumen/actions/runs/40363149051)
+encontrou seis alertas altos em cinco bibliotecas. O mesmo commit havia passado
+em 19/10; os avisos foram incorporados ou revisados na base de segurança depois
+daquela aprovação. A auditoria obrigatória foi preservada, sem exceções.
+
+| Dependência | Anterior | Corrigida |
+| --- | --- | --- |
+| `body-parser` (Express) | `2.2.2` | `2.4.0` |
+| `zod` | `3.25.76` | `4.6.6` |
+| `vite` | `7.3.5` | `7.3.7` |
+| `markdown-it` (Orval/TypeDoc) | `14.3.1` | `14.3.3` |
+| `dompurify` (jsPDF) | `3.3.3` | `3.4.17` |
+
+Os pisos transitivos permanecem limitados às respectivas versões principais.
+A migração do Zod usa efetivamente a API v4: Orval configurado para v4,
+validadores regenerados e `@hookform/resolvers 5.2.2` nos dois consumidores do
+workspace. Os formulários distinguem valores de entrada e saída para preservar
+coerção de valores monetários, campos opcionais, valores padrão e conversões.
+As mensagens customizadas foram adaptadas; a ausência de professor também
+recebe a mensagem em português já usada para seleção vazia.
+
+Dois testes HTTP locais verificam que os parsers JSON e de formulário preservam
+conteúdo comprimido e encerram o decodificador após a leitura bem-sucedida,
+sem deixar o processo exposto a erros posteriores naquele stream. Outro teste
+verifica que uma coleção Zod acima do limite é rejeitada antes da validação de
+cada elemento. O patch não cria limites automaticamente para coleções sem
+`.max()`; nenhum novo limite de negócio foi introduzido nesta atualização.
+
+Nove regressões de navegador cobrem os sete formulários com coerções,
+transformações ou valores padrão. A cobertura dos relatórios passou a verificar
+também o download de PDF. Isso identificou e corrigiu uma integração existente:
+a exportação agora chama `autoTable(doc, options)` explicitamente, conforme a
+API do plugin, em vez de depender de instalação global em `doc.autoTable`.
+
+Auditoria local de 27/10: **0 altas, 0 críticas, 16 moderadas e 4 baixas**.
+Não há novas migrações do banco, alteração de permissões ou de credenciais.
+Os resultados dos testes e limites da validação estão em [ci.md](ci.md).
+
+Avisos oficiais: [body-parser](https://github.com/expressjs/body-parser/security/advisories/GHSA-27r3-jxmh-p828),
+[Zod](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5),
+[Vite](https://github.com/advisories/GHSA-587h-7wmj-h5pm),
+[markdown-it smartquotes](https://github.com/advisories/GHSA-r7fv-28h4-cvq7),
+[markdown-it referências](https://github.com/advisories/GHSA-gfr2-rv44-r23c) e
+[DOMPurify](https://github.com/advisories/GHSA-mrv2-3pqr-j5jr).
+Referências da migração: [Zod 4](https://zod.dev/v4/changelog) e
+[jsPDF-AutoTable](https://github.com/simonbengtsson/jsPDF-AutoTable#usage).
+
 ### Atualização de 17/10/2026 — alertas da verificação semanal
 
 A execução semanal de 12/10/2026, [Application checks #23](https://github.com/victortsrodrigues/lumen/actions/runs/38300794845),

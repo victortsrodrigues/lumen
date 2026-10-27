@@ -20,8 +20,20 @@ const { match, pathToRegexp } = routerRequire("path-to-regexp");
 const XLSX = webRequire("xlsx");
 const rechartsRequire = createRequire(webRequire.resolve("recharts"));
 const template = rechartsRequire("lodash/template");
+const { z } = apiRequire("zod");
 
 describe("patched runtime dependencies", () => {
+  it("rejects oversized Zod collections before validating their elements", () => {
+    const validateItem = vi.fn();
+    const schema = z.array(z.string().superRefine(validateItem)).max(2);
+    const oversized = schema.safeParse(["first", "second", "third"]);
+    expect(oversized.success).toBe(false);
+    expect(oversized.error.issues).toMatchObject([{ code: "too_big" }]);
+    expect(validateItem).not.toHaveBeenCalled();
+    expect(schema.parse(["first", "second"])).toEqual(["first", "second"]);
+    expect(validateItem).toHaveBeenCalledTimes(2);
+  });
+
   it("escapes SQL identifier delimiters and keeps values parameterized", () => {
     const identifier = 'name"quoted';
     const query = new PgDialect().sqlToQuery(
@@ -62,14 +74,16 @@ describe("patched runtime dependencies", () => {
 describe("patched build dependencies", () => {
   it("counts repeated empty YAML merge sources toward the total work limit", () => {
     // Small deterministic regression for GHSA-2883-xcg3-v3hh, not a CPU stress test.
-    const document = "sources: &sources [{}, {}, {}]\nfirst:\n  <<: *sources\nsecond:\n  <<: *sources\n";
+    const document =
+      "sources: &sources [{}, {}, {}]\nfirst:\n  <<: *sources\nsecond:\n  <<: *sources\n";
     expect(() => yaml.load(document, { maxTotalMergeKeys: 5 })).toThrow(
       /merge keys exceeded maxTotalMergeKeys/,
     );
   });
 
   it("preserves ordinary YAML parsing and merges below the work limit", () => {
-    const document = "defaults: &defaults\n  enabled: true\nservice:\n  <<: *defaults\n  name: Lumen\n";
+    const document =
+      "defaults: &defaults\n  enabled: true\nservice:\n  <<: *defaults\n  name: Lumen\n";
     expect(yaml.load(document)).toEqual({
       defaults: { enabled: true },
       service: { enabled: true, name: "Lumen" },
@@ -124,12 +138,12 @@ describe("generated client compatibility", () => {
     }
   });
 
-  it("keeps external OpenAPI references disabled and Zod 3 output explicit", async () => {
+  it("keeps external OpenAPI references disabled and Zod 4 output explicit", async () => {
     const { default: config } = await import("../../lib/api-spec/orval.config");
     for (const project of Object.values(config)) {
       expect(project.input.parserOptions.externalRefs.allow).toEqual([]);
     }
-    expect(config.zod.output.override.zod.version).toBe(3);
+    expect(config.zod.output.override.zod.version).toBe(4);
     const spec = readFileSync(
       new URL("../../lib/api-spec/openapi.yaml", import.meta.url),
       "utf8",

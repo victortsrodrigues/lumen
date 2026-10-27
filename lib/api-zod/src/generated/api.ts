@@ -174,7 +174,7 @@ export const GetMemberStatsResponse = zod.object({
 export const registerBodyPasswordMin = 8;
 
 export const RegisterBody = zod.object({
-  email: zod.string().email(),
+  email: zod.email(),
   password: zod.string().min(registerBodyPasswordMin),
   name: zod.string(),
   consentAccepted: zod
@@ -218,7 +218,7 @@ export const RegisterResponse = zod.object({
  * @summary Login with email and password
  */
 export const LoginBody = zod.object({
-  email: zod.string().email(),
+  email: zod.email(),
   password: zod.string(),
 });
 
@@ -281,7 +281,7 @@ export const GetMeResponse = zod.object({
  * @summary Request password reset
  */
 export const ForgotPasswordBody = zod.object({
-  email: zod.string().email(),
+  email: zod.email(),
 });
 
 export const ForgotPasswordResponse = zod.object({
@@ -292,7 +292,7 @@ export const ForgotPasswordResponse = zod.object({
  * @summary Request a new email verification message
  */
 export const ResendVerificationBody = zod.object({
-  email: zod.string().email(),
+  email: zod.email(),
 });
 
 export const ResendVerificationResponse = zod.object({
@@ -418,7 +418,7 @@ export const ListAccountsResponse = zod.object({
   accounts: zod.array(
     zod.object({
       id: zod.string(),
-      email: zod.string().email(),
+      email: zod.email(),
       name: zod.string(),
       role: zod.enum(["admin", "leader", "member"]),
       status: zod.enum([
@@ -496,7 +496,7 @@ export const RejectAccountBody = zod.object({
 
 export const RejectAccountResponse = zod.object({
   id: zod.string(),
-  email: zod.string().email(),
+  email: zod.email(),
   name: zod.string(),
   role: zod.enum(["admin", "leader", "member"]),
   status: zod.enum([
@@ -528,7 +528,7 @@ export const ReopenAccountParams = zod.object({
 
 export const ReopenAccountResponse = zod.object({
   id: zod.string(),
-  email: zod.string().email(),
+  email: zod.email(),
   name: zod.string(),
   role: zod.enum(["admin", "leader", "member"]),
   status: zod.enum([
@@ -560,7 +560,7 @@ export const GetAccountParams = zod.object({
 
 export const GetAccountResponse = zod.object({
   id: zod.string(),
-  email: zod.string().email(),
+  email: zod.email(),
   name: zod.string(),
   role: zod.enum(["admin", "leader", "member"]),
   status: zod.enum([
@@ -596,7 +596,7 @@ export const ApproveAccountBody = zod.object({
 
 export const ApproveAccountResponse = zod.object({
   id: zod.string(),
-  email: zod.string().email(),
+  email: zod.email(),
   name: zod.string(),
   role: zod.enum(["admin", "leader", "member"]),
   status: zod.enum([
@@ -632,7 +632,7 @@ export const BlockAccountBody = zod.object({
 
 export const BlockAccountResponse = zod.object({
   id: zod.string(),
-  email: zod.string().email(),
+  email: zod.email(),
   name: zod.string(),
   role: zod.enum(["admin", "leader", "member"]),
   status: zod.enum([
@@ -664,7 +664,7 @@ export const UnblockAccountParams = zod.object({
 
 export const UnblockAccountResponse = zod.object({
   id: zod.string(),
-  email: zod.string().email(),
+  email: zod.email(),
   name: zod.string(),
   role: zod.enum(["admin", "leader", "member"]),
   status: zod.enum([
@@ -700,7 +700,7 @@ export const RevokeAccountBody = zod.object({
 
 export const RevokeAccountResponse = zod.object({
   id: zod.string(),
-  email: zod.string().email(),
+  email: zod.email(),
   name: zod.string(),
   role: zod.enum(["admin", "leader", "member"]),
   status: zod.enum([
@@ -732,7 +732,7 @@ export const ReactivateAccountParams = zod.object({
 
 export const ReactivateAccountResponse = zod.object({
   id: zod.string(),
-  email: zod.string().email(),
+  email: zod.email(),
   name: zod.string(),
   role: zod.enum(["admin", "leader", "member"]),
   status: zod.enum([
@@ -768,7 +768,7 @@ export const UpdateAccountRoleBody = zod.object({
 
 export const UpdateAccountRoleResponse = zod.object({
   id: zod.string(),
-  email: zod.string().email(),
+  email: zod.email(),
   name: zod.string(),
   role: zod.enum(["admin", "leader", "member"]),
   status: zod.enum([
@@ -804,7 +804,7 @@ export const UpdateAccountMemberLinkBody = zod.object({
 
 export const UpdateAccountMemberLinkResponse = zod.object({
   id: zod.string(),
-  email: zod.string().email(),
+  email: zod.email(),
   name: zod.string(),
   role: zod.enum(["admin", "leader", "member"]),
   status: zod.enum([
@@ -854,7 +854,7 @@ export const GetAuditLogsResponse = zod.object({
       action: zod.string(),
       resourceType: zod.string().optional(),
       resourceId: zod.string().optional(),
-      details: zod.object({}).passthrough().optional(),
+      details: zod.looseObject({}).optional(),
       ipAddress: zod.string().optional(),
       createdAt: zod.date(),
     }),
@@ -1679,7 +1679,7 @@ export const GetMemberHistoryResponse = zod.object({
       memberId: zod.string(),
       changedByUserId: zod.string(),
       changeType: zod.string(),
-      fieldChanges: zod.object({}).passthrough().optional(),
+      fieldChanges: zod.looseObject({}).optional(),
       createdAt: zod.date(),
     }),
   ),
@@ -1915,7 +1915,6 @@ export const SaveTransferLetterParams = zod.object({
 
 export const SaveTransferLetterBody = zod.object({
   letterPath: zod
-    .string()
     .url()
     .describe("HTTPS URL of the transfer letter stored in a cloud service."),
   destinationChurch: zod.string().optional(),
@@ -1925,7 +1924,7 @@ export const SaveTransferLetterBody = zod.object({
 });
 
 export const SaveTransferLetterResponse = zod.object({
-  letterPath: zod.string().url().optional(),
+  letterPath: zod.url().optional(),
 });
 
 /**
@@ -3292,8 +3291,8 @@ export const GetBudgetComparisonResponse = zod.object({
  * @summary Get own personal data
  */
 export const GetMyDataResponse = zod.object({
-  member: zod.object({}).passthrough(),
-  consents: zod.array(zod.object({}).passthrough()),
+  member: zod.looseObject({}),
+  consents: zod.array(zod.looseObject({})),
   requests: zod.array(
     zod.object({
       id: zod.string(),
@@ -3319,13 +3318,13 @@ export const GetMyDataResponse = zod.object({
 /**
  * @summary Export personal data as JSON (portability)
  */
-export const ExportMyDataResponse = zod.object({}).passthrough();
+export const ExportMyDataResponse = zod.looseObject({});
 
 /**
  * @summary List my consent records
  */
 export const GetMyConsentsResponse = zod.object({
-  consents: zod.array(zod.object({}).passthrough()),
+  consents: zod.array(zod.looseObject({})),
 });
 
 /**
@@ -4911,7 +4910,7 @@ export const CreateAssetResponse = zod.object({
 export const GetAssetsSummaryResponse = zod.object({
   totalAssets: zod.number(),
   totalValue: zod.string(),
-  byCategory: zod.object({}).passthrough().optional(),
+  byCategory: zod.looseObject({}).optional(),
 });
 
 /**
@@ -5185,7 +5184,7 @@ export const GetPlanningSummaryResponse = zod.object({
   totalInitiatives: zod.number(),
   activeInitiatives: zod.number(),
   overdueInitiatives: zod.number(),
-  byStatus: zod.object({}).passthrough().optional(),
+  byStatus: zod.looseObject({}).optional(),
   totalPlannedBudget: zod.string().optional(),
   totalRealizedCost: zod.string().optional(),
 });
@@ -5243,7 +5242,7 @@ export const GetDirectiveDetailResponse = zod.object({
   startYear: zod.string().optional(),
   endYear: zod.string().optional(),
   status: zod.string().optional(),
-  objectives: zod.array(zod.object({}).passthrough()),
+  objectives: zod.array(zod.looseObject({})),
   createdAt: zod.string().optional(),
   updatedAt: zod.string().optional(),
 });

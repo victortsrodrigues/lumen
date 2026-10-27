@@ -76,7 +76,7 @@ export default function CourseDetailPage() {
     query: { enabled: !!params.id },
   });
 
-  const lessonForm = useForm<LessonForm>({
+  const lessonForm = useForm<z.input<typeof lessonSchema>, unknown, LessonForm>({
     resolver: zodResolver(lessonSchema),
     defaultValues: { lessonOrder: (data?.lessons?.length || 0) + 1 },
   });

@@ -54,7 +54,7 @@ export function VisitorForm({ initialData, isEditing = false }: VisitorFormProps
 
   const [assignedName, setAssignedName] = useState<string>(initialData?.assignedToMemberName || "");
 
-  const { register, handleSubmit, formState: { errors }, watch, setValue } = useForm<FormValues>({
+  const { register, handleSubmit, formState: { errors }, watch, setValue } = useForm<z.input<typeof formSchema>, unknown, FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       fullName: initialData?.fullName || "",

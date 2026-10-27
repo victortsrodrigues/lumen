@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { FileBarChart, Download, FileText, Search, Loader2 } from "lucide-react";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { autoTable } from 'jspdf-autotable';
 
 const formatCurrency = (value: string | number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value));
@@ -93,7 +93,7 @@ export default function FinanceReports() {
       ])
     ];
 
-    (doc as any).autoTable({
+    autoTable(doc, {
       startY: 60,
       head: [['Data', 'Natureza', 'Tipo/Categoria', 'Descrição', 'Valor']],
       body: tableData,

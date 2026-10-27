@@ -2,13 +2,14 @@ import { once } from "node:events";
 import {
   createServer,
   get,
+  request,
   type IncomingMessage,
   type RequestListener,
   type ServerResponse,
 } from "node:http";
 import { createRequire } from "node:module";
 import type { AddressInfo } from "node:net";
-import type { Gzip } from "node:zlib";
+import type { Gzip, Inflate } from "node:zlib";
 import { describe, expect, it } from "vitest";
 
 const apiRequire = createRequire(
@@ -149,4 +150,84 @@ describe.sequential("compression response lifecycle", () => {
       Object.defineProperty(zlib, "createGzip", original);
     }
   });
+});
+
+describe.sequential("compressed request body lifecycle", () => {
+  for (const [contentType, body] of [
+    ["application/json", JSON.stringify({ name: "João Lumen" })],
+    [
+      "application/x-www-form-urlencoded",
+      new URLSearchParams({ name: "João Lumen" }).toString(),
+    ],
+  ]) {
+    it(`closes the decoder after parsing a compressed body (${contentType})`, async () => {
+      const original = Object.getOwnPropertyDescriptor(zlib, "createInflate")!;
+      const createInflate = zlib.createInflate;
+      const decoders: Inflate[] = [];
+      Object.defineProperty(zlib, "createInflate", {
+        ...original,
+        value: (...args: Parameters<typeof createInflate>) => {
+          const stream = createInflate(...args);
+          decoders.push(stream);
+          return stream;
+        },
+      });
+      try {
+        const app = express();
+        // Match the two parsers used by the production app, with default options.
+        app.use(express.json());
+        app.use(express.urlencoded({ extended: true }));
+        app.post(
+          "/",
+          (req: { body: unknown }, res: { json(body: unknown): void }) =>
+            res.json(req.body),
+        );
+        app.get("/", (_req: unknown, res: { json(body: unknown): void }) =>
+          res.json({ status: "ok" }),
+        );
+        await withServer(app, async (base) => {
+          const parsed = await new Promise<unknown>((resolve, reject) => {
+            const client = request(
+              base,
+              {
+                method: "POST",
+                agent: false,
+                headers: {
+                  "Content-Type": contentType,
+                  "Content-Encoding": "deflate",
+                },
+              },
+              async (response) => {
+                try {
+                  expect(response.statusCode).toBe(200);
+                  // GHSA-27r3-jxmh-p828: successful parsing must not leave a live,
+                  // unguarded decoder that can fail on bytes arriving afterwards.
+                  expect(decoders).toHaveLength(1);
+                  expect(decoders[0].destroyed).toBe(true);
+                  const chunks: Buffer[] = [];
+                  for await (const chunk of response)
+                    chunks.push(Buffer.from(chunk));
+                  resolve(JSON.parse(Buffer.concat(chunks).toString()));
+                } catch (error) {
+                  client.destroy();
+                  reject(error);
+                }
+              },
+            );
+            client.on("error", reject);
+            client.setTimeout(2_000, () =>
+              client.destroy(new Error("Local request timed out")),
+            );
+            client.end(zlib.deflateSync(body));
+          });
+          expect(parsed).toEqual({ name: "João Lumen" });
+          const response = await fetch(base);
+          expect(await response.json()).toEqual({ status: "ok" });
+        });
+      } finally {
+        for (const decoder of decoders) decoder.destroy();
+        Object.defineProperty(zlib, "createInflate", original);
+      }
+    });
+  }
 });

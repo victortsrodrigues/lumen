@@ -57,7 +57,7 @@ const eventSchema = z.object({
   responsibleId: z.string().optional(),
   recurrence: z.enum(["unico", "semanal", "quinzenal", "mensal"]).optional(),
   type: z.enum(["culto", "reuniao", "conferencia", "social", "outro"], {
-    errorMap: () => ({ message: "Tipo é obrigatório" }),
+    error: "Tipo é obrigatório",
   }),
   maxSlots: optionalNumber,
   status: z.enum(["agendado", "em_andamento", "encerrado", "cancelado"]).optional(),
@@ -140,7 +140,7 @@ export default function EventsPage() {
     return out;
   }, [calendarData]);
 
-  const form = useForm<EventForm>({
+  const form = useForm<z.input<typeof eventSchema>, unknown, EventForm>({
     resolver: zodResolver(eventSchema),
     defaultValues: { type: "culto", recurrence: "unico", status: "agendado" },
   });

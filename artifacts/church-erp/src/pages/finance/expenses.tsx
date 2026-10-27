@@ -94,7 +94,7 @@ export default function FinanceExpenses() {
     }
   });
 
-  const form = useForm<ExpenseFormValues>({
+  const form = useForm<z.input<typeof expenseSchema>, unknown, ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
     defaultValues: { category: "manutencao", date: format(new Date(), 'yyyy-MM-dd') }
   });
